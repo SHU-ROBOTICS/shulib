@@ -16,7 +16,8 @@
 // pen itself, so the second outline sets the same pen again. The pixels are the same.
 //
 // NO HARDWARE CLAIM BEYOND THE PROGRAM'S: these are the calls "shulib Calibrate" has made on robot
-// two since 2026-09-24 (R3d Part 2F-2), in the same order; THIS adapter has not run on a robot.
+// two since 2026-09-24 (R3d Part 2F-2), in the same order; inside "shulib Calibrate" this adapter
+// ran on robot one on 2026-11-16 and 11-17.
 // Its host test (test/pros_brain_screen_adapter_test.cpp) runs it through the host PROS shim,
 // which records every call — that checks the adapter against our BELIEF about PROS, not the
 // belief itself.

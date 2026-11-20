@@ -33,7 +33,7 @@ class ProsBrainScreen final : public IBrainScreen
 
 The brain's own touch screen, through PROS (header). Holds only its print count.
 
-*class, declared at [`include/shulib/hal/pros/brain_screen.hpp:38`](../../include/shulib/hal/pros/brain_screen.hpp#L38).*
+*class, declared at [`include/shulib/hal/pros/brain_screen.hpp:39`](../../include/shulib/hal/pros/brain_screen.hpp#L39).*
 
 <a id="prosbrainscreen-fillrect"></a>
 
@@ -45,7 +45,7 @@ void fillRect(std::int16_t x0, std::int16_t y0, std::int16_t x1, std::int16_t y1
 
 screen_set_pen(rgb), then screen_fill_rect.
 
-*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:41`](../../include/shulib/hal/pros/brain_screen.hpp#L41).*
+*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:42`](../../include/shulib/hal/pros/brain_screen.hpp#L42).*
 
 <a id="prosbrainscreen-outlinerect"></a>
 
@@ -57,7 +57,7 @@ void outlineRect(std::int16_t x0, std::int16_t y0, std::int16_t x1, std::int16_t
 
 screen_set_pen(rgb), then screen_draw_rect.
 
-*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:47`](../../include/shulib/hal/pros/brain_screen.hpp#L47).*
+*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:48`](../../include/shulib/hal/pros/brain_screen.hpp#L48).*
 
 <a id="prosbrainscreen-eraserect"></a>
 
@@ -69,7 +69,7 @@ void eraseRect(std::int16_t x0, std::int16_t y0, std::int16_t x1, std::int16_t y
 
 screen_set_eraser(rgb), then screen_erase_rect.
 
-*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:53`](../../include/shulib/hal/pros/brain_screen.hpp#L53).*
+*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:54`](../../include/shulib/hal/pros/brain_screen.hpp#L54).*
 
 <a id="prosbrainscreen-eraseall"></a>
 
@@ -81,7 +81,7 @@ void eraseAll(std::uint32_t rgb) override
 
 screen_set_eraser(rgb), then screen_erase.
 
-*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:59`](../../include/shulib/hal/pros/brain_screen.hpp#L59).*
+*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:60`](../../include/shulib/hal/pros/brain_screen.hpp#L60).*
 
 <a id="prosbrainscreen-print"></a>
 
@@ -93,7 +93,7 @@ void print(ScreenTextSize size, std::int16_t x, std::int16_t y, std::uint32_t pe
 
 screenSafeLine(text, cols, padTo), then screen_set_eraser, screen_set_pen and screen_print_at(size, x, y, "%s", line) — printText()'s order.
 
-*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:65`](../../include/shulib/hal/pros/brain_screen.hpp#L65).*
+*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:66`](../../include/shulib/hal/pros/brain_screen.hpp#L66).*
 
 <a id="prosbrainscreen-touch"></a>
 
@@ -105,7 +105,7 @@ screenSafeLine(text, cols, padTo), then screen_set_eraser, screen_set_pen and sc
 
 screen_touch_status(), an E_TOUCH_ERROR read reported as an error.
 
-*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:76`](../../include/shulib/hal/pros/brain_screen.hpp#L76).*
+*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:77`](../../include/shulib/hal/pros/brain_screen.hpp#L77).*
 
 <a id="prosbrainscreen-prints"></a>
 
@@ -117,14 +117,14 @@ screen_touch_status(), an E_TOUCH_ERROR read reported as an error.
 
 Every print() through this object.
 
-*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:86`](../../include/shulib/hal/pros/brain_screen.hpp#L86).*
+*function, declared at [`include/shulib/hal/pros/brain_screen.hpp:87`](../../include/shulib/hal/pros/brain_screen.hpp#L87).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 21 lines</summary>
+<summary>The header’s own reasoning — 22 lines</summary>
 
 ```text
 
@@ -144,7 +144,8 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  pen itself, so the second outline sets the same pen again. The pixels are the same.
 
  NO HARDWARE CLAIM BEYOND THE PROGRAM'S: these are the calls "shulib Calibrate" has made on robot
- two since 2026-09-24 (R3d Part 2F-2), in the same order; THIS adapter has not run on a robot.
+ two since 2026-09-24 (R3d Part 2F-2), in the same order; inside "shulib Calibrate" this adapter
+ ran on robot one on 2026-11-16 and 11-17.
  Its host test (test/pros_brain_screen_adapter_test.cpp) runs it through the host PROS shim,
  which records every call — that checks the adapter against our BELIEF about PROS, not the
  belief itself.

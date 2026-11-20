@@ -16,6 +16,55 @@
 
 ## API 2.9
 
+### 2026-11-17 — Calibrate finds the sides by coupling, and DONE stays steady
+
+> Written when it was built (chunk CAL2, run CAL2-A). **Host only: this Calibrate has not run on a robot.**
+
+**Why:** robot one is heavy and each side is one gear train. One motor of ten cannot turn it, so the pulses read
+only frame flex and Calibrate stopped with NOTHING MOVED. But when one motor is pulsed, its side-mates turn with it
+and the other side does not. And DONE flickered: robot one's IMU reads about 1 deg/s at rest, against a floor of 1.
+
+**CHANGED (behaviour of `DrivetrainCalibrator`'s pulses — no signature changed):**
+
+- A port's side-mates are read first: the ports that turn with a pulsed one (`followThreshold`) while some drive
+  port stays still are one **group**. Every drive port is still pulsed at least once, a grouped one from its group's
+  level, to show it drives its train. A grouped port whose own shaft turns `movedThreshold` (5 deg) but moves no
+  mate stays in its group (**KEPT**); one whose shaft does not turn stops the run (`PULSE_STILL`); one whose shaft
+  spins `decoupledOwnMin` is a slipping gear, LEFT OUT. With no follower, the yaw decides as before, so a drive
+  whose motors are not geared together runs as it did. A turn drags the idle side: a port that went back while the
+  robot turned was rolled back; one that went back while the robot held still stops the run
+  (`FOLLOWER_REVERSED`). A pulse that turned the robot (past `pulseYawFloor`) against the turn of its group's
+  first pulse leaves that group, and that group's ports are not its followers.
+- With groups, the spin first turns group A forward and B backward until the yaw reaches `identifyYaw`: CCW means
+  A is RIGHT. Then the spin both ways, as before.
+- The default ramp is **3 / 6 / 9 / 12 V** (`pulseLevelCount` 4, was 3).
+- `decoupledOwnMin` is **90 deg** of shaft (was 20): robot one's working motors turned theirs up to 18 deg against
+  a gear train that held. A port at the top level with its shaft between the two now stops the run
+  (`PULSE_STILL`) instead of being LEFT OUT.
+- **Rest** judges the IMU by the heading's change over `restSettleTime`, an average rate, not the instant rate;
+  it needs a full window. `restSettleTime` must now be **above 0** (it was `>= 0`). A turn just begun reads
+  still for `restYawRateFloor` / its rate of the window (robot one, a 3 deg/s turn: a third of it); on the floor
+  the motors' check still sees it: its wheels turn the motors.
+- `PULSE_STILL`'s sentence says how far the other drive ports moved (it said none moved).
+- `PulseRecord::followers` is filled on every pulse; the follower line says `turned with it (no group)` when ports
+  moved but made no group.
+
+**CHANGED (`CalibrateProgram`'s stack — no signature changed):** it keeps its calibrator and the run's record in
+static storage, off `opcontrol()`'s stack: GCC measures 23.6 KB at the save instead of 31.8 KB, before the C
+library's frames, on a 32 KiB stack. A measurement build of it, ~140 B over the release, stopped with FATAL ERROR
+on robot one's opcontrol task at the save (2026-11-17). One `CalibrateProgram` runs at a time.
+
+**Added (additive):** `CalibratorConfig::followThreshold` (2 deg) and `identifyYaw` (5 deg);
+`PulseVerdict::Followed` and `Kept`; `Refusal::SideConflict` (`SIDE_CONFLICT`: a port moved both groups, a third
+group, or a yaw side against its group's) and `Refusal::FollowerReversed` (`FOLLOWER_REVERSED`), appended so no
+value moves;
+`PortObservation::group` and `followDeg`, `PulseRecord::followers`, `CalibrationReport::groupCount`, `groupSide`
+and `identifyYawRad`, `CalibratorStatus::identifying`; `formatFollowerRecord`, `formatGroupsRecord`,
+`formatIdentifyRecord` (Calibrate's serial log prints them); the panel's `kFindingLeft`.
+How: [guide chapter 19](guide/19-calibrating-your-robot.md#one-run).
+
+**What you must do:** nothing. A robot file that set `restSettleTime` to 0 now stops at the precondition.
+
 ### 2026-11-16 — the route builder's Controls tab: the driver's buttons and the driving feel, by clicking
 
 > Written when it was built (chunk RMP1, run RMP1-B). **No library change — no API change:** nothing under

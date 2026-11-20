@@ -34,7 +34,7 @@
 // "2 per push", through the real shell — A2a's PC1 counts them per call, its T5j per push on the
 // fakes); what a FORWARD command on the saved record does to the plant's wheels (the probe's score:
 // 10 of 10 after a front-led push or a cable swap saved with USE NEW, 0 of 10 after USE NEW on a
-// wrong push); the undeclared motors' voltages (8 never powered, 9 pulsed to 9 V); and two equalities
+// wrong push); the undeclared motors' voltages (8 never powered, 9 pulsed to 12 V); and two equalities
 // the brief names — typed-card-wins IS its untyped control (with a record on the card the typed ports
 // change nothing), typed-nocard IS nocard (no card, no check, typed or not). A seeded scenario never
 // runs without its seed: `one`'s saved record, REQUIRED to exist and decode first.
@@ -477,7 +477,7 @@ void checkScenario(const std::string& name) {
     if (n.sc.undeclared) {
         CHECK(r.motors[8].setGearingCalls == 1);
         CHECK(r.maxAbsMv[8] == 0.0);        // 8 did not turn: never powered
-        CHECK(r.maxAbsMv[9] == 9000.0);     // 9 the push turned: pulsed up to 9 V
+        CHECK(r.maxAbsMv[9] == 12000.0);    // 9 the push turned: pulsed up to 12 V (CAL2's top level)
         CHECK(r.poweredSteps[9] > 0);
     }
 

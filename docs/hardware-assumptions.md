@@ -459,9 +459,9 @@
 | HA-131 | On robot two, ODO_STUCK cannot be detected by the wheels-vs-odometry cross-check: the odometry IS the drive encoders, so the check is a tautology and is deliberately not wired to report a verdict | reasoned (structural) | R3d/R4 |
 | HA-132 | The coupled-side agreement thresholds — evaluate above 1 V and 1 rad/s; opposite sign above 0.5 rad/s; under 25 % of the side's fastest; 25 consecutive 10 ms ticks — separate a real fight from a transient | **invented** | R3d/R4 |
 | HA-133 | A coupled member under 25 % of its side's fastest is disagreeing, and one at 80 % (port 18's signature) is NOT — the disagreement FLOOR tolerates a slow member and catches a frozen one | **invented** | R3d/R4 |
-| HA-134 | On a tank, driving ONE side forward alone turns the robot toward the other: LEFT forward → CLOCKWISE → NEGATIVE canonical yaw; RIGHT forward → positive. The calibrator reads a drive port's SIDE off that sign — from a pulse that RAMPS 3 → 6 → 9 V until the turn clears the floor, classifying a port no level turns (since R3d Part 2F-1) | reasoned (rigid-body) | R3d Part 3 |
+| HA-134 | On a tank, driving ONE side forward alone turns the robot toward the other: LEFT forward → CLOCKWISE → NEGATIVE canonical yaw; RIGHT forward → positive. The calibrator reads a drive port's SIDE off that sign — from a pulse that RAMPS 3 → 6 → 9 → 12 V until the turn clears the floor, classifying a port no level turns (since R3d Part 2F-1). Since CAL2 (2026-11-17) the sign is the FALLBACK: ports that turn together are one group, and the same rule names a group's side from a group-A-forward, group-B-back turn | reasoned (rigid-body) | R3d Part 3 |
 | HA-135 | The EFFECTIVE track width a powered spin measures is LARGER than the tape's contact-line-to-contact-line width, because a turning tank scrubs; the effective one is what the kinematics and the heading cross-check need | reasoned | R3d Part 3 |
-| HA-136 | Every number in `calibration::CalibratorConfig` — the push threshold, the rest floors (motor velocity and, since 2F-1, IMU yaw rate)/settle/timeout, the pulse levels/time/yaw floor, the decoupled minimum, the push distance (a CHOICE), the straightness bound, the minimum push, the spin levels/start check/wrong-way bound/turns/timeout/agreement, the IMU-ready and missed-tick timeouts — plus the two reproducibility tolerances the host suite pins, and the calibration screen model's text budgets, line heights, hit padding and arming delay | **invented** | R3d Part 3 (the screen's: Bench Tests' SCREEN RULER) |
+| HA-136 | Every number in `calibration::CalibratorConfig` — the push threshold, the rest floors (motor velocity and, since 2F-1, IMU yaw rate — an average over the settle window since CAL2)/settle/timeout, the pulse levels/time/yaw floor, the follow threshold and the identify yaw (CAL2), the decoupled minimum, the push distance (a CHOICE), the straightness bound, the minimum push, the spin levels/start check/wrong-way bound/turns/timeout/agreement, the IMU-ready and missed-tick timeouts — plus the two reproducibility tolerances the host suite pins, and the calibration screen model's text budgets, line heights, hit padding and arming delay | **invented** | R3d Part 3 (the screen's: Bench Tests' SCREEN RULER) |
 | HA-137 | A coupled train whose members are commanded DIFFERENT volts turns at the MEAN of their effective volts (the A2 plant's model; torque-free); since R3d Part 2F-1 also: an all-coasting wheel may FOLLOW the driven one by a fraction κ (default 0 = pinned), and a slipping (`Decoupled`) member's volts never reach its train | **invented** (sim shape) | R6 |
 | HA-138 | `registry_get_plugged_type(i)` is ZERO-indexed: registry index i is PHYSICAL PORT i+1, and indices run 0–20 | reasoned (vendored text) — and the ONE conversion lives in `hal/pros/device_registry.hpp` | R3d Part 3 |
 | HA-139 | `fopen(path, "rb")` under `/usd/` reads back the exact bytes `"wb"` wrote, byte for byte, on the brain's FatFS | reasoned, flagged — the host CANNOT test the mode (POSIX does not translate) | R3d Part 3 |
@@ -2645,8 +2645,21 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   shaft turned while nothing else moved → a slipping gear, LEFT OUT of the description with a
   warning; other drive ports moved but the robot did not turn → it ROLLED (or is off the floor),
   refused naming the port; nothing moved → refused naming the port.
-  *Source:* `include/shulib/calibration/drivetrain_calibrator.hpp` (the header's phase table and
-  `finishPulse()`, `A4 register HA-134`); `test/drivetrain_calibrator_test.cpp` case 6 — every LEFT
+  **Amended at CAL2 (2026-11-17), after robot one:** one motor of ten could not turn that heavy robot;
+  its pulses read 0.1–0.75° of frame FLEX, which crossed its 0.6° floor at 6 V. But the pulsed motor's
+  side-mates turned 2–6° with it (5–6° at 6 V) and the other side 0. So the side-mates are read FIRST: ports that turn
+  with a pulsed one (≥ `followThreshold`) while some drive port stays still are one group, and this
+  sign names the group: group A forward and group B backward turn the robot CW when A is LEFT. With no
+  follower the sign decides each port as above. The ramp gained 12 V. The sign also keeps a turn's drag
+  out of a group: a pulse that turned the robot past the floor against the turn of its group's first
+  pulse (also past the floor) leaves that group, and that group's ports are not its followers (a light
+  geared robot's idle side, dragged forward, joined the pulsed port's group — C13).
+  *Source:* `include/shulib/calibration/drivetrain_calibrator.hpp` (the header's phase table,
+  `finishPulse()`, and since CAL2 `tickIdentify()` / `identifySides()`, `A4 register HA-134`);
+  `test/calibrate_coupling_test.cpp` C5 (the identification turn names A LEFT or A RIGHT for both
+  wirings; its sign swapped, mutation M3, observed red), C13 and C14 (the drag rule: a light robot's idle side
+  dragged forward ends in its own group; a yaw under the floor moves no port; each clause's mutation observed
+  red); `test/drivetrain_calibrator_test.cpp` case 6 — every LEFT
   pulse's Δθ negative, every RIGHT pulse's positive, the resulting sides equal to the plant's wheel
   membership exactly, with the rule-swapping mutation observed red (since 2F-1 it is caught ON THE
   ROBOT too: a flipped rule makes the spin turn the wrong way and the new wrong-way guard stops it at
@@ -2669,7 +2682,9 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   single-member pulse must be on robot two.
   *Blast radius if wrong:* the two sides swap, so every commanded turn goes the wrong way and the
   odometry's heading cross-check reads double instead of zero. **Contained:** one comparison in
-  `finishPulse()`. Loud rather than silent — and since 2F-1 caught before any record is written: the
+  `finishPulse()` and, for grouped ports (CAL2), one in `tickIdentify()`; a sign that differed between
+  two pulses of one side would move a port out of its group (`finishPulse()`'s drag rule), which the
+  identification turn's check or the spin's coupled-side monitor then refuses. Loud rather than silent — and since 2F-1 caught before any record is written: the
   spin's wrong-way guard refuses at 15°.
 
 - [ ] **HA-135 — the EFFECTIVE track width from a powered spin is LARGER than the taped one.**
@@ -2699,8 +2714,9 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   number in the calibration screen model).**
   *Claim:* the calibration's thresholds — `movedThreshold` 5° (carried unchanged from the bench
   tester's MOTOR WATCH, where it was invented too), `restFloor` 0.05 rad/s, `restYawRateFloor` 2°/s,
-  `restSettleTime` 0.5 s, `restTimeout` 3 s, `pulseLevels` 3 / 6 / 9 V (`pulseLevelCount` 3),
-  `pulseTime` 0.4 s, `pulseYawFloor` 2°, `decoupledOwnMin` 20° of shaft, `pushDistance` 48 in,
+  `restSettleTime` 0.5 s, `restTimeout` 3 s, `pulseLevels` 3 / 6 / 9 / 12 V (`pulseLevelCount` 4
+  since CAL2; 3 before), `pulseTime` 0.4 s, `pulseYawFloor` 2°, `followThreshold` 2° and `identifyYaw`
+  5° (both CAL2), `decoupledOwnMin` 90° of shaft (20° until CAL2's review), `pushDistance` 48 in,
   `straightBound` 3°, `minPushRad` 2π (one wheel turn), `spinLevels` 3 / 6 V (`spinLevelCount` 2),
   `spinStartTime` 2 s, `spinStartYaw` 5°, `spinWrongWay` 15°, `spinTurns` 2, `spinTimeout` 20 s,
   `spinAgreement` 5 %, `imuReadyTimeout` 5 s, `commandTimeout` 0.1 s — plus the two reproducibility
@@ -2717,7 +2733,16 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   known). One relation is now a precondition, not a hope: `restYawRateFloor × pulseTime <
   pulseYawFloor` (0.8° < 2°), so a drift slow enough to pass the rest check can never, on its own,
   cross the floor during a pulse — and a side can only come out wrong through a leak at least as big
-  as the floor. **The screen model's estimates** (`calibration/calibrate_panel.hpp`): characters per
+  as the floor. **Changed at CAL2 (2026-11-17):** `restYawRateFloor` is now an AVERAGE — the heading's
+  change over `restSettleTime` — not the IMU's instant rate (robot one's read ~1°/s at rest against its
+  1.0°/s floor, and DONE flickered); `restSettleTime` must be above 0. `followThreshold` 2° sits under
+  robot one's side-mates' 5–6° at 6 V and over its other side's 0 (robot one's serial log, 2026-11-17;
+  10–23° in the completed run). `decoupledOwnMin` rose from 20° to 90°: robot one's working motors turned
+  their own shaft up to 18° against a gear train that held and 24° moving it, so 20° could LEAVE OUT a
+  working motor; a slipping gear spins hundreds of degrees in a pulse (the plant's port 18: 398–874°).
+  `movedThreshold` (5°) is also the least own-shaft turn that keeps a grouped port with no follower in its
+  group (KEPT): robot one's working motors turned theirs 8.4–24°; under it the port stops `PULSE_STILL`.
+  **The screen model's estimates** (`calibration/calibrate_panel.hpp`): characters per
   472-pixel line LARGE 18 / MEDIUM 36 / SMALL 50 (and two sub-budgets, the header word 24 and the note
   beside RUN AGAIN 18), line heights 34 / 20 / 16 px, touch padding ±4 px sideways and ±10 px up and
   down, and a 0.5 s arming delay after every layout change — none measured; every literal is checked
@@ -2734,7 +2759,11 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   floor, the missed-tick bound and the spin agreement are each attacked from BOTH sides — a value
   just under the line and the same value just over it — and the ramp, the rest's yaw-rate floor, the
   decoupled minimum and the spin's start check and wrong-way bound each have a case that fails
-  without them (each mutation run and observed red at R3d Part 2F-1).
+  without them (each mutation run and observed red at R3d Part 2F-1); `test/calibrate_coupling_test.cpp`
+  for CAL2's `followThreshold` (C1, C2, C4; mutation M1), `identifyYaw` (C5, C7), the average-rate rest
+  (C6, robot one's 1.0°/s floor attacked at 0.95 and 1.05°/s) and `decoupledOwnMin`'s 90° (C12: a
+  grouped port at 24° KEPT, one spinning 300° LEFT OUT; the 20° bound observed red; own 0° and 4°
+  `PULSE_STILL`, 6° KEPT, the 5° floor removed observed red).
   *Confidence:* **invented**, every one, for a first run. The host plant can only show that each
   threshold FIRES where it is set, never that it is set in the right place. The ramp's first level
   and the spin's inherit the DRIVE station's first ceiling (3 V), whose only history is "nothing

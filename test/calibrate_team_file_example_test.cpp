@@ -10,7 +10,7 @@ constexpr calibration::CalibrateFacts kOurRobot{
     .drive = config::DrivetrainKind::Tank,
     .cartridge = hal::MotorCartridge::Blue,  // the insert colour of the DRIVE motors
     // EVERY motor that is not a drive motor. A motor left out is a drive candidate,
-    // and one the push turns gets powered (3, 6, 9 V) like a drive motor.
+    // and one the push turns gets powered (3, 6, 9, then 12 V) like a drive motor.
     .mechanisms = {{6, "left claw"}, {7, "right claw"}},
 };
 

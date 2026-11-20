@@ -8,7 +8,7 @@
 
 DrivetrainCalibrator — the robot describes its own drivetrain.
 
-This header declares **12** types (151 members), **5** free functions, and **7** constants.
+This header declares **12** types (164 members), **8** free functions, and **7** constants.
 
 Extracted from [`include/shulib/calibration/drivetrain_calibrator.hpp`](../../include/shulib/calibration/drivetrain_calibrator.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -54,6 +54,8 @@ Extracted from [`include/shulib/calibration/drivetrain_calibrator.hpp`](../../in
   - [`MissedTick`](#refusal-missedtick)
   - [`OutOfOrder`](#refusal-outoforder)
   - [`InvalidDescription`](#refusal-invaliddescription)
+  - [`SideConflict`](#refusal-sideconflict)
+  - [`FollowerReversed`](#refusal-followerreversed)
 - [`enum class PulseVerdict`](#enum-class-pulseverdict)
   - [`None`](#pulseverdict-none)
   - [`Weak`](#pulseverdict-weak)
@@ -63,6 +65,8 @@ Extracted from [`include/shulib/calibration/drivetrain_calibrator.hpp`](../../in
   - [`Decoupled`](#pulseverdict-decoupled)
   - [`Rolled`](#pulseverdict-rolled)
   - [`Still`](#pulseverdict-still)
+  - [`Followed`](#pulseverdict-followed)
+  - [`Kept`](#pulseverdict-kept)
 - [`struct HumanFacts`](#struct-humanfacts)
   - [`kind`](#humanfacts-kind)
   - [`cartridge`](#humanfacts-cartridge)
@@ -78,6 +82,7 @@ Extracted from [`include/shulib/calibration/drivetrain_calibrator.hpp`](../../in
   - [`pulseLevelCount`](#calibratorconfig-pulselevelcount)
   - [`pulseTime`](#calibratorconfig-pulsetime)
   - [`pulseYawFloor`](#calibratorconfig-pulseyawfloor)
+  - [`followThreshold`](#calibratorconfig-followthreshold)
   - [`decoupledOwnMin`](#calibratorconfig-decoupledownmin)
   - [`pushDistance`](#calibratorconfig-pushdistance)
   - [`straightBound`](#calibratorconfig-straightbound)
@@ -86,6 +91,7 @@ Extracted from [`include/shulib/calibration/drivetrain_calibrator.hpp`](../../in
   - [`spinLevelCount`](#calibratorconfig-spinlevelcount)
   - [`spinStartTime`](#calibratorconfig-spinstarttime)
   - [`spinStartYaw`](#calibratorconfig-spinstartyaw)
+  - [`identifyYaw`](#calibratorconfig-identifyyaw)
   - [`spinWrongWay`](#calibratorconfig-spinwrongway)
   - [`spinTurns`](#calibratorconfig-spinturns)
   - [`spinTimeout`](#calibratorconfig-spintimeout)
@@ -97,6 +103,7 @@ Extracted from [`include/shulib/calibration/drivetrain_calibrator.hpp`](../../in
   - [`port`](#portobservation-port)
   - [`sign`](#portobservation-sign)
   - [`side`](#portobservation-side)
+  - [`group`](#portobservation-group)
   - [`pushDeltaRad`](#portobservation-pushdeltarad)
   - [`pushTravelRad`](#portobservation-pushtravelrad)
   - [`pulseYawRad`](#portobservation-pulseyawrad)
@@ -105,6 +112,7 @@ Extracted from [`include/shulib/calibration/drivetrain_calibrator.hpp`](../../in
   - [`pulseOthersRad`](#portobservation-pulseothersrad)
   - [`verdict`](#portobservation-verdict)
   - [`excluded`](#portobservation-excluded)
+  - [`followDeg`](#portobservation-followdeg)
 - [`struct PulseRecord`](#struct-pulserecord)
   - [`port`](#pulserecord-port)
   - [`ordinal`](#pulserecord-ordinal)
@@ -113,6 +121,7 @@ Extracted from [`include/shulib/calibration/drivetrain_calibrator.hpp`](../../in
   - [`ownRad`](#pulserecord-ownrad)
   - [`othersMaxRad`](#pulserecord-othersmaxrad)
   - [`verdict`](#pulserecord-verdict)
+  - [`followers`](#pulserecord-followers)
 - [`struct SpinRecord`](#struct-spinrecord)
   - [`direction`](#spinrecord-direction)
   - [`levelVolts`](#spinrecord-levelvolts)
@@ -142,6 +151,9 @@ Extracted from [`include/shulib/calibration/drivetrain_calibrator.hpp`](../../in
   - [`spinCount`](#calibrationreport-spincount)
   - [`excludedPorts`](#calibrationreport-excludedports)
   - [`excludedCount`](#calibrationreport-excludedcount)
+  - [`groupCount`](#calibrationreport-groupcount)
+  - [`groupSide`](#calibrationreport-groupside)
+  - [`identifyYawRad`](#calibrationreport-identifyyawrad)
 - [`struct CalibratorStatus`](#struct-calibratorstatus)
   - [`phase`](#calibratorstatus-phase)
   - [`prompt`](#calibratorstatus-prompt)
@@ -162,6 +174,7 @@ Extracted from [`include/shulib/calibration/drivetrain_calibrator.hpp`](../../in
   - [`spinDirection`](#calibratorstatus-spindirection)
   - [`spinTurns`](#calibratorstatus-spinturns)
   - [`spinLevelVolts`](#calibratorstatus-spinlevelvolts)
+  - [`identifying`](#calibratorstatus-identifying)
   - [`leftCount`](#calibratorstatus-leftcount)
   - [`rightCount`](#calibratorstatus-rightcount)
   - [`excludedCount`](#calibratorstatus-excludedcount)
@@ -188,6 +201,9 @@ Extracted from [`include/shulib/calibration/drivetrain_calibrator.hpp`](../../in
 - [`pulseVerdictWord`](#pulseverdictword) — *free function*
 - [`formatPushRecord`](#formatpushrecord) — *free function*
 - [`formatPulseRecord`](#formatpulserecord) — *free function*
+- [`formatFollowerRecord`](#formatfollowerrecord) — *free function*
+- [`formatGroupsRecord`](#formatgroupsrecord) — *free function*
+- [`formatIdentifyRecord`](#formatidentifyrecord) — *free function*
 - [`formatSpinRecord`](#formatspinrecord) — *free function*
 
 <a id="kdegreestoradians"></a>
@@ -200,7 +216,7 @@ inline constexpr double kDegreesToRadians = math::Angle::kPi / 180.0
 
 Radians per degree — the thresholds below are stated in the degrees a person can picture on a panel and converted once, here, rather than written as decimal radians nobody can check.
 
-*constant, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:170`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L170).*
+*constant, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:188`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L188).*
 
 <a id="kreproscaletolerance"></a>
 
@@ -212,7 +228,7 @@ inline constexpr double kReproScaleTolerance = 0.02
 
 The reproducibility the calibrator CLAIMS for a side's scale: two complete runs of the same procedure on the same drivetrain must agree within this fraction. PROVISIONAL (A4: HA-136) — pinned against the A2 plant under encoder and IMU hostility; a bench session decides whether a real drivetrain holds it.
 
-*constant, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:176`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L176).*
+*constant, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:194`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L194).*
 
 <a id="kreprowidthtolerance"></a>
 
@@ -224,7 +240,7 @@ inline constexpr double kReproWidthTolerance = 0.03
 
 The reproducibility the calibrator CLAIMS for the effective track width, as a fraction. Looser than the scale's because the spin measurement runs through the floor's scrub, which is the one thing the host plant does not model. PROVISIONAL (A4: HA-136).
 
-*constant, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:181`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L181).*
+*constant, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:199`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L199).*
 
 <a id="kprovenancekept"></a>
 
@@ -236,7 +252,7 @@ inline constexpr int kProvenanceKept = 40
 
 How many characters of the provenance it is HANDED the calibrator keeps before its own ` | ROBOT-MEASURED: …` summary (the record's 96-byte field holds both). A program that names its robot there (calibrate_program.hpp's record name, chunk ROB1-BT) must fit the name inside it.
 
-*constant, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:186`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L186).*
+*constant, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:204`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L204).*
 
 <a id="kmaxpulselevels"></a>
 
@@ -246,9 +262,9 @@ How many characters of the provenance it is HANDED the calibrator keeps before i
 inline constexpr std::size_t kMaxPulseLevels = 4
 ```
 
-The most pulse levels a ramp may have. Four: the default ramp uses three, and a fourth leaves room to try one more without an array growing.
+The most pulse levels a ramp may have. Four: the default ramp (3 / 6 / 9 / 12 V since CAL2).
 
-*constant, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:190`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L190).*
+*constant, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:207`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L207).*
 
 <a id="kmaxspinlevels"></a>
 
@@ -260,7 +276,7 @@ inline constexpr std::size_t kMaxSpinLevels = 4
 
 The most spin levels the start check may step through.
 
-*constant, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:193`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L193).*
+*constant, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:210`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L210).*
 
 <a id="kmaxpulserecords"></a>
 
@@ -272,7 +288,7 @@ inline constexpr std::size_t kMaxPulseRecords = hal::kMaxSmartPorts * kMaxPulseL
 
 The most pulse records one run can produce: every port, at every level.
 
-*constant, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:196`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L196).*
+*constant, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:213`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L213).*
 
 <a id="enum-class-phase"></a>
 
@@ -284,7 +300,7 @@ enum class Phase : std::uint8_t
 
 Where a run has got to. A run ends in exactly one of Done or Aborted.
 
-*enum class, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:199`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L199).*
+*enum class, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:216`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L216).*
 
 <a id="phase-idle"></a>
 
@@ -296,7 +312,7 @@ Idle
 
 constructed, start() not yet called
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:200`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L200).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:217`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L217).*
 
 <a id="phase-waitimu"></a>
 
@@ -308,7 +324,7 @@ WaitImu
 
 waiting for the IMU to finish its boot calibration
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:201`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L201).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:218`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L218).*
 
 <a id="phase-pushcapture"></a>
 
@@ -320,7 +336,7 @@ PushCapture
 
 UNPOWERED: watching the one push for drive ports, their signs and travel
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:202`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L202).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:219`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L219).*
 
 <a id="phase-sideassign"></a>
 
@@ -332,7 +348,7 @@ SideAssign
 
 powered: a ramped pulse per drive port, naming its side from the yaw sign
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:203`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L203).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:220`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L220).*
 
 <a id="phase-spintest"></a>
 
@@ -344,7 +360,7 @@ SpinTest
 
 powered: a spin each way for the effective track width
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:204`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L204).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:221`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L221).*
 
 <a id="phase-done"></a>
 
@@ -356,7 +372,7 @@ Done
 
 result() is valid
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:205`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L205).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:222`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L222).*
 
 <a id="phase-aborted"></a>
 
@@ -368,7 +384,7 @@ Aborted
 
 refused or aborted; reason() says why, every motor is at 0 V + Coast
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:206`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L206).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:223`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L223).*
 
 <a id="enum-class-answer"></a>
 
@@ -380,7 +396,7 @@ enum class Answer : std::uint8_t
 
 What the operator's touch means. Everything a person contributes to a calibration arrives through exactly this enum — there is no blocking prompt anywhere in the class. Never persisted (the record stores no answer), so CAL1 Part B's removal of FrontFirst and BackFirst renumbered Abort safely: nothing on a card changed.
 
-*enum class, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:213`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L213).*
+*enum class, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:230`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L230).*
 
 <a id="answer-done"></a>
 
@@ -392,7 +408,7 @@ Done
 
 "I have finished pushing" — the end that led the push is the FRONT (CAL1)
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:214`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L214).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:231`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L231).*
 
 <a id="answer-abort"></a>
 
@@ -404,7 +420,7 @@ Abort
 
 stop now
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:215`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L215).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:232`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L232).*
 
 <a id="enum-class-refusal"></a>
 
@@ -416,7 +432,7 @@ enum class Refusal : std::uint8_t
 
 WHY a run ended in Aborted — a CODE, so a panel can say it in plain words keyed on a value rather than on prose (prose is not an API), and a test can assert it. reason() carries the sentence with the numbers; refusalPort() carries the port where the refusal can name one.
 
-*enum class, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:221`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L221).*
+*enum class, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:238`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L238).*
 
 <a id="refusal-none"></a>
 
@@ -428,7 +444,7 @@ None
 
 not refused (still running, or Done)
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:222`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L222).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:239`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L239).*
 
 <a id="refusal-aborted"></a>
 
@@ -440,7 +456,7 @@ Aborted
 
 abort() or Answer::Abort — the operator, or the program on the operator's behalf
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:223`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L223).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:240`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L240).*
 
 <a id="refusal-imunotready"></a>
 
@@ -452,7 +468,7 @@ ImuNotReady
 
 the IMU never finished calibrating within imuReadyTimeout
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:224`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L224).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:241`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L241).*
 
 <a id="refusal-pushtoofew"></a>
 
@@ -464,7 +480,7 @@ PushTooFew
 
 DONE with fewer than two ports moved by the push
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:225`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L225).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:242`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L242).*
 
 <a id="refusal-pushcurved"></a>
 
@@ -476,7 +492,7 @@ PushCurved
 
 the push turned the robot by more than straightBound
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:226`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L226).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:243`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L243).*
 
 <a id="refusal-pushtooshort"></a>
 
@@ -488,7 +504,7 @@ PushTooShort
 
 the push (or one side of it) turned the shafts less than minPushRad
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:227`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L227).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:244`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L244).*
 
 <a id="refusal-resttimeout"></a>
 
@@ -500,7 +516,7 @@ RestTimeout
 
 nothing came to rest within restTimeout (a motor still turning, or the robot still rotating)
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:228`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L228).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:245`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L245).*
 
 <a id="refusal-nondrivemoved"></a>
 
@@ -512,7 +528,7 @@ NonDriveMoved
 
 a motor that did not move on the push (or gave no reading at DONE) moved while one drive port was pulsed
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:229`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L229).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:246`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L246).*
 
 <a id="refusal-pulsecontradiction"></a>
 
@@ -524,7 +540,7 @@ PulseContradiction
 
 a pulsed member's own encoder went against its captured sign
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:230`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L230).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:247`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L247).*
 
 <a id="refusal-pulserolled"></a>
 
@@ -536,7 +552,7 @@ PulseRolled
 
 its train moved at the top level but the robot did not turn (it rolled, or is off the floor)
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:231`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L231).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:248`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L248).*
 
 <a id="refusal-pulsestill"></a>
 
@@ -548,7 +564,7 @@ PulseStill
 
 nothing moved at the top level
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:232`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L232).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:249`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L249).*
 
 <a id="refusal-onesided"></a>
 
@@ -560,7 +576,7 @@ OneSided
 
 after the pulses, a side has no member
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:233`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L233).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:250`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L250).*
 
 <a id="refusal-spinwrongway"></a>
 
@@ -572,7 +588,7 @@ SpinWrongWay
 
 the spin turned the wrong way past spinWrongWay — the sides are swapped
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:234`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L234).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:251`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L251).*
 
 <a id="refusal-spinnostart"></a>
 
@@ -584,7 +600,7 @@ SpinNoStart
 
 the spin could not start turning even at the top spin level
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:235`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L235).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:252`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L252).*
 
 <a id="refusal-spintimeout"></a>
 
@@ -596,7 +612,7 @@ SpinTimeout
 
 the spin started but did not finish its turns within spinTimeout
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:236`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L236).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:253`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L253).*
 
 <a id="refusal-spinfight"></a>
 
@@ -608,7 +624,7 @@ SpinFight
 
 the coupled-side monitor saw a member fight its side during the spin
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:237`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L237).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:254`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L254).*
 
 <a id="refusal-spinwidthinvalid"></a>
 
@@ -620,7 +636,7 @@ SpinWidthInvalid
 
 a spin direction measured a width that is not a positive number
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:238`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L238).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:255`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L255).*
 
 <a id="refusal-spindisagree"></a>
 
@@ -632,7 +648,7 @@ SpinDisagree
 
 the two spin directions disagree by more than spinAgreement
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:239`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L239).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:256`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L256).*
 
 <a id="refusal-missedtick"></a>
 
@@ -644,7 +660,7 @@ MissedTick
 
 tick() was not called within commandTimeout while powered
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:240`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L240).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:257`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L257).*
 
 <a id="refusal-outoforder"></a>
 
@@ -656,7 +672,7 @@ OutOfOrder
 
 an answer arrived that no step was waiting for
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:241`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L241).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:258`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L258).*
 
 <a id="refusal-invaliddescription"></a>
 
@@ -668,7 +684,31 @@ InvalidDescription
 
 the measured description failed its own validity rules
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:242`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L242).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:259`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L259).*
+
+<a id="refusal-sideconflict"></a>
+
+### `Refusal::SideConflict`
+
+```cpp
+SideConflict
+```
+
+(CAL2) a port moved both groups, a third group, or a port's yaw against its group's side
+
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:260`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L260).*
+
+<a id="refusal-followerreversed"></a>
+
+### `Refusal::FollowerReversed`
+
+```cpp
+FollowerReversed
+```
+
+(CAL2) a port turned against its captured sign while another port was pulsed
+
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:261`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L261).*
 
 <a id="enum-class-pulseverdict"></a>
 
@@ -680,7 +720,7 @@ enum class PulseVerdict : std::uint8_t
 
 What one pulse concluded about the port it drove — one per PulseRecord, and the deciding one on the port's PortObservation.
 
-*enum class, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:247`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L247).*
+*enum class, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:266`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L266).*
 
 <a id="pulseverdict-none"></a>
 
@@ -692,7 +732,7 @@ None
 
 not pulsed
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:248`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L248).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:267`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L267).*
 
 <a id="pulseverdict-weak"></a>
 
@@ -704,7 +744,7 @@ Weak
 
 the yaw stayed under the floor at this level; the next level is tried
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:249`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L249).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:268`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L268).*
 
 <a id="pulseverdict-left"></a>
 
@@ -716,7 +756,7 @@ Left
 
 negative yaw at or past the floor: a LEFT member (HA-134)
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:250`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L250).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:269`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L269).*
 
 <a id="pulseverdict-right"></a>
 
@@ -728,7 +768,7 @@ Right
 
 positive yaw at or past the floor: a RIGHT member
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:251`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L251).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:270`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L270).*
 
 <a id="pulseverdict-contradiction"></a>
 
@@ -740,7 +780,7 @@ Contradiction
 
 its own encoder went against its captured sign — refused
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:252`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L252).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:271`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L271).*
 
 <a id="pulseverdict-decoupled"></a>
 
@@ -752,7 +792,7 @@ Decoupled
 
 top level: its shaft turned, nothing else moved — a slipping gear, LEFT OUT
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:253`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L253).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:272`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L272).*
 
 <a id="pulseverdict-rolled"></a>
 
@@ -764,7 +804,7 @@ Rolled
 
 top level: other drive ports moved, the robot did not turn — refused
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:254`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L254).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:273`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L273).*
 
 <a id="pulseverdict-still"></a>
 
@@ -776,7 +816,31 @@ Still
 
 top level: nothing moved — refused
 
-*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:255`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L255).*
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:274`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L274).*
+
+<a id="pulseverdict-followed"></a>
+
+### `PulseVerdict::Followed`
+
+```cpp
+Followed
+```
+
+(CAL2) other ports turned with it: it and they are one group (side from the spin)
+
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:275`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L275).*
+
+<a id="pulseverdict-kept"></a>
+
+### `PulseVerdict::Kept`
+
+```cpp
+Kept
+```
+
+(CAL2) top level: a GROUPED port turned its own shaft but no mate past backlash — it stays
+
+*enumerator, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:276`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L276).*
 
 <a id="struct-humanfacts"></a>
 
@@ -788,7 +852,7 @@ struct HumanFacts
 
 The three facts no measurement can supply, stated by a person before the run.
 
-*struct, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:259`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L259).*
+*struct, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:280`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L280).*
 
 <a id="humanfacts-kind"></a>
 
@@ -800,7 +864,7 @@ hal::DrivetrainKind kind = hal::DrivetrainKind::Tank
 
 Which drivetrain this is. Only Tank is supported: a holonomic drivetrain needs a strafe scale this procedure does not measure, and the calibrator refuses rather than guess.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:262`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L262).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:283`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L283).*
 
 <a id="humanfacts-cartridge"></a>
 
@@ -812,7 +876,7 @@ hal::MotorCartridge cartridge = hal::MotorCartridge::Blue
 
 The cartridge in the drive motors — read off a motor, not inferred (see the header).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:264`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L264).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:285`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L285).*
 
 <a id="humanfacts-imuport"></a>
 
@@ -824,7 +888,7 @@ std::uint8_t imuPort = 0
 
 The IMU's smart port, 1..hal::kMaxSmartPorts. Carried into the description so a later boot can check the device is still there.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:267`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L267).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:288`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L288).*
 
 <a id="humanfacts-provenance"></a>
 
@@ -836,7 +900,7 @@ const char* provenance = ""
 
 The build stamp or session note to record as the description's provenance. Copied into the description's fixed buffer (truncated to fit) — the calibrator keeps no pointer to it past start().
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:271`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L271).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:292`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L292).*
 
 <a id="struct-calibratorconfig"></a>
 
@@ -848,7 +912,7 @@ struct CalibratorConfig
 
 Every number the procedure uses. NOT ONE OF THEM IS A MEASUREMENT: all are INVENTED for a first run and carried as fields so a bench session can move them without touching code. PROVISIONAL, all of them (A4: HA-136) — `pushDistance` is a CHOICE rather than a belief.
 
-*struct, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:277`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L277).*
+*struct, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:298`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L298).*
 
 <a id="calibratorconfig-movedthreshold"></a>
 
@@ -860,7 +924,7 @@ units::AngleDim movedThreshold{5.0 * kDegreesToRadians}
 
 Shaft travel over the push above which a candidate counts as a DRIVE port — a FINITE travel: a push reading that is not finite is no reading, and never a drive port (DIAG1 Part B). 5 degrees — the bench tester's MOTOR WATCH number, invented there and carried here unchanged so the two tools call the same push the same thing. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:283`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L283).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:304`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L304).*
 
 <a id="calibratorconfig-restfloor"></a>
 
@@ -872,7 +936,7 @@ units::AngularVelocity restFloor{0.05}
 
 |velocity| below which a motor counts as stopped, for the rest windows. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:286`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L286).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:307`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L307).*
 
 <a id="calibratorconfig-restyawratefloor"></a>
 
@@ -882,9 +946,9 @@ units::AngularVelocity restFloor{0.05}
 units::AngularVelocity restYawRateFloor{2.0 * kDegreesToRadians}
 ```
 
-|IMU yaw rate| below which the ROBOT counts as still, for the same rest windows (added at 2F-1: the design always defined rest as "yaw rate and every velocity under a floor", and the code checked the velocities only, so a robot being turned by hand with its motors stationary counted as at rest). 2 deg/s. Bounded BELOW by the IMU's rest noise (unmeasured on a V5; the host's hostile IMU uses 0.5 deg/s, HA-22, so this is 4 sigma there), and ABOVE by the precondition restYawRateFloor x pulseTime < pulseYawFloor — a drift slow enough to pass the rest check then adds less than the floor to a pulse, and a side can only come out WRONG through a leak at least as large as the floor, so a slow drift can never flip a side on its own. PROVISIONAL (A4: HA-136).
+The yaw rate below which the ROBOT counts as still, for the same rest windows (added at 2F-1: a robot turned by hand with its motors stationary counted as at rest). Since CAL2 an AVERAGE: the heading's change over the last restSettleTime, divided by it — robot one's IMU reads ~1 deg/s instantaneous at rest, which flickered DONE. 2 deg/s. Bounded BELOW by the IMU's rest noise (unmeasured on a V5; the host's hostile IMU uses 0.5 deg/s, HA-22, so this is 4 sigma there), and ABOVE by the precondition restYawRateFloor x pulseTime < pulseYawFloor — a drift slow enough to pass the rest check then adds less than the floor to a pulse, and a side can only come out WRONG through a leak at least as large as the floor, so a slow drift can never flip a side on its own. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:296`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L296).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:317`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L317).*
 
 <a id="calibratorconfig-restsettletime"></a>
 
@@ -894,9 +958,9 @@ units::AngularVelocity restYawRateFloor{2.0 * kDegreesToRadians}
 units::Time restSettleTime{0.5}
 ```
 
-How long everything must stay at rest before a pulse or a spin may start — so one pulse's coast-down cannot be read as the next pulse's motion. PROVISIONAL (A4: HA-136).
+How long everything must stay at rest before a pulse or a spin may start — so one pulse's coast-down cannot be read as the next pulse's motion. Also the heading window restYawRateFloor averages over (CAL2), so it must be positive. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:299`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L299).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:321`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L321).*
 
 <a id="calibratorconfig-resttimeout"></a>
 
@@ -908,31 +972,31 @@ units::Time restTimeout{3.0}
 
 How long to wait for rest before refusing. Without a bound this wait is the one unbounded loop in the procedure. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:302`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L302).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:324`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L324).*
 
 <a id="calibratorconfig-pulselevels"></a>
 
 ### `CalibratorConfig::pulseLevels`
 
 ```cpp
-std::array<units::Voltage, kMaxPulseLevels> pulseLevels{units::Voltage{3.0}, units::Voltage{6.0}, units::Voltage{9.0}, units::Voltage{0.0}}
+std::array<units::Voltage, kMaxPulseLevels> pulseLevels{units::Voltage{3.0}, units::Voltage{6.0}, units::Voltage{9.0}, units::Voltage{12.0}}
 ```
 
-The pulse ramp: one member is pulsed at pulseLevels[0], then — only if the robot's yaw stayed under pulseYawFloor — at the next level, and so on (added at 2F-1, replacing the single 3 V `pulseVolts`: one member of five delivers a fifth of its pulse to a coupled train under the plant's model, and robot two's port 11 turned the robot 0.14-0.17 deg at 3 V). 3 / 6 / 9 V: the first is the old pulse; 9 V for 0.4 s on ONE motor is a visible jerk, not a drive. Strictly increasing, each in (0, 12] V. PROVISIONAL (A4: HA-136).
+The pulse ramp: one member is pulsed at pulseLevels[0], then — only if no port followed it and the robot's yaw stayed under pulseYawFloor — at the next level, and so on (added at 2F-1, replacing the single 3 V `pulseVolts`: one member of five delivers a fifth of its pulse to a coupled train under the plant's model, and robot two's port 11 turned the robot 0.14-0.17 deg at 3 V). 3 / 6 / 9 / 12 V (12 V added at CAL2: a heavy robot's side-mates follow from 6 V, and the top level is the last try before a port is classified). Strictly increasing, each in (0, 12] V. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:309`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L309).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:332`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L332).*
 
 <a id="calibratorconfig-pulselevelcount"></a>
 
 ### `CalibratorConfig::pulseLevelCount`
 
 ```cpp
-std::size_t pulseLevelCount = 3
+std::size_t pulseLevelCount = 4
 ```
 
-How many entries of pulseLevels are used, 1..kMaxPulseLevels. PROVISIONAL (A4: HA-136).
+How many entries of pulseLevels are used, 1..kMaxPulseLevels (4 since CAL2: 12 V added). PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:312`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L312).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:336`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L336).*
 
 <a id="calibratorconfig-pulsetime"></a>
 
@@ -944,7 +1008,7 @@ units::Time pulseTime{0.4}
 
 How long one member is pulsed, at each level. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:314`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L314).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:338`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L338).*
 
 <a id="calibratorconfig-pulseyawfloor"></a>
 
@@ -956,19 +1020,31 @@ units::AngleDim pulseYawFloor{2.0 * kDegreesToRadians}
 
 The |dtheta| a pulse must produce before its sign may be read as a side. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:317`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L317).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:341`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L341).*
+
+<a id="calibratorconfig-followthreshold"></a>
+
+### `CalibratorConfig::followThreshold`
+
+```cpp
+units::AngleDim followThreshold{2.0 * kDegreesToRadians}
+```
+
+(CAL2) The sign-corrected travel at which another drive port FOLLOWS a pulsed one — it turned with it through their shared gear train. 2 deg: robot one's side-mates showed 5-6 deg at 6 V and the other side 0 (its serial log, 2026-11-17; 10-23 deg in the completed run). PROVISIONAL (A4: HA-136).
+
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:346`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L346).*
 
 <a id="calibratorconfig-decoupledownmin"></a>
 
 ### `CalibratorConfig::decoupledOwnMin`
 
 ```cpp
-units::AngleDim decoupledOwnMin{20.0 * kDegreesToRadians}
+units::AngleDim decoupledOwnMin{90.0 * kDegreesToRadians}
 ```
 
-At the top level, a port whose OWN shaft turned at least this far while no other drive port moved movedThreshold is DECOUPLED — its motor turns but does not drive its gear train (a slipping or stripped gear) — and is LEFT OUT rather than refused. 20 degrees of shaft: well past gear backlash, which a train that does not break free still shows. PROVISIONAL (A4: HA-136).
+At the top level, a port whose OWN shaft turned at least this far while no other drive port moved movedThreshold is DECOUPLED — its motor turns but does not drive its gear train (a slipping or stripped gear) — and is LEFT OUT rather than refused. 90 degrees of shaft (20 before CAL2's review): robot one's working motors turned theirs up to 18 deg against a train that held and 24 deg moving it (2026-11-17); a slipping gear spins hundreds. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:323`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L323).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:353`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L353).*
 
 <a id="calibratorconfig-pushdistance"></a>
 
@@ -980,7 +1056,7 @@ units::Length pushDistance{48.0}
 
 The one push's length along the tape: 48 in, two field tiles. A CHOICE, not a belief — stated here and on the screen, so a wrong distance cannot be answered (there is no distance question any more). Each side's scale is this divided by the side's median travel.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:328`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L328).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:358`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L358).*
 
 <a id="calibratorconfig-straightbound"></a>
 
@@ -992,7 +1068,7 @@ units::AngleDim straightBound{3.0 * kDegreesToRadians}
 
 The |dtheta| the push may drift by before it is not a straight push. Also the bound that keeps a twist from inverting one side's captured signs. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:331`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L331).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:361`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L361).*
 
 <a id="calibratorconfig-minpushrad"></a>
 
@@ -1004,7 +1080,7 @@ units::AngleDim minPushRad{2.0 * math::Angle::kPi}
 
 The least median shaft travel the push must produce — over the moved ports at DONE, and over each side once the sides are known — one full wheel turn. A shorter push divides the distance by a number too small to trust. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:335`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L335).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:365`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L365).*
 
 <a id="calibratorconfig-spinlevels"></a>
 
@@ -1016,7 +1092,7 @@ std::array<units::Voltage, kMaxSpinLevels> spinLevels{units::Voltage{3.0}, units
 
 The spin's levels: it starts at spinLevels[0] and steps to the next only when the robot has not turned spinStartYaw within spinStartTime at the current one (added at 2F-1, replacing the single 3 V `spinVolts`). 3 / 6 V. Strictly increasing, each in (0, 12] V. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:340`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L340).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:370`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L370).*
 
 <a id="calibratorconfig-spinlevelcount"></a>
 
@@ -1028,7 +1104,7 @@ std::size_t spinLevelCount = 2
 
 How many entries of spinLevels are used, 1..kMaxSpinLevels. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:343`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L343).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:373`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L373).*
 
 <a id="calibratorconfig-spinstarttime"></a>
 
@@ -1040,7 +1116,7 @@ units::Time spinStartTime{2.0}
 
 How long the spin may run at one level without turning the robot spinStartYaw before it steps up — or, at the top level, refuses: a spin that cannot turn the robot used to stall for the whole spinTimeout. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:347`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L347).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:377`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L377).*
 
 <a id="calibratorconfig-spinstartyaw"></a>
 
@@ -1052,7 +1128,19 @@ units::AngleDim spinStartYaw{5.0 * kDegreesToRadians}
 
 The |yaw| a spin level must reach within spinStartTime to count as turning. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:350`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L350).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:380`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L380).*
+
+<a id="calibratorconfig-identifyyaw"></a>
+
+### `CalibratorConfig::identifyYaw`
+
+```cpp
+units::AngleDim identifyYaw{5.0 * kDegreesToRadians}
+```
+
+(CAL2) The |yaw| the group A forward / group B backward turn must reach to name the sides; its levels step up like the spin's. PROVISIONAL (A4: HA-136).
+
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:383`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L383).*
 
 <a id="calibratorconfig-spinwrongway"></a>
 
@@ -1064,7 +1152,7 @@ units::AngleDim spinWrongWay{15.0 * kDegreesToRadians}
 
 How far the spin may turn the WRONG way before it refuses — at once, mid-spin: sides that are swapped consistently cause no fight inside either side, so the coupled-side monitor is silent and nothing else would stop the robot spinning the wrong way under power. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:355`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L355).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:388`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L388).*
 
 <a id="calibratorconfig-spinturns"></a>
 
@@ -1076,7 +1164,7 @@ double spinTurns = 2.0
 
 How many full turns each direction of the spin must cover. More turns average more of the floor and dilute a single scuff; two is the compromise with how long a person will stand and watch. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:359`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L359).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:392`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L392).*
 
 <a id="calibratorconfig-spintimeout"></a>
 
@@ -1088,7 +1176,7 @@ units::Time spinTimeout{20.0}
 
 How long one direction of the spin may take before the run refuses. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:362`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L362).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:395`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L395).*
 
 <a id="calibratorconfig-spinagreement"></a>
 
@@ -1100,7 +1188,7 @@ double spinAgreement = 0.05
 
 The largest relative disagreement tolerated between the two directions' track widths. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:365`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L365).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:398`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L398).*
 
 <a id="calibratorconfig-imureadytimeout"></a>
 
@@ -1112,7 +1200,7 @@ units::Time imuReadyTimeout{5.0}
 
 How long to wait for the IMU's boot calibration. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:367`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L367).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:400`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L400).*
 
 <a id="calibratorconfig-commandtimeout"></a>
 
@@ -1124,7 +1212,7 @@ units::Time commandTimeout{0.1}
 
 How far the clock may advance between two tick() calls before a powered phase treats the gap as a stalled caller, commands 0 V and refuses. PROVISIONAL (A4: HA-136).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:370`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L370).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:403`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L403).*
 
 <a id="calibratorconfig-monitor"></a>
 
@@ -1136,7 +1224,7 @@ teleop::SideMonitorConfig monitor{}
 
 The coupled-side fight detector's thresholds for the spin. Defaults are the drive program's and hal::MotorGroup's — one evaluator, one set of numbers (A4: HA-132/133).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:373`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L373).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:406`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L406).*
 
 <a id="struct-portobservation"></a>
 
@@ -1148,7 +1236,7 @@ struct PortObservation
 
 What one run concluded about ONE candidate — the panel's table and the log's record.
 
-*struct, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:377`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L377).*
+*struct, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:410`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L410).*
 
 <a id="portobservation-port"></a>
 
@@ -1160,7 +1248,7 @@ std::int8_t port = 0
 
 The candidate's port as handed in: always POSITIVE (the sign is captured, not given).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:379`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L379).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:412`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L412).*
 
 <a id="portobservation-sign"></a>
 
@@ -1172,7 +1260,7 @@ std::int8_t sign = 0
 
 The sign captured from the push (the end that led it is the FRONT): +1, −1, or 0 for a candidate that did not move and is therefore not a drive motor — or whose push reading was not finite, which is no reading and no sign (the push record says NO READING).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:383`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L383).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:416`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L416).*
 
 <a id="portobservation-side"></a>
 
@@ -1184,7 +1272,19 @@ std::int8_t side = 0
 
 −1 LEFT, +1 RIGHT, 0 = not a drive port, not yet decided, or LEFT OUT.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:385`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L385).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:418`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L418).*
+
+<a id="portobservation-group"></a>
+
+### `PortObservation::group`
+
+```cpp
+std::int8_t group = 0
+```
+
+(CAL2) The group it is in: 1 = A, 2 = B, 0 = none (decided by the yaw, or not a drive port).
+
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:420`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L420).*
 
 <a id="portobservation-pushdeltarad"></a>
 
@@ -1196,7 +1296,7 @@ double pushDeltaRad = 0.0
 
 Shaft travel over the push, radians, as READ (before the sign is applied) — live while the push is watched, then the number the sign was read off.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:388`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L388).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:423`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L423).*
 
 <a id="portobservation-pushtravelrad"></a>
 
@@ -1208,7 +1308,7 @@ double pushTravelRad = 0.0
 
 The same travel sign-corrected (sign × pushDeltaRad): the port's travel in the robot's forward direction — positive, since the end that led the push is the front. Exactly +0.0 for a port that is not a drive motor — a still one, and (since DIAG1 Part B) one whose push reading was not finite (NO READING), where sign × pushDeltaRad would be 0 × ±Inf or 0 × NaN, a NaN.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:394`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L394).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:429`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L429).*
 
 <a id="portobservation-pulseyawrad"></a>
 
@@ -1220,7 +1320,7 @@ double pulseYawRad = 0.0
 
 The IMU's accumulated dtheta over this port's DECIDING pulse (its last), radians.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:396`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L396).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:431`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L431).*
 
 <a id="portobservation-pulseshaftrad"></a>
 
@@ -1232,7 +1332,7 @@ double pulseShaftRad = 0.0
 
 This port's own sign-corrected shaft travel over that pulse, radians.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:398`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L398).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:433`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L433).*
 
 <a id="portobservation-pulselevelvolts"></a>
 
@@ -1244,7 +1344,7 @@ double pulseLevelVolts = 0.0
 
 The level that pulse ran at, volts (0 if the port was not pulsed).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:400`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L400).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:435`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L435).*
 
 <a id="portobservation-pulseothersrad"></a>
 
@@ -1256,7 +1356,7 @@ double pulseOthersRad = 0.0
 
 The largest |travel| any OTHER drive port showed over that pulse, radians — its side-mates through the gear train, and the other side if the robot rolled.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:403`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L403).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:438`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L438).*
 
 <a id="portobservation-verdict"></a>
 
@@ -1268,7 +1368,7 @@ PulseVerdict verdict = PulseVerdict::None
 
 What that pulse concluded (None if the port was not pulsed).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:405`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L405).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:440`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L440).*
 
 <a id="portobservation-excluded"></a>
 
@@ -1280,7 +1380,19 @@ bool excluded = false
 
 True when the port was LEFT OUT as decoupled: it moved on the push, it is on the drivetrain, and it is in no side of the description.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:408`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L408).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:443`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L443).*
+
+<a id="portobservation-followdeg"></a>
+
+### `PortObservation::followDeg`
+
+```cpp
+float followDeg = 0.0F
+```
+
+(CAL2) Its sign-corrected travel over the LATEST pulse of another port, degrees.
+
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:445`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L445).*
 
 <a id="struct-pulserecord"></a>
 
@@ -1292,7 +1404,7 @@ struct PulseRecord
 
 One pulse, as the serial record prints it: which port, at which level, and what it did.
 
-*struct, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:412`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L412).*
+*struct, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:449`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L449).*
 
 <a id="pulserecord-port"></a>
 
@@ -1304,7 +1416,7 @@ std::int8_t port = 0
 
 The pulsed port (positive, as handed in).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:414`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L414).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:451`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L451).*
 
 <a id="pulserecord-ordinal"></a>
 
@@ -1316,7 +1428,7 @@ std::uint8_t ordinal = 0
 
 Which drive port of the run this was, 1-based.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:416`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L416).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:453`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L453).*
 
 <a id="pulserecord-levelvolts"></a>
 
@@ -1328,7 +1440,7 @@ double levelVolts = 0.0
 
 The level, volts.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:418`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L418).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:455`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L455).*
 
 <a id="pulserecord-yawrad"></a>
 
@@ -1340,7 +1452,7 @@ double yawRad = 0.0
 
 The IMU's accumulated dtheta over the pulse, radians.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:420`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L420).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:457`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L457).*
 
 <a id="pulserecord-ownrad"></a>
 
@@ -1352,7 +1464,7 @@ double ownRad = 0.0
 
 The pulsed member's own sign-corrected shaft travel, radians.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:422`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L422).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:459`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L459).*
 
 <a id="pulserecord-othersmaxrad"></a>
 
@@ -1364,7 +1476,7 @@ double othersMaxRad = 0.0
 
 The largest |travel| any other drive port showed, radians.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:424`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L424).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:461`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L461).*
 
 <a id="pulserecord-verdict"></a>
 
@@ -1376,7 +1488,19 @@ PulseVerdict verdict = PulseVerdict::None
 
 What this pulse concluded.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:426`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L426).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:463`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L463).*
+
+<a id="pulserecord-followers"></a>
+
+### `PulseRecord::followers`
+
+```cpp
+std::uint32_t followers = 0
+```
+
+(CAL2) The ports that turned WITH it (>= followThreshold), as a mask of candidate indexes (bit k = report.ports[k]) — on every pulse; FOLLOWED only when some drive port stayed still.
+
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:466`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L466).*
 
 <a id="struct-spinrecord"></a>
 
@@ -1388,7 +1512,7 @@ struct SpinRecord
 
 One direction of the spin, as the serial record prints it.
 
-*struct, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:430`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L430).*
+*struct, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:470`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L470).*
 
 <a id="spinrecord-direction"></a>
 
@@ -1400,7 +1524,7 @@ double direction = 0.0
 
 +1 counter-clockwise, −1 clockwise.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:432`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L432).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:472`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L472).*
 
 <a id="spinrecord-levelvolts"></a>
 
@@ -1412,7 +1536,7 @@ double levelVolts = 0.0
 
 The level the spin finished at, volts (the start check may have stepped it up).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:434`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L434).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:474`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L474).*
 
 <a id="spinrecord-yawrad"></a>
 
@@ -1424,7 +1548,7 @@ double yawRad = 0.0
 
 The IMU's accumulated dtheta over the direction, radians.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:436`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L436).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:476`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L476).*
 
 <a id="spinrecord-lefttravelin"></a>
 
@@ -1436,7 +1560,7 @@ double leftTravelIn = 0.0
 
 The LEFT side's travel, inches (its median shaft travel times its scale).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:438`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L438).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:478`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L478).*
 
 <a id="spinrecord-righttravelin"></a>
 
@@ -1448,7 +1572,7 @@ double rightTravelIn = 0.0
 
 The RIGHT side's travel, inches.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:440`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L440).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:480`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L480).*
 
 <a id="spinrecord-widthin"></a>
 
@@ -1460,7 +1584,7 @@ double widthIn = 0.0
 
 This direction's effective track width, inches.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:442`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L442).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:482`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L482).*
 
 <a id="spinrecord-seconds"></a>
 
@@ -1472,7 +1596,7 @@ double seconds = 0.0
 
 How long the direction took, seconds.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:444`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L444).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:484`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L484).*
 
 <a id="struct-calibrationreport"></a>
 
@@ -1484,7 +1608,7 @@ struct CalibrationReport
 
 Every number behind a result — for the panel, for the log, and for a human deciding whether to believe the run. Populated as far as the run got, so it is worth reading after a REFUSAL too.
 
-*struct, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:449`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L449).*
+*struct, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:489`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L489).*
 
 <a id="calibrationreport-ports"></a>
 
@@ -1496,7 +1620,7 @@ PortObservation ports[hal::kMaxSmartPorts]{}
 
 One row per candidate, in the order they were handed in.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:451`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L451).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:491`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L491).*
 
 <a id="calibrationreport-portcount"></a>
 
@@ -1508,7 +1632,7 @@ std::uint8_t portCount = 0
 
 How many rows of `ports` are real.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:453`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L453).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:493`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L493).*
 
 <a id="calibrationreport-driveportcount"></a>
 
@@ -1520,7 +1644,7 @@ std::uint8_t drivePortCount = 0
 
 How many of them moved on the push and are therefore drive motors.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:455`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L455).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:495`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L495).*
 
 <a id="calibrationreport-pushdistancein"></a>
 
@@ -1532,7 +1656,7 @@ double pushDistanceIn = 0.0
 
 The push's length, inches — CalibratorConfig::pushDistance, recorded once the push is taken.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:457`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L457).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:497`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L497).*
 
 <a id="calibrationreport-pushstraightnessrad"></a>
 
@@ -1544,7 +1668,7 @@ double pushStraightnessRad = 0.0
 
 The IMU's dtheta over the push, radians, signed — how straight the push actually was.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:459`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L459).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:499`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L499).*
 
 <a id="calibrationreport-leftmedianrad"></a>
 
@@ -1556,7 +1680,7 @@ double leftMedianRad = 0.0
 
 The LEFT side's median push travel, radians (the scale's denominator).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:461`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L461).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:501`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L501).*
 
 <a id="calibrationreport-rightmedianrad"></a>
 
@@ -1568,7 +1692,7 @@ double rightMedianRad = 0.0
 
 The RIGHT side's median push travel, radians.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:463`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L463).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:503`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L503).*
 
 <a id="calibrationreport-leftinchesperradian"></a>
 
@@ -1580,7 +1704,7 @@ double leftInchesPerRadian = 0.0
 
 The LEFT side's measured scale, inches per radian — available once the sides are known, so a panel (and a host test) can read it without waiting for the spin.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:466`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L466).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:506`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L506).*
 
 <a id="calibrationreport-rightinchesperradian"></a>
 
@@ -1592,7 +1716,7 @@ double rightInchesPerRadian = 0.0
 
 The RIGHT side's measured scale, inches per radian.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:468`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L468).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:508`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L508).*
 
 <a id="calibrationreport-leftspreadrad"></a>
 
@@ -1604,7 +1728,7 @@ double leftSpreadRad = 0.0
 
 max − min of the LEFT side's members' push travel, radians: how far apart a side's motors read. Robot two's port 18 is expected to show here (A4 register HA-130).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:471`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L471).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:511`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L511).*
 
 <a id="calibrationreport-rightspreadrad"></a>
 
@@ -1616,7 +1740,7 @@ double rightSpreadRad = 0.0
 
 max − min of the RIGHT side's members' push travel, radians.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:473`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L473).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:513`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L513).*
 
 <a id="calibrationreport-widthccwin"></a>
 
@@ -1628,7 +1752,7 @@ double widthCcwIn = 0.0
 
 The effective track width from the CCW spin, inches.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:475`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L475).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:515`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L515).*
 
 <a id="calibrationreport-widthcwin"></a>
 
@@ -1640,7 +1764,7 @@ double widthCwIn = 0.0
 
 The effective track width from the CW spin, inches.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:477`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L477).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:517`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L517).*
 
 <a id="calibrationreport-widthdisagreement"></a>
 
@@ -1652,7 +1776,7 @@ double widthDisagreement = 0.0
 
 |Wccw − Wcw| / their mean — the agreement the run was judged on.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:479`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L479).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:519`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L519).*
 
 <a id="calibrationreport-pulses"></a>
 
@@ -1664,7 +1788,7 @@ PulseRecord pulses[kMaxPulseRecords]{}
 
 Every pulse the run drove, in order, at every level — one serial line each.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:481`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L481).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:521`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L521).*
 
 <a id="calibrationreport-pulsecount"></a>
 
@@ -1676,7 +1800,7 @@ std::uint8_t pulseCount = 0
 
 How many entries of `pulses` are real. A program printing the record prints the ones added since it last looked.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:484`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L484).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:524`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L524).*
 
 <a id="calibrationreport-spins"></a>
 
@@ -1688,7 +1812,7 @@ SpinRecord spins[2]{}
 
 The spin, one record per finished direction (0 = CCW, 1 = CW).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:486`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L486).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:526`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L526).*
 
 <a id="calibrationreport-spincount"></a>
 
@@ -1700,7 +1824,7 @@ std::uint8_t spinCount = 0
 
 How many entries of `spins` are real.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:488`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L488).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:528`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L528).*
 
 <a id="calibrationreport-excludedports"></a>
 
@@ -1712,7 +1836,7 @@ std::int8_t excludedPorts[hal::kMaxSmartPorts]{}
 
 The ports LEFT OUT as decoupled, in the order they were found.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:490`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L490).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:530`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L530).*
 
 <a id="calibrationreport-excludedcount"></a>
 
@@ -1724,7 +1848,43 @@ std::uint8_t excludedCount = 0
 
 How many entries of `excludedPorts` are real.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:492`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L492).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:532`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L532).*
+
+<a id="calibrationreport-groupcount"></a>
+
+### `CalibrationReport::groupCount`
+
+```cpp
+std::uint8_t groupCount = 0
+```
+
+(CAL2) How many groups the pulses found (0 = every port decided by the yaw).
+
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:534`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L534).*
+
+<a id="calibrationreport-groupside"></a>
+
+### `CalibrationReport::groupSide`
+
+```cpp
+std::int8_t groupSide[2]{}
+```
+
+(CAL2) Each group's side once the identification turn named it: −1 LEFT, +1 RIGHT, 0 not yet.
+
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:536`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L536).*
+
+<a id="calibrationreport-identifyyawrad"></a>
+
+### `CalibrationReport::identifyYawRad`
+
+```cpp
+double identifyYawRad = 0.0
+```
+
+(CAL2) The yaw of that turn, radians (+ = CCW).
+
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:538`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L538).*
 
 <a id="struct-calibratorstatus"></a>
 
@@ -1736,7 +1896,7 @@ struct CalibratorStatus
 
 What a panel needs to paint this tick: where the run is, what the operator must DO, a live line of prose for a log, and — since 2F-1 — the NUMBERS behind that prose, so a screen can show them large without parsing text.
 
-*struct, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:498`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L498).*
+*struct, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:544`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L544).*
 
 <a id="calibratorstatus-phase"></a>
 
@@ -1748,7 +1908,7 @@ Phase phase = Phase::Idle
 
 The phase as of the last tick(), answer() or abort().
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:500`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L500).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:546`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L546).*
 
 <a id="calibratorstatus-prompt"></a>
 
@@ -1760,7 +1920,7 @@ const char* prompt = "not started"
 
 The instruction for the person — or the refusal's one-line summary, once aborted. Owned by the calibrator and valid until its next tick(), answer() or abort(); at most 44 characters (the width the Part 2 program printed it at — the Part 2F-2 program paints calibrate_panel.hpp's words instead and does not show this; a caller that does has 44 to allow for).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:506`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L506).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:552`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L552).*
 
 <a id="calibratorstatus-progress"></a>
 
@@ -1772,7 +1932,7 @@ char progress[96]{}
 
 A live line of this phase's numbers, NUL-terminated and bounded — for a serial log.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:508`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L508).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:554`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L554).*
 
 <a id="calibratorstatus-phaseseconds"></a>
 
@@ -1784,7 +1944,7 @@ double phaseSeconds = 0.0
 
 Seconds since the current phase began, while a run is under way (the IMU wait's live number); once the run has ended, since the last running phase began.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:511`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L511).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:557`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L557).*
 
 <a id="calibratorstatus-candidates"></a>
 
@@ -1796,7 +1956,7 @@ std::uint8_t candidates = 0
 
 How many candidates were handed in.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:513`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L513).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:559`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L559).*
 
 <a id="calibratorstatus-movednow"></a>
 
@@ -1808,7 +1968,7 @@ std::uint8_t movedNow = 0
 
 Candidates whose push travel is past movedThreshold (a finite travel — the same predicate the finish and pushReady() use) — live while the push is watched, the captured count after it.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:517`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L517).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:563`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L563).*
 
 <a id="calibratorstatus-pushtravelrad"></a>
 
@@ -1820,7 +1980,7 @@ double pushTravelRad = 0.0
 
 The median |push travel| of the moved candidates, radians (0 with none moved).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:519`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L519).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:565`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L565).*
 
 <a id="calibratorstatus-pushfarenough"></a>
 
@@ -1832,7 +1992,7 @@ bool pushFarEnough = false
 
 pushTravelRad ≥ minPushRad — the push's "far enough", the SAME predicate DONE is judged on.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:521`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L521).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:567`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L567).*
 
 <a id="calibratorstatus-atrest"></a>
 
@@ -1844,7 +2004,7 @@ bool atRest = false
 
 Every motor under restFloor AND the IMU's yaw rate under restYawRateFloor, this tick.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:523`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L523).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:569`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L569).*
 
 <a id="calibratorstatus-driftrad"></a>
 
@@ -1856,7 +2016,7 @@ double driftRad = 0.0
 
 The yaw accumulated over the push, radians — live while it is watched, then as captured.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:525`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L525).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:571`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L571).*
 
 <a id="calibratorstatus-pulseordinal"></a>
 
@@ -1868,7 +2028,7 @@ std::uint8_t pulseOrdinal = 0
 
 Which drive port of pulseTotal is being tested, 1-based (0 before the pulses start).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:527`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L527).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:573`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L573).*
 
 <a id="calibratorstatus-pulsetotal"></a>
 
@@ -1880,7 +2040,7 @@ std::uint8_t pulseTotal = 0
 
 How many drive ports the pulses will test.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:529`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L529).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:575`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L575).*
 
 <a id="calibratorstatus-pulseport"></a>
 
@@ -1892,7 +2052,7 @@ std::int8_t pulsePort = 0
 
 The port under test (0 when none).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:531`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L531).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:577`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L577).*
 
 <a id="calibratorstatus-pulselevelvolts"></a>
 
@@ -1904,7 +2064,7 @@ double pulseLevelVolts = 0.0
 
 The ramp level being tried, volts (0 when none).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:533`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L533).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:579`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L579).*
 
 <a id="calibratorstatus-pulsing"></a>
 
@@ -1916,7 +2076,7 @@ bool pulsing = false
 
 True while a pulse is being DRIVEN; false in the rest windows around it.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:535`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L535).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:581`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L581).*
 
 <a id="calibratorstatus-liveyawrad"></a>
 
@@ -1928,7 +2088,7 @@ double liveYawRad = 0.0
 
 The yaw since the current pulse, spin direction or rest window began, radians.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:537`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L537).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:583`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L583).*
 
 <a id="calibratorstatus-spindirection"></a>
 
@@ -1940,7 +2100,7 @@ double spinDirection = 0.0
 
 +1 while spinning counter-clockwise, −1 clockwise, 0 when not spinning.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:539`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L539).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:585`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L585).*
 
 <a id="calibratorstatus-spinturns"></a>
 
@@ -1952,7 +2112,7 @@ double spinTurns = 0.0
 
 Turns covered in the current spin direction, signed by that direction (negative = the wrong way).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:542`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L542).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:588`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L588).*
 
 <a id="calibratorstatus-spinlevelvolts"></a>
 
@@ -1964,7 +2124,19 @@ double spinLevelVolts = 0.0
 
 The spin level in force, volts (0 when not spinning).
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:544`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L544).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:590`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L590).*
+
+<a id="calibratorstatus-identifying"></a>
+
+### `CalibratorStatus::identifying`
+
+```cpp
+bool identifying = false
+```
+
+(CAL2) True while group A forward / group B backward is turning the robot to name the sides.
+
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:592`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L592).*
 
 <a id="calibratorstatus-leftcount"></a>
 
@@ -1976,7 +2148,7 @@ std::uint8_t leftCount = 0
 
 Drive ports decided LEFT so far.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:546`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L546).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:594`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L594).*
 
 <a id="calibratorstatus-rightcount"></a>
 
@@ -1988,7 +2160,7 @@ std::uint8_t rightCount = 0
 
 Drive ports decided RIGHT so far.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:548`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L548).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:596`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L596).*
 
 <a id="calibratorstatus-excludedcount"></a>
 
@@ -2000,7 +2172,7 @@ std::uint8_t excludedCount = 0
 
 Drive ports LEFT OUT as decoupled so far.
 
-*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:550`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L550).*
+*field, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:598`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L598).*
 
 <a id="class-drivetraincalibrator"></a>
 
@@ -2012,7 +2184,7 @@ class DrivetrainCalibrator
 
 The tick-driven state machine described in the header. Non-owning: the motors, the IMU, the clock and the arrays the spans view must all outlive it. Owns no loop, allocates nothing, blocks nowhere, raises no faults. Not copyable or movable (it holds references); RUN AGAIN is a new object (the header).
 
-*class, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:557`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L557).*
+*class, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:605`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L605).*
 
 <a id="drivetraincalibrator-drivetraincalibrator"></a>
 
@@ -2024,7 +2196,7 @@ DrivetrainCalibrator(std::span<hal::IMotor* const> candidates, std::span<const s
 
 `candidates`: every motor the brain found, as adapters built with POSITIVE ports (rule 1 in the header). `ports`: their physical port numbers, parallel to `candidates`, each in 1..hal::kMaxSmartPorts and POSITIVE. Preconditions, all of them the caller's contract: the two spans are the same length; there are at least two candidates and at most hal::kMaxSmartPorts; no candidate is null; every port is positive, in range, and listed once; every config threshold is positive, the level ramps are strictly increasing within (0, 12] V, and restYawRateFloor x pulseTime < pulseYawFloor (CalibratorConfig).
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:566`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L566).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:614`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L614).*
 
 <a id="drivetraincalibrator-drivetraincalibrator-2"></a>
 
@@ -2036,7 +2208,7 @@ DrivetrainCalibrator(const DrivetrainCalibrator&) = delete
 
 Not copyable: it holds references to hardware it does not own, and a copy would be a second state machine commanding the same motors.
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:633`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L633).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:683`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L683).*
 
 <a id="drivetraincalibrator-operator-eq"></a>
 
@@ -2048,7 +2220,7 @@ DrivetrainCalibrator& operator=(const DrivetrainCalibrator&) = delete
 
 Not copyable: it holds references to hardware it does not own, and a copy would be a second state machine commanding the same motors. Not copy-assignable, for the same reason.
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:635`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L635).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:685`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L685).*
 
 <a id="drivetraincalibrator-start"></a>
 
@@ -2060,7 +2232,7 @@ void start(const HumanFacts& facts)
 
 Begin a run from the three stated facts. Preconditions (caller contract, not run-time conditions): the calibrator is Idle, the kind is Tank, the cartridge is a real cartridge, and the IMU port is in range and is not one of the candidate ports. Leaves every candidate at 0 V + Coast so the robot can be pushed, and enters WaitImu.
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:641`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L641).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:691`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L691).*
 
 <a id="drivetraincalibrator-tick"></a>
 
@@ -2072,7 +2244,7 @@ void tick()
 
 One control tick. Cheap and non-blocking; the caller paces it (10 ms on the robot). A no-op once the run has ended.
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:667`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L667).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:717`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L717).*
 
 <a id="drivetraincalibrator-answer"></a>
 
@@ -2084,7 +2256,7 @@ void answer(Answer a)
 
 The operator's touch. Abort is accepted in any phase; every other answer is accepted only by the step that is waiting for it, and an answer that arrives out of order REFUSES the run naming both — a touch that silently did nothing would leave the operator believing a step had been taken. Precondition: a run is under way (anything but Idle/Done/Aborted), except for Abort, which is always allowed. Unchanged at 2F-1: DONE before the push is ready is still ACCEPTED here and judged by the finish (which refuses too few ports, a curved push or a short one); a panel keeps DONE off the screen until pushReady() — the gate is a readiness query, not a new refusal.
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:706`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L706).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:756`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L756).*
 
 <a id="drivetraincalibrator-abort"></a>
 
@@ -2096,7 +2268,7 @@ void abort(const char* why = "aborted by the operator")
 
 Stop now: every candidate to 0 V + Coast (never Brake — rule 6), phase Aborted with Refusal::Aborted, `why` recorded as the reason. Allowed from ANY phase, including Done, where it discards a result the caller has not copied — call it only when abandoning the run is what is meant.
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:735`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L735).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:785`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L785).*
 
 <a id="drivetraincalibrator-phase"></a>
 
@@ -2108,7 +2280,7 @@ Stop now: every candidate to 0 V + Coast (never Brake — rule 6), phase Aborted
 
 Where the run has got to.
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:746`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L746).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:796`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L796).*
 
 <a id="drivetraincalibrator-status"></a>
 
@@ -2120,7 +2292,7 @@ Where the run has got to.
 
 What a panel paints this tick (see CalibratorStatus).
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:749`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L749).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:799`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L799).*
 
 <a id="drivetraincalibrator-reason"></a>
 
@@ -2132,7 +2304,7 @@ What a panel paints this tick (see CalibratorStatus).
 
 Why the run was refused or aborted — empty while it is still going or if it finished. Every refusal names its cause, the ones that can name a PORT do, and none contains a '%' (the header). The code is refusal().
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:754`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L754).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:804`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L804).*
 
 <a id="drivetraincalibrator-refusal"></a>
 
@@ -2144,7 +2316,7 @@ Why the run was refused or aborted — empty while it is still going or if it fi
 
 Which refusal ended the run — Refusal::None while it runs or once it is Done.
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:757`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L757).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:807`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L807).*
 
 <a id="drivetraincalibrator-refusalport"></a>
 
@@ -2156,7 +2328,7 @@ Which refusal ended the run — Refusal::None while it runs or once it is Done.
 
 The port the refusal names, positive — or 0 when it names none (a push too short, a spin that disagreed, an abort).
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:761`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L761).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:811`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L811).*
 
 <a id="drivetraincalibrator-warning"></a>
 
@@ -2168,7 +2340,7 @@ The port the refusal names, positive — or 0 when it names none (a push too sho
 
 The warnings a run that is NOT refused still owes the operator, joined by " | " — one sentence per port LEFT OUT as decoupled ("port 18 turns but does not move the robot -- its gear is slipping; it is left out"), and (since DIAG1 Part B) one per candidate whose push reading was not finite at DONE ("port 13 gave no reading at DONE -- not counted as a drive port; if it drives the robot, check it and run again"). Empty when there is none. Bounded: a sentence that does not fit is cut, and the report still names every port. ASCII, no '%'.
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:769`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L769).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:819`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L819).*
 
 <a id="drivetraincalibrator-result"></a>
 
@@ -2180,7 +2352,7 @@ The warnings a run that is NOT refused still owes the operator, joined by " | " 
 
 The measured description. Precondition: phase() == Done — a refused run has no result, and asking for one is a caller bug, not a value to be handed back.
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:773`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L773).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:823`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L823).*
 
 <a id="drivetraincalibrator-report"></a>
 
@@ -2192,7 +2364,7 @@ The measured description. Precondition: phase() == Done — a refused run has no
 
 Every number behind the run, filled as far as the run got — worth reading after a refusal.
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:781`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L781).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:831`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L831).*
 
 <a id="drivetraincalibrator-config"></a>
 
@@ -2204,7 +2376,7 @@ Every number behind the run, filled as far as the run got — worth reading afte
 
 The config in force.
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:784`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L784).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:834`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L834).*
 
 <a id="drivetraincalibrator-accepts"></a>
 
@@ -2216,7 +2388,7 @@ The config in force.
 
 True when answer(`a`) would be ACCEPTED right now — i.e. when a panel may OFFER it. Abort is always accepted; everything else only by the step that is waiting for it.  ── WHY THIS EXISTS (added at R3d Part 2, for the calibrate program's button row) ── answer() REFUSES an out-of-order answer and ends the run, which is right (a touch that silently did nothing would leave the operator believing a step had been taken) — but it makes a wrong BUTTON destructive. A panel therefore has to know which answers are live, and Phase alone cannot tell it: PushCapture is two steps (watching, then awaiting FRONT/BACK). Before this query the only public signal was the PROSE of status().prompt, and prose is not an API.  It is a PURE QUERY over the same step answer() switches on. It duplicates that switch, so the anti-drift device is a test rather than a comment: drivetrain_calibrator_test.cpp case 21 drives the run to each waiting step and asserts, for EVERY Answer, that accepts() agrees with what answer() actually does on a fresh run. accepts() says whether an answer is LEGAL; pushReady() says whether DONE is WISE.
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:802`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L802).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:852`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L852).*
 
 <a id="drivetraincalibrator-pushready"></a>
 
@@ -2228,7 +2400,7 @@ True when answer(`a`) would be ACCEPTED right now — i.e. when a panel may OFFE
 
 True when the push is PLAUSIBLY COMPLETE, so a panel may OFFER DONE (added at 2F-1 — two of robot two's five starts ended because DONE was touched before any push, on a screen that offered it with nothing moved). All three of: at least two candidates past movedThreshold (a FINITE travel — the finish's own movedOnPush() predicate, so a candidate with no reading is counted by neither); their median |travel| at least minPushRad (the push's "far enough"); and everything at rest — every motor under restFloor AND the IMU's yaw rate under restYawRateFloor. Read LIVE from the motors and the IMU, through the SAME helpers the finish uses (pushSummary(), atRest()), so the gate cannot drift from the finish: DONE with the first two false is refused by the finish (PushTooFew, PushTooShort) under the same predicate. At-rest is the one clause the finish does NOT refuse on (the brief's "a readiness query, not a new refusal"): the gate is STRICTER than the finish, never looser. False outside the push.
 
-*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:824`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L824).*
+*function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:874`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L874).*
 
 <a id="refusalname"></a>
 
@@ -2240,7 +2412,7 @@ True when the push is PLAUSIBLY COMPLETE, so a panel may OFFER DONE (added at 2F
 
 A short, stable, ASCII name for a refusal code — for the serial record ("[PULSE_ROLLED port 11]") and for a test's failure message. Never shown as the operator's explanation: the panel's words are calibrate_panel.hpp's.
 
-*free function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:1883`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L1883).*
+*free function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:2204`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L2204).*
 
 <a id="pulseverdictword"></a>
 
@@ -2252,7 +2424,7 @@ A short, stable, ASCII name for a refusal code — for the serial record ("[PULS
 
 A short, stable, ASCII word for a pulse verdict — the last column of a pulse's serial line.
 
-*free function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:1911`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L1911).*
+*free function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:2234`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L2234).*
 
 <a id="formatpushrecord"></a>
 
@@ -2264,7 +2436,7 @@ inline int formatPushRecord(const PortObservation& o, char* out, std::size_t cap
 
 The three record formatters below add 0.0 to every signed number they print: a travel of exactly nothing times a captured sign of −1 is IEEE negative zero, and "own -0.0 deg" in a log reads as a motor that moved backward. (x + 0.0 is +0.0 for x = −0.0 and x for everything else.)  One line of the PUSH TABLE for the serial record (F1.5): the candidate's port, its travel as read, whether it moved and the sign captured — `push port 11 travel -373.2 deg MOVED sign -1`. A candidate whose push reading was not finite keeps its port and its reading, and its word is `NO READING` instead of `still` (DIAG1 Part B: it is not a drive port, and unlike a still one it is a motor the run could not read — the number is spelled the C library's way, e.g. `+inf`). Written into `out` (NUL-terminated, cut to `cap`); returns what std::snprintf returns. ASCII, no '%'.
 
-*free function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:1936`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L1936).*
+*free function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:2261`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L2261).*
 
 <a id="formatpulserecord"></a>
 
@@ -2276,7 +2448,43 @@ inline int formatPulseRecord(const PulseRecord& r, unsigned total, char* out, st
 
 One line per PULSE for the serial record (F1.5) — the numbers that would have explained robot two's start B: `pulse port 12 (3 of 9) 6.0 V yaw -2.31 deg own +41.2 deg others 38.9 deg: LEFT`. `total` is the run's drive-port count (the report's drivePortCount). ASCII, no '%'.
 
-*free function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:1948`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L1948).*
+*free function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:2273`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L2273).*
+
+<a id="formatfollowerrecord"></a>
+
+## `formatFollowerRecord`
+
+```cpp
+inline void formatFollowerRecord(const PulseRecord& r, const CalibrationReport& rep, bool latest, char* out, std::size_t cap)
+```
+
+(CAL2) The second line of a pulse: the ports that FOLLOWED it, with their sign-corrected travel — `pulse port 11 6.0 V followers 12 13 14 15 (+6 +6 +6 +5 deg)`, or `... no followers`, or — ports turned with it but made no group (the whole robot moved, or the pulse was refused) — `... turned with it (no group): 12 13 ...`. The travels are the LATEST pulse's (PortObservation::followDeg), so they are printed only when `latest` is true; an older record prints its ports alone. `cap` >= 1. ASCII, no '%'.
+
+*free function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:2297`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L2297).*
+
+<a id="formatgroupsrecord"></a>
+
+## `formatGroupsRecord`
+
+```cpp
+inline void formatGroupsRecord(const CalibrationReport& rep, char* out, std::size_t cap)
+```
+
+(CAL2) After the pulses: each group's ports, and the ports the yaw decided — `groups: A 11 12 13 14 15 | B 16 17 18 19 20 | by yaw: none`. `cap` >= 1. ASCII, no '%'.
+
+*free function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:2327`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L2327).*
+
+<a id="formatidentifyrecord"></a>
+
+## `formatIdentifyRecord`
+
+```cpp
+inline int formatIdentifyRecord(const CalibrationReport& rep, char* out, std::size_t cap)
+```
+
+(CAL2) The identification turn's verdict — `sides: group A forward, B back turned the robot -6.1 deg (CW) -- A is LEFT, B is RIGHT`. ASCII, no '%'.
+
+*free function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:2352`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L2352).*
 
 <a id="formatspinrecord"></a>
 
@@ -2288,14 +2496,14 @@ inline int formatSpinRecord(const SpinRecord& r, char* out, std::size_t cap)
 
 One line per SPIN DIRECTION for the serial record (F1.5): `spin CCW 3.0 V yaw +720.0 deg L -78.54 in R +78.54 in W 12.500 in 7.41 s`. ASCII, no '%'.
 
-*free function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:1960`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L1960).*
+*free function, declared at [`include/shulib/calibration/drivetrain_calibrator.hpp:2365`](../../include/shulib/calibration/drivetrain_calibrator.hpp#L2365).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 144 lines, click to expand</summary>
+<summary>The header’s own reasoning — 162 lines, click to expand</summary>
 
 ```text
 
@@ -2316,11 +2524,11 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  other end yields every sign and both sides the other way round, which nothing in this class can
  see; a program compares the result with the card's record (calibration/front_check.hpp).
 
- ── PROVEN ON THE PLANT; IT HAS NEVER FINISHED ON A ROBOT ───────────────────────────
+ ── PROVEN ON THE PLANT; THIS FORM HAS NOT RUN ON A ROBOT ───────────────────────────
  Every property below is validated against the A2 host plant (sim/drive_plant.hpp) and nothing
  else. The Part 1 version of this class ran five times on robot two on 2026-09-24 and never
- finished — every run stopped at its side-assignment pulse or before it — and THIS version has
- never run on a robot at all. No physical drivetrain has ever been described by it. Where this
+ finished — every run stopped at its side-assignment pulse or before it. The form before CAL2 ran
+ on robot one on 2026-11-16 and 11-17: every run that reached its pulses stopped there. Where this
  header says the calibrator "measures" something it means "is designed to measure, and does
  measure on the plant". The numbers in CalibratorConfig are INVENTED — every one of them (A4
  register HA-136) — and the serial record this class exposes is what will say which must move.
@@ -2367,7 +2575,23 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
                             Proven on the host test plant only: on a V5 no push reading is
                             expected to be non-finite, because ProsMotor screens a failed read
                             to the last good one first (A4 register HA-08).
-   SideAssign   powered     one member at a time, a brief pulse at a RAMP of levels. On a tank,
+   SideAssign   powered     FINDING THE SIDES (CAL2, 2026-11-17). One port at a time, a brief pulse
+                            at a RAMP of levels; every OTHER drive port's sign-corrected travel is read.
+                            Ports that turn with it (>= followThreshold) while at least one drive port
+                            stays still share its GEAR TRAIN: they are one GROUP, and their side comes
+                            from the spin (SpinTest). A heavy robot turns by chassis flex only (robot
+                            one, 2026-11-17), so the coupling is read FIRST. With no follower, the
+                            yaw decides as before (below) — a drive not geared together runs as it did.
+                            Every port is still pulsed, a grouped one from its group's level, to
+                            confirm it DRIVES its train: a slipping gear is dragged like a mate.
+                            A grouped port that moves no mate stays in its group (KEPT) if its own
+                            shaft turned movedThreshold, and is LEFT OUT if it spun decoupledOwnMin.
+                            A turn drags the idle side: a port that went BACK while the robot turned
+                            was rolled back, not reversed (one that went back while the robot held
+                            still is refused, FOLLOWER_REVERSED), and a pulse that turned the robot
+                            against its group's first pulse leaves that group, its mates there no
+                            followers.
+                            Before CAL2 every port was decided by the yaw alone. On a tank,
                             driving ONE side forward turns the robot toward the other: LEFT
                             forward turns it CLOCKWISE, which is NEGATIVE yaw in shulib's
                             CCW-positive frame (hal/imu.hpp), and RIGHT forward is positive —
@@ -2378,7 +2602,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
                             can turn the robot with is classified (PulseVerdict). Once every
                             port is decided, each side's scale is pushDistance divided by the
                             MEDIAN of its members' push travel.
-   SpinTest     powered     spin in place both ways; W = (dR - dL) / dtheta_imu per direction,
+   SpinTest     powered     (CAL2) with groups: group A forward, group B backward until the yaw
+                            reaches identifyYaw — CCW (+) means A is RIGHT. Then, as before:
+                            spin in place both ways; W = (dR - dL) / dtheta_imu per direction,
                             averaged. On a floor this measures the EFFECTIVE width, which is
                             LARGER than a taped one because a turning tank scrubs (A4 register
                             HA-135). The coupled-side monitor watches both sides throughout; the

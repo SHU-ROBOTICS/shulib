@@ -261,16 +261,17 @@ TEST_CASE("CalibrateProgram T1a: one clean run on an empty card -- every decisio
     // HA-136): a capture is read against the thresholds that produced it
     CHECK(has(rig, "config: push 48 in along a tape; a port MOVED past 5.0 deg of shaft; the push straight within "
                    "3.0 deg and at least 6.28 rad (one wheel turn) of median travel"));
-    CHECK(has(rig, "config: pulses ramp 3.0/6.0/9.0 V for 0.40 s each, a side needs 2.0 deg of yaw; a port whose "
-                   "own shaft turns 20 deg with nothing else moving is LEFT OUT; rest = motors under 0.05 rad/s AND "
-                   "yaw rate under 2.0 deg/s for 0.5 s"));
+    CHECK(has(rig, "config: pulses ramp 3.0/6.0/9.0/12.0 V, 0.40 s each; a port FOLLOWS past 2.0 deg, else a side "
+                   "needs 2.0 deg of yaw; own shaft 90 deg, nothing else moving = LEFT OUT; rest = motors under 0.05 "
+                   "rad/s AND heading under 2.0 deg/s over 0.5 s"));
     CHECK(has(rig, "config: spin 2 turns each way, levels 3.0 then 6.0 V; must turn 5.0 deg within 2.0 s per level; "
                    "STOPS at 15.0 deg the wrong way; 20 s timeout; the two ways agree within 5.0 pct"));
     CHECK(countPrefix(L, "config: ") == 3);
     // the loop's own record at DONE, verbatim: every tick 10 ms apart on the plant (T1q stalls one)
-    // (219 prints: the PULSES' ABORT is redrawn once, from its slot to the row, when the first pulse
-    // drives a motor — CAL1 Part B's review round; 218 before it)
-    CHECK(has(rig, "loop: 5496 ticks, worst gap between two ticks 10 ms (a powered step stops past 100 ms); 219 "
+    // (the PULSES' ABORT is redrawn once, from its slot to the row, when the first pulse drives a
+    // motor — CAL1 Part B's review round; CAL2: 14 pulses, not 30 — 4749 ticks and 168 prints, from
+    // 5496 and 219)
+    CHECK(has(rig, "loop: 4749 ticks, worst gap between two ticks 10 ms (a powered step stops past 100 ms); 168 "
                    "screen prints so far"));
     // the push, live: the first tick's count, a line when the count changes (the ports moving; the
     // push far enough, one wheel turn), a keepalive 5 s after the last line while only the travel
@@ -791,8 +792,8 @@ TEST_CASE("CalibrateProgram T1q: one slow tick (50 ms) -- the loop's worst gap s
     Rig rig{sc};
     rig.run(robotTwoFacts());
     REQUIRE_FALSE(rig.timedOut);
-    CHECK(has(rig, "loop: 5492 ticks, worst gap between two ticks 50 ms (a powered step stops past 100 ms); 219 "
-                   "screen prints so far"));
+    CHECK(has(rig, "loop: 4748 ticks, worst gap between two ticks 50 ms (a powered step stops past 100 ms); 168 "
+                   "screen prints so far"));  // CAL2: 5492 and 219 before (T1a says why)
     CHECK(describe(decoded(rig.fileBytes(kRecordFileName))) == measured(rig));
 }
 
@@ -1690,7 +1691,7 @@ TEST_CASE("CalibrateProgram T5i: NO mechanism declared -- the banner says every 
     const std::size_t w = findLine(L, "watch      : no mechanism port declared -- nothing to watch, and EVERY motor "
                                       "is a");
     REQUIRE(w != npos);
-    CHECK(L[w + 1] == "             drive candidate: one that turns with the push is POWERED (3, 6, 9 V).");
+    CHECK(L[w + 1] == "             drive candidate: one that turns with the push is POWERED (3, 6, 9, then 12 V).");
     CHECK(L[w + 2] == "             Declare every mechanism motor in the robot's facts, or unplug it first.");
     CHECK(countPrefix(L, "watch: ") == 0);
     CHECK(countContaining(L, "(declared)") == 0);
@@ -2077,7 +2078,7 @@ TEST_CASE("CalibrateProgram T5o: a held run discarded over files that OPENED and
 // ═══ T5b. Undeclared mechanism motors (re-check R11) ═════════════════════════════════
 
 TEST_CASE("CalibrateProgram T5b-1: an undeclared motor the push does not turn is geared and never powered; "
-          "one the push turns is PULSED at 3, 6 and 9 V, then LEFT OUT -- each with the words that say "
+          "one the push turns is PULSED at 3, 6, 9 and 12 V, then LEFT OUT -- each with the words that say "
           "declare it") {
     Scenario sc;
     sc.undeclared8 = true;
@@ -2097,9 +2098,9 @@ TEST_CASE("CalibrateProgram T5b-1: an undeclared motor the push does not turn is
     CHECK(rig.rec(8).maxAbs == 0.0);
     CHECK(rig.rec(8).nonCoastCalls == 0);
     // port 9: pulsed at exactly the three levels, then never again
-    const std::vector<double> levels = {3.0, 6.0, 9.0};
+    const std::vector<double> levels = {3.0, 6.0, 9.0, 12.0};  // CAL2: the ramp's 12 V
     CHECK(rig.rec(9).levels == levels);
-    CHECK(has(rig, "pulse port 9 (1 of 11) 9.0 V yaw +0.00 deg own +1051.5 deg others 0.0 deg: LEFT OUT (decoupled)"));
+    CHECK(has(rig, "pulse port 9 (1 of 11) 12.0 V yaw +0.00 deg own +1456.0 deg others 0.0 deg: LEFT OUT (decoupled)"));
     CHECK(has(rig, "LEFT OUT: port 9 turns but does not move the robot (a slipping gear? or a MECHANISM motor -- "
                    "declare it in the robot's facts) -- it is in no side and is never commanded again"));
     // the record: ten drive ports, neither 8 nor 9
@@ -2117,7 +2118,7 @@ TEST_CASE("CalibrateProgram T5b-2: the undeclared motor the push turns is LOADED
     rig.run(robotTwoFacts());
     REQUIRE_FALSE(rig.timedOut);
     const auto& L = rig.io.lines;
-    const std::size_t st = findPrefix(L, "STOPPED [PULSE_STILL port 9]: port 9 could not move the robot at 9.0 V");
+    const std::size_t st = findPrefix(L, "STOPPED [PULSE_STILL port 9]: port 9 could not move the robot at 12.0 V");
     REQUIRE(st != npos);
     CHECK(L[st + 1] == "if port 9 is a MECHANISM motor, declare it in the robot's facts: a motor that is not "
                        "declared is a drive candidate");
@@ -2126,12 +2127,26 @@ TEST_CASE("CalibrateProgram T5b-2: the undeclared motor the push turns is LOADED
     checkAllStopped(rig);
 }
 
+// CAL2: wheels up no longer stops the pulses (the coupling needs no turn): the identification turn
+// stops it, naming no port; with coupling off the pulse's PULSE_ROLLED words are as before.
 TEST_CASE("CalibrateProgram T5b-3: a pulse that turns its train and not the robot (wheels up, from inside) -- "
           "PULSE_ROLLED names the port, and says to declare it if it is a mechanism, as PULSE_STILL does") {
     Scenario sc;
     sc.headingHeld = true;
+    {
+        Rig coupled{sc};
+        coupled.run(robotTwoFacts());
+        REQUIRE_FALSE(coupled.timedOut);
+        const auto& C = coupled.io.lines;
+        const std::size_t at = findPrefix(C, "STOPPED [SPIN_NO_START]: the drive cannot turn the robot: group A forward");
+        REQUIRE(at != npos);
+        CHECK(C[at + 1] == "Every motor is at 0 V and coasting. Nothing was written to the card by this run.");
+        checkAllStopped(coupled);
+    }
     Rig rig{sc};
-    rig.run(robotTwoFacts());
+    CalibrateFacts yawOnly = robotTwoFacts();
+    yawOnly.calibrator.followThreshold = shulib::units::AngleDim{360.0 * shulib::calibration::kDegreesToRadians};
+    rig.run(yawOnly);
     REQUIRE_FALSE(rig.timedOut);
     const auto& L = rig.io.lines;
     const std::size_t st = findPrefix(L, "STOPPED [PULSE_ROLLED port 11]: port 11 moved its gear train (others ");
@@ -2690,7 +2705,7 @@ TEST_CASE("CalibrateProgram T-CFG: the robot's own calibrator settings reach the
     f.calibrator.pulseYawFloor = shulib::units::AngleDim{0.6 * shulib::calibration::kDegreesToRadians};
     f.calibrator.restYawRateFloor = shulib::units::AngularVelocity{1.0 * shulib::calibration::kDegreesToRadians};
     rig.run(f);
-    CHECK(has(rig, "config: pulses ramp 3.0/6.0/9.0 V for 0.40 s each, a side needs 0.6 deg of yaw; a port whose "
-                   "own shaft turns 20 deg with nothing else moving is LEFT OUT; rest = motors under 0.05 rad/s AND "
-                   "yaw rate under 1.0 deg/s for 0.5 s"));
+    CHECK(has(rig, "config: pulses ramp 3.0/6.0/9.0/12.0 V, 0.40 s each; a port FOLLOWS past 2.0 deg, else a side "
+                   "needs 0.6 deg of yaw; own shaft 90 deg, nothing else moving = LEFT OUT; rest = motors under 0.05 "
+                   "rad/s AND heading under 1.0 deg/s over 0.5 s"));
 }

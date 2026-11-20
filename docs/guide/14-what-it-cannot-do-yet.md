@@ -74,11 +74,12 @@ The headline limitation, stated as many times as it takes:
   typed there as "chosen, not measured" is not marked at all.
 - **The standard Calibrate has not run on a robot in its current form.** It runs whole on the host test
   plant, and 34 of its runs are compared line for line with recorded ones; the calibrator inside it ran on
-  robot two in an earlier form on 2026-09-24 ([Chapter 19](19-calibrating-your-robot.md)). Its thresholds
-  are invented for a first run (HA-136).
-- **Nothing has run on robot one.** No census has seen it, no reading has been taken from it and no photo
-  is on file. Its programs and autons run on the host test plant on placeholder numbers, and every build
-  that needs a fact nobody has typed refuses
+  robot two in an earlier form on 2026-09-24, and on robot one in the form before this one
+  ([Chapter 19](19-calibrating-your-robot.md)). Its thresholds are invented for a first run (HA-136).
+- **Robot one has run Calibrate and stopped in its pulses.** On 2026-11-16 and 11-17 every run of the form
+  before this one that reached the pulses stopped there (one motor of ten cannot turn that heavy robot); a
+  measurement build finished one run. Its programs and autons run on the host test plant on placeholder
+  numbers, and every build that needs a fact nobody has typed refuses
   ([Chapter 21](21-adding-your-robot-by-hand.md#what-robot-one-does-not-do-yet)).
 - **Every physical constant is a labeled guess.** Control gains, settle tolerances, sensor
   noise levels, drivetrain geometry, fault thresholds — all provisional, and cataloged as
