@@ -47,11 +47,11 @@
 [R3D] IMU calibrating (HA-23 says ~2 s) -- keep the robot STILL until the screen says to push it
 [R3D] calibrator started: 12 candidate(s), kind Tank, cartridge BLUE 600 rpm, IMU port 2, provenance "shulib Calibrate Oct  6 2026 12:00:00"
 [R3D] config: push 48 in along a tape; a port MOVED past 5.0 deg of shaft; the push straight within 3.0 deg and at least 6.28 rad (one wheel turn) of median travel
-[R3D] config: pulses ramp 3.0/6.0/9.0 V for 0.40 s each, a side needs 2.0 deg of yaw; a port whose own shaft turns 20 deg with nothing else moving is LEFT OUT; rest = motors under 0.05 rad/s AND yaw rate under 2.0 deg/s for 0.5 s
+[R3D] config: pulses ramp 3.0/6.0/9.0/12.0 V, 0.40 s each; a port FOLLOWS past 2.0 deg, else a side needs 2.0 deg of yaw; own shaft 90 deg, nothing else moving = LEFT OUT; rest = motors under 0.05 rad/s AND heading under 2.0 deg/s over 0.5 s
 [R3D] config: spin 2 turns each way, levels 3.0 then 6.0 V; must turn 5.0 deg within 2.0 s per level; STOPS at 15.0 deg the wrong way; 20 s timeout; the two ways agree within 5.0 pct
 [R3D] ONE PUSH, 48 in, FRONT END FIRST, along a tape -- the end that leads is the FRONT;
-[R3D] then STAND CLEAR: one motor at a time jerks (3, then 6, then 9 V), then it spins
-[R3D] both ways. INVENTED numbers.
+[R3D] then STAND CLEAR: one motor at a time jerks (3, 6, 9, then 12 V) until others turn with
+[R3D] it, then it turns to find LEFT and spins both ways. INVENTED numbers.
 [R3D] watch      : the declared mechanism ports are READ during the push, never commanded;
 [R3D]              one that turns with the push is named at DONE, and the save waits
 [R3D] ===== RUN 1 =====
@@ -89,41 +89,46 @@
 [R3D] screen: 3/4 PULSES: STAND CLEAR / TWITCHING MOTORS / PORT 9  3 V | [ABORT]
 [R3D] screen: 3/4 PULSES: STAND CLEAR / TWITCHING MOTORS / PORT 9  3 V | [ABORT]
 [R3D] pulse port 9 (1 of 11) 3.0 V yaw +0.00 deg own +242.7 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 9 3.0 V no followers
 [R3D] pulse port 9 (1 of 11) 6.0 V yaw +0.00 deg own +630.9 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 9 (1 of 11) 9.0 V yaw +0.00 deg own +1051.5 deg others 0.0 deg: LEFT OUT (decoupled)
+[R3D] pulse port 9 6.0 V no followers
+[R3D] pulse port 9 (1 of 11) 9.0 V yaw +0.00 deg own +1051.5 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 9 9.0 V no followers
+[R3D] pulse port 9 (1 of 11) 12.0 V yaw +0.00 deg own +1456.0 deg others 0.0 deg: LEFT OUT (decoupled)
+[R3D] pulse port 9 12.0 V no followers
 [R3D] LEFT OUT: port 9 turns but does not move the robot (a slipping gear? or a MECHANISM motor -- declare it in the robot's facts) -- it is in no side and is never commanded again
 [R3D] pulse port 11 (2 of 11) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 11 3.0 V no followers
 [R3D] pulse port 11 (2 of 11) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 11 (2 of 11) 9.0 V yaw -6.47 deg own +49.8 deg others 49.8 deg: LEFT
-[R3D] pulse port 12 (3 of 11) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 12 (3 of 11) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 12 (3 of 11) 9.0 V yaw -6.31 deg own +48.5 deg others 48.5 deg: LEFT
-[R3D] pulse port 13 (4 of 11) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 13 (4 of 11) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 13 (4 of 11) 9.0 V yaw -6.31 deg own +48.5 deg others 48.5 deg: LEFT
-[R3D] pulse port 14 (5 of 11) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 14 (5 of 11) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 14 (5 of 11) 9.0 V yaw -6.31 deg own +48.5 deg others 48.5 deg: LEFT
-[R3D] pulse port 15 (6 of 11) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 15 (6 of 11) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 15 (6 of 11) 9.0 V yaw -6.31 deg own +48.5 deg others 48.5 deg: LEFT
+[R3D] pulse port 11 6.0 V no followers
+[R3D] pulse port 11 (2 of 11) 9.0 V yaw -6.31 deg own +48.5 deg others 48.5 deg: FOLLOWED
+[R3D] pulse port 11 9.0 V followers 12 13 14 15 (+49 +49 +49 +49 deg)
+[R3D] pulse port 12 (3 of 11) 9.0 V yaw -6.31 deg own +48.5 deg others 48.5 deg: FOLLOWED
+[R3D] pulse port 12 9.0 V followers 11 13 14 15 (+49 +49 +49 +49 deg)
+[R3D] pulse port 13 (4 of 11) 9.0 V yaw -6.47 deg own +49.8 deg others 49.8 deg: FOLLOWED
+[R3D] pulse port 13 9.0 V followers 11 12 14 15 (+50 +50 +50 +50 deg)
+[R3D] pulse port 14 (5 of 11) 9.0 V yaw -6.47 deg own +49.8 deg others 49.8 deg: FOLLOWED
+[R3D] pulse port 14 9.0 V followers 11 12 13 15 (+50 +50 +50 +50 deg)
+[R3D] pulse port 15 (6 of 11) 9.0 V yaw -6.31 deg own +48.5 deg others 48.5 deg: FOLLOWED
+[R3D] pulse port 15 9.0 V followers 11 12 13 14 (+49 +49 +49 +49 deg)
 [R3D] pulse port 16 (7 of 11) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+[R3D] pulse port 16 3.0 V no followers
 [R3D] pulse port 16 (7 of 11) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 16 (7 of 11) 9.0 V yaw +6.31 deg own +48.5 deg others 48.5 deg: RIGHT
-[R3D] pulse port 17 (8 of 11) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 17 (8 of 11) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 17 (8 of 11) 9.0 V yaw +6.47 deg own +49.8 deg others 49.8 deg: RIGHT
-[R3D] pulse port 18 (9 of 11) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 18 (9 of 11) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 18 (9 of 11) 9.0 V yaw +6.31 deg own +48.5 deg others 48.5 deg: RIGHT
-[R3D] pulse port 19 (10 of 11) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 19 (10 of 11) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 19 (10 of 11) 9.0 V yaw +6.47 deg own +49.8 deg others 49.8 deg: RIGHT
-[R3D] pulse port 20 (11 of 11) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 20 (11 of 11) 6.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
-[R3D] pulse port 20 (11 of 11) 9.0 V yaw +6.47 deg own +49.8 deg others 49.8 deg: RIGHT
-[R3D] phase: SPIN | CCW 0.00 of 2.00 turns at 0.0 V
+[R3D] pulse port 16 6.0 V no followers
+[R3D] pulse port 16 (7 of 11) 9.0 V yaw +6.31 deg own +48.5 deg others 48.5 deg: FOLLOWED
+[R3D] pulse port 16 9.0 V followers 17 18 19 20 (+49 +49 +49 +49 deg)
+[R3D] pulse port 17 (8 of 11) 9.0 V yaw +6.47 deg own +49.8 deg others 49.8 deg: FOLLOWED
+[R3D] pulse port 17 9.0 V followers 16 18 19 20 (+50 +50 +50 +50 deg)
+[R3D] pulse port 18 (9 of 11) 9.0 V yaw +6.31 deg own +48.5 deg others 48.5 deg: FOLLOWED
+[R3D] pulse port 18 9.0 V followers 16 17 19 20 (+49 +49 +49 +49 deg)
+[R3D] pulse port 19 (10 of 11) 9.0 V yaw +6.47 deg own +49.8 deg others 49.8 deg: FOLLOWED
+[R3D] pulse port 19 9.0 V followers 16 17 18 20 (+50 +50 +50 +50 deg)
+[R3D] pulse port 20 (11 of 11) 9.0 V yaw +6.47 deg own +49.8 deg others 49.8 deg: FOLLOWED
+[R3D] pulse port 20 9.0 V followers 16 17 18 19 (+50 +50 +50 +50 deg)
+[R3D] groups: A 11 12 13 14 15 | B 16 17 18 19 20 | by yaw: none
+[R3D] phase: SPIN | next: group A forward, B back: yaw +0.0 of 5.0 deg at 0.0 V
 [R3D] screen: 4/4 SPIN: STAND CLEAR / SPINNING / SETTLING | [ABORT]
+[R3D] sides: group A forward, B back turned the robot -5.8 deg (CW) -- A is LEFT, B is RIGHT
 [R3D] spin CCW 3.0 V yaw +720.2 deg L -78.56 in R +78.56 in W 12.500 in 7.43 s
 [R3D] spin CW 3.0 V yaw -720.2 deg L +78.56 in R -78.56 in W 12.500 in 7.43 s
 [R3D] ===== RUN 1 ENDED: DONE =====
@@ -142,7 +147,7 @@
 [R3D] COPY THE 'MEASURED tank ...' LINE ABOVE DOWN. Then touch RUN AGAIN and check
 [R3D] the two runs agree -- a number that does not reproduce is not a measurement
 [R3D] (the tolerances, 2 pct for a scale and 3 pct for the width, are HA-136, invented).
-[R3D] loop: 5774 ticks, worst gap between two ticks 10 ms (a powered step stops past 100 ms); 229 screen prints so far
+[R3D] loop: 5126 ticks, worst gap between two ticks 10 ms (a powered step stops past 100 ms); 181 screen prints so far
 [R3D] screen: SAVED: LEFT 5  RIGHT 5 / ipr L 1.62500 R 1.62500 / track 12.500 in | [RUN AGAIN]
 [R3D] the field disabled the robot after the run had finished -- nothing was powered
 [R3D] competition state changed: status bits 0x01 field=no disabled=yes auton=no -- calibration runs ONLY in driver control, enabled

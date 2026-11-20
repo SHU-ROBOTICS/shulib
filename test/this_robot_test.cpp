@@ -214,9 +214,9 @@ TEST_CASE("this robot (R7): the dropped-autons line names the ROBOT'S autons fil
         CHECK(twin[0].find("fix src/team/autons.cpp") != std::string::npos);
         CHECK(twin[0].find("robot_one") == std::string::npos);
         CHECK(one[0].size() < sb::kDroppedAutonLineBytes);
-        // ROB1-BT review round: the shared skills route's entry lives in its OWN file — both robots say so on
-        // the line after the summary; the bench words (no shared route) do not.
-        const std::string route = "(the skills route both robots share is fixed in src/team/skills_route.cpp)";
+        // ROB1-BT review round: the route builder's routes live in their OWN file — both robots say so on the
+        // line after the summary (RMP1-C: every route, not only the skills route); the bench words do not.
+        const std::string route = "(the route builder's routes are fixed in src/team/skills_route.cpp)";
         REQUIRE(one.size() == two.size() + 1);
         REQUIRE(twin.size() == two.size() + 1);
         CHECK(one[1] == route);

@@ -31,15 +31,16 @@
 // The composition is runCalibrate()'s own frame: the registry, the provider over it (no log copy),
 // the SD store (its default root), the screen and the IO — each borrowed by the program for its run.
 //
-// THE STACK it takes on PROS's opcontrol task (measured 2026-10-29 by GCC, never on a robot): the
-// provider alone is 7,288 B on ARM and run() holds the 7,712 B calibrator, so the deepest path GCC
-// can see in the team's one translation unit (arm-none-eabi-g++ -fstack-usage -fcallgraph-info=su,
-// the team project's flags, over the 21-line file) is 22,464 B — runCalibrate 8,712, then
-// CalibrateProgram::run 10,272, then the DONE path down to the safe save's CRC — BEFORE newlib's
-// file and printf frames and VEXos's file calls, which it cannot see. PROS runs opcontrol() on a task
-// of TASK_STACK_DEPTH_DEFAULT = 0x2000 words (32 KiB, include/pros/rtos.h:72): about 70 % of it
-// before those frames (R3d's Calibrate, which this replaces in CAL1 Part B: 15,168 B, "about half").
-// It fits; it is the margin to watch if the program's frame grows.
+// THE STACK it takes on PROS's opcontrol task (GCC's -fstack-usage -fcallgraph-info=su over robot one's
+// Calibrate, src/programs/calibrate_program.cpp with the robot's flags, 2026-11-17, never on a robot):
+// the deepest path GCC can see is 23,552 B — the caller 1,240, this runCalibrate 16,456 (the provider
+// alone 14,696), CalibrateProgram::run 1,960, then the DONE path down to the safe save's CRC — BEFORE
+// newlib's file and printf frames and VEXos's file calls, which it cannot see. PROS runs opcontrol()
+// on a task of TASK_STACK_DEPTH_DEFAULT = 0x2000 words (32 KiB, include/pros/rtos.h:72). The
+// calibrator and the run's record live in static storage (CAL2): on this stack they made the path
+// 31,824 B before CAL2 (a 7,712 B calibrator) and 32,072 B with CAL2's 7,928 B one; a measurement build
+// ~140 B over the release stopped with FATAL ERROR on robot one's opcontrol task at the save
+// (2026-11-17). The provider is next.
 //
 // NOTHING HERE HAS RUN ON A ROBOT in this form. Its host test (test/pros_calibrate_adapter_test.cpp)
 // runs it through the host PROS shim, which tests the shell against our BELIEF about PROS, not the

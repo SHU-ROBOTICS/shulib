@@ -100,7 +100,8 @@ current state, so here it is, third heading from the top:
   digital out** by the programs that boot the robots' mechanisms (their pistons, 3-wire lines A to C);
   this README claims neither confirmed on a device. **Optical and ADI digital in are constructed by no
   program yet** — no V5 build compiles them into a package — and **the brain's touch screen adapter is built only into the robots' "shulib Calibrate"** (the
-  library's standard Calibrate since 2026-11-05), which has not run on a robot in that form — and GPS
+  library's standard Calibrate since 2026-11-05), which ran on robot one in the form before this one
+  (2026-11-16 and 11-17) — and GPS
   and rotation appear only in the X-drive build, which has never run. All
   eighteen are host-tested against a hand-written stand-in for PROS, which proves the glue is
   faithful to *our beliefs* about PROS — units, signs, error values — and cannot prove the
@@ -294,7 +295,7 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
                     position — arms, lifts — and speed — flywheels; host-only so far); the
                     driver file's controls (presets on buttons) and the direction check's
                     judgement (which Bench Tests' station 13 MECHANISMS runs on the robot —
-                    built, not yet run on one)
+                    run on robot one 2026-11-17)
   runner/           runs a Route: the path runner, the command-id registry, the manifest,
                     and every mechanism's route ids bound in one call
   teleop/           driver control: stick mapping, input shaping, drive modes, field-centric,
@@ -328,7 +329,7 @@ src/                the robot programs, one folder per job (every include writte
                     competition program's driver control runs it), each robot's autons
                     (autons.cpp, robot_one_autons.cpp — one list each, both auton programs
                     read it; the host suite compiles them and runs every auton in them) and
-                    the skills route both robots share (skills_route.cpp)
+                    the routes both robots share (skills_route.cpp)
   programs/         one program each: the bench tester, shulib Drive (the robot's driver file on
                     robot::Robot, with its MAIN / DETAILS / MORE pages), shulib Calibrate, the
                     X-drive's program, shulib Auton Tester (runs one of the team's autons on the

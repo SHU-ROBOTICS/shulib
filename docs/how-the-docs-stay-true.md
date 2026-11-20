@@ -13,6 +13,7 @@ editing these pages. Most of them are enforced by the build, not by anyone remem
 | On the site, every register row has its own link (`hardware-assumptions.md#ha-136`) | `tools/prepare_site.py check-register` |
 | The front page's first-week picture matches guide 21's order | `tools/docs_figures/first_week.py check` |
 | "Where your code goes"'s picture matches that page's tables | `tools/docs_figures/build_to_program.py check` |
+| "Set up your robot first"'s picture matches that page's numbered steps | `tools/docs_figures/setup_first.py check` |
 | A number a page states matches the repository; a file a page names exists | `tools/doc_staleness_audit.py` |
 
 All of them run in every build of the test suite and in CI.

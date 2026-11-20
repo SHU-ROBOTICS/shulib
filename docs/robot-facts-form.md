@@ -55,11 +55,13 @@ and 22–24's letters are typed (the footer).*
     each level: tape the height (item 11's point) and RECORD. **Read the RECORD's `output … deg`, not its
     inches** — until the shape is typed, station 13's inches come from placeholders. Two to eight rows: the
     bottom stop and the top stop at least, and one at every level.
-    **The top stop:** station 13 does **not** apply the cap yet, so keep the ceiling at 3 V on the cascade
-    and never power it into the top stop — jog up at 3 V to just short of it and stop; close the last bit
-    by hand only if the cascade moves freely by hand (robot one's motors drive the spool directly, with no
-    gears, so the motors turn with it), then tape and RECORD. If it does not, write "top stop not reached"
-    and tell the coordinator.
+    **The top stop:** station 13 applies the cascade's cap (since 2026-11-19; its bottom line says `cap 2.0
+    A`), so approach the top stop at 3–6 V (R1 raises the 3 V start) and stop when it stops rising — never
+    keep pushing into it — then tape and RECORD. If the bottom line says `cap … NOT SET`, keep 3 V and tell
+    the coordinator. If the page says `It STALLED` at a stop, that IS the stop: RECORD first, then DONE and
+    open 13 again (the page keeps your place in the steps while Bench Tests runs; a RECORD with nothing jogged
+    since the last one is that step again; to start over, stop the program and run Bench Tests again). The
+    page lists these steps, marks the current one, and after each RECORD shows the `output … deg` it wrote, large.
 15. **(C8)** Three voltages, each measured or **chosen with the coordinator** (then written "chosen, not
     measured"): (i) the smallest volts that hold the empty cascade halfway without sagging; (ii) the
     **homing push** — how hard it pushes DOWN into its bottom stop to find zero (gentle; written negative,

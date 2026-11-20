@@ -13,7 +13,8 @@
 The standard Calibrate runs whole in the host test suite on the host test plant (the suite's model
 of a robot), both through the library's own test devices and through its real PROS adapters over the
 suite's stand-in for PROS, and 34 runs of it are compared line for line with recorded ones. The
-measurement inside it — the calibrator — ran on robot two in an earlier form on 2026-09-24. Every
+measurement inside it — the calibrator — ran on robot two in an earlier form on 2026-09-24, and on
+robot one on 2026-11-16 and 11-17, where the form before this one stopped in the pulses. Every
 threshold in it is invented for a first run (register entry HA-136). Since 2026-11-05 this
 repository's own "shulib Calibrate" (slot 4, on robot one and robot two) IS the standard Calibrate: its
 facts are derived from the robot's tables (`src/robots/calibrate_facts.hpp`) instead of typed in a file
@@ -29,7 +30,7 @@ state only what cannot be:
 | the drive kind | **you** | `config::DrivetrainKind` — only a **tank** is measured; anything else is refused by name |
 | the drive motors' cartridge (insert colour) | **you** | no reading can tell it: every insert turns the motor the same, and the firmware divides by what it was told |
 | every motor that is **not** a drive motor (your mechanisms) | **you** | the brain knows a motor is plugged in, never what it is for |
-| which ports drive, which way each is wired, which side | measured | the push and the pulses |
+| which ports drive, which way each is wired, which side | measured | the push, the pulses and a short turn |
 | the **front** | measured | the end that **leads the push** is the front |
 | the distance scale of each side, the track width | measured | the push along a tape, then the spin |
 | the IMU's port | measured | the brain's device list |
@@ -55,7 +56,7 @@ constexpr calibration::CalibrateFacts kOurRobot{
     .drive = config::DrivetrainKind::Tank,
     .cartridge = hal::MotorCartridge::Blue,  // the insert colour of the DRIVE motors
     // EVERY motor that is not a drive motor. A motor left out is a drive candidate,
-    // and one the push turns gets powered (3, 6, 9 V) like a drive motor.
+    // and one the push turns gets powered (3, 6, 9, then 12 V) like a drive motor.
     .mechanisms = {{6, "left claw"}, {7, "right claw"}},
 };
 
@@ -97,7 +98,7 @@ and the run goes on.
 
 The brain reports *that* a motor is on a port, never *what* it drives. So Calibrate treats every
 motor you did not declare as a possible drive motor — a **candidate**. One the push turns is then
-**powered** like a drive motor: pulsed at 3, then 6, then 9 V, one at a time. An intake roller the
+**powered** like a drive motor: pulsed at 3, then 6, 9 and 12 V, one at a time. An intake roller the
 push drags along will spin; a claw that cannot move will strain. The record stays safe (such a
 motor ends up `LEFT OUT`, or the run is refused), but a mechanism was powered next to a person.
 
@@ -121,14 +122,27 @@ the floor at one end of a tape at least 48 inches long:
    says the rule you are about to use: **the end that leads the push is FRONT**.
 2. **2/4 PUSH — PUSH FRONT FIRST, 48 IN ALONG TAPE.** Push the robot by hand, straight along the
    tape, with the end you want to be the **front** leading. The screen counts the motors that
-   turned. When it has seen enough, a green **DONE** appears: touch it, then stand clear. (A curved
+   turned. When it has seen enough, a green **DONE** appears: touch it, then stand clear. DONE stays
+   while the robot is still: stillness is judged by the heading over half a second. (A curved
    push, or one too short, is refused here — push again.)
-3. **3/4 PULSES — STAND CLEAR.** One motor at a time is pulsed at 3, 6 and 9 V, which tells the
-   sides apart from how the robot turns.
-4. **4/4 SPIN — STAND CLEAR.** The robot spins both ways to measure the track width.
+3. **3/4 PULSES — STAND CLEAR.** Finding the sides. One motor at a time is pulsed — 3, then 6, 9
+   and 12 V — until other motors turn with it. Motors that turn together share a gear train: they
+   are one side, shown as group **A** or **B**. Every motor is pulsed at least once: one whose pulse
+   turns its own shaft but moves none of its group stays in it, one whose shaft does not turn stops the
+   run (NOTHING MOVED), and one whose shaft spins free (a slipping gear) is LEFT OUT.
+   A robot whose motors are not geared together is told apart by how it turns, as before.
+4. **4/4 SPIN — STAND CLEAR.** First a short turn, group A forward and group B back, names which
+   side is LEFT (the screen says **FINDING LEFT**). Then the robot spins both ways to measure the
+   track width.
 5. **SAVED** — the result is on the screen and the serial log. Copy the `MEASURED tank ...` line
    down, then touch **RUN AGAIN** and push once more: two runs that agree are a measurement; two
    that do not are not.
+
+**New STOPPED words (CAL2):** **SIDES UNCLEAR** — a motor seemed to be on both sides, or a third
+group turned up (check the gears of the port shown); **SIGN MISMATCH** with "a motor turned against
+its push" — check that port's cable. A robot on blocks whose sides are geared together stops at the
+short turn with **COULD NOT SPIN**. **NOTHING MOVED** names what the other drive ports did (`the other drive ports
+at most N deg`).
 
 **ABORT** stops a run at any step; every motor is left at 0 V and coasting. It is the red button at
 the bottom right; once a motor is powered — from the first pulse on — it covers the whole bottom row,
@@ -138,7 +152,8 @@ the start of autonomous, ends the program the same way (Calibrate runs only in d
 enabled).
 
 **This program, in this form, has not yet run on a robot.** Its calibrator ran on robot two in an earlier
-form on 2026-09-24 ([What it cannot do yet](14-what-it-cannot-do-yet.md#it-has-never-driven-a-robot-under-its-own-control)).
+form on 2026-09-24, and on robot one in the form before this one on 2026-11-16 and 11-17 ([What it cannot
+do yet](14-what-it-cannot-do-yet.md#it-has-never-driven-a-robot-under-its-own-control)).
 
 ## What the ending means
 

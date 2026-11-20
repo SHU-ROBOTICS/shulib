@@ -8,7 +8,7 @@
 
 calibrate_panel — the calibration screen as a PURE MODEL.
 
-This header declares **19** types (81 members), **14** free functions, and **80** constants.
+This header declares **19** types (81 members), **14** free functions, and **81** constants.
 
 Extracted from [`include/shulib/calibration/calibrate_panel.hpp`](../../include/shulib/calibration/calibrate_panel.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in [How it works](../guide/README.md); worked recipes live in [Recipes](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -135,6 +135,7 @@ Extracted from [`include/shulib/calibration/calibrate_panel.hpp`](../../include/
 - [`kTwitching`](#ktwitching) — *constant*
 - [`kSpinning`](#kspinning) — *constant*
 - [`kSettling`](#ksettling) — *constant*
+- [`kFindingLeft`](#kfindingleft) — *constant*
 - [`kNextDoneWhenMoved`](#knextdonewhenmoved) — *constant*
 - [`kNextLetGo`](#knextletgo) — *constant*
 - [`kNextTouchDone`](#knexttouchdone) — *constant*
@@ -1467,7 +1468,7 @@ The STOPPED wording for `code` — keyed on the CODE, never on the reason's pros
 
 True when `s` may be drawn in a line of `cols` characters: printable ASCII only, no '%', and no longer than `cols`. The compile-time gate for every literal below.
 
-*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:391`](../../include/shulib/calibration/calibrate_panel.hpp#L391).*
+*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:395`](../../include/shulib/calibration/calibrate_panel.hpp#L395).*
 
 <a id="kheaderidle"></a>
 
@@ -1479,7 +1480,7 @@ inline constexpr std::string_view kHeaderIdle = "CALIBRATE"
 
 Header words (kHeaderCols).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:408`](../../include/shulib/calibration/calibrate_panel.hpp#L408).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:412`](../../include/shulib/calibration/calibrate_panel.hpp#L412).*
 
 <a id="kheaderimu"></a>
 
@@ -1491,7 +1492,7 @@ inline constexpr std::string_view kHeaderImu = "1/4 IMU"
 
 See kHeaderIdle.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:410`](../../include/shulib/calibration/calibrate_panel.hpp#L410).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:414`](../../include/shulib/calibration/calibrate_panel.hpp#L414).*
 
 <a id="kheaderpush"></a>
 
@@ -1503,7 +1504,7 @@ inline constexpr std::string_view kHeaderPush = "2/4 PUSH"
 
 See kHeaderIdle.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:412`](../../include/shulib/calibration/calibrate_panel.hpp#L412).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:416`](../../include/shulib/calibration/calibrate_panel.hpp#L416).*
 
 <a id="kheaderpulses"></a>
 
@@ -1515,7 +1516,7 @@ inline constexpr std::string_view kHeaderPulses = "3/4 PULSES"
 
 See kHeaderIdle.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:414`](../../include/shulib/calibration/calibrate_panel.hpp#L414).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:418`](../../include/shulib/calibration/calibrate_panel.hpp#L418).*
 
 <a id="kheaderspin"></a>
 
@@ -1527,7 +1528,7 @@ inline constexpr std::string_view kHeaderSpin = "4/4 SPIN"
 
 See kHeaderIdle.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:416`](../../include/shulib/calibration/calibrate_panel.hpp#L416).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:420`](../../include/shulib/calibration/calibrate_panel.hpp#L420).*
 
 <a id="kheadersaved"></a>
 
@@ -1539,7 +1540,7 @@ inline constexpr std::string_view kHeaderSaved = "SAVED"
 
 See kHeaderIdle.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:418`](../../include/shulib/calibration/calibrate_panel.hpp#L418).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:422`](../../include/shulib/calibration/calibrate_panel.hpp#L422).*
 
 <a id="kheadernotsaved"></a>
 
@@ -1551,7 +1552,7 @@ inline constexpr std::string_view kHeaderNotSaved = "NOT SAVED"
 
 See kHeaderIdle.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:420`](../../include/shulib/calibration/calibrate_panel.hpp#L420).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:424`](../../include/shulib/calibration/calibrate_panel.hpp#L424).*
 
 <a id="kheadermeasured"></a>
 
@@ -1563,7 +1564,7 @@ inline constexpr std::string_view kHeaderMeasured = "MEASURED"
 
 See kHeaderIdle.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:422`](../../include/shulib/calibration/calibrate_panel.hpp#L422).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:426`](../../include/shulib/calibration/calibrate_panel.hpp#L426).*
 
 <a id="kheaderstopped"></a>
 
@@ -1575,7 +1576,7 @@ inline constexpr std::string_view kHeaderStopped = "STOPPED -- MOTORS OFF"
 
 See kHeaderIdle.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:424`](../../include/shulib/calibration/calibrate_panel.hpp#L424).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:428`](../../include/shulib/calibration/calibrate_panel.hpp#L428).*
 
 <a id="knotstarted"></a>
 
@@ -1587,7 +1588,7 @@ inline constexpr std::string_view kNotStarted = "NOT STARTED"
 
 Instructions (kLargeCols).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:426`](../../include/shulib/calibration/calibrate_panel.hpp#L426).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:430`](../../include/shulib/calibration/calibrate_panel.hpp#L430).*
 
 <a id="khandsoff"></a>
 
@@ -1599,7 +1600,7 @@ inline constexpr std::string_view kHandsOff = "HANDS OFF"
 
 See kNotStarted.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:428`](../../include/shulib/calibration/calibrate_panel.hpp#L428).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:432`](../../include/shulib/calibration/calibrate_panel.hpp#L432).*
 
 <a id="kimuwarming"></a>
 
@@ -1611,7 +1612,7 @@ inline constexpr std::string_view kImuWarming = "IMU WARMING UP"
 
 See kNotStarted.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:430`](../../include/shulib/calibration/calibrate_panel.hpp#L430).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:434`](../../include/shulib/calibration/calibrate_panel.hpp#L434).*
 
 <a id="kstandclear"></a>
 
@@ -1623,7 +1624,7 @@ inline constexpr std::string_view kStandClear = "STAND CLEAR"
 
 See kNotStarted.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:432`](../../include/shulib/calibration/calibrate_panel.hpp#L432).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:436`](../../include/shulib/calibration/calibrate_panel.hpp#L436).*
 
 <a id="ktwitching"></a>
 
@@ -1635,7 +1636,7 @@ inline constexpr std::string_view kTwitching = "TWITCHING MOTORS"
 
 See kNotStarted.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:434`](../../include/shulib/calibration/calibrate_panel.hpp#L434).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:438`](../../include/shulib/calibration/calibrate_panel.hpp#L438).*
 
 <a id="kspinning"></a>
 
@@ -1647,7 +1648,7 @@ inline constexpr std::string_view kSpinning = "SPINNING"
 
 See kNotStarted.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:436`](../../include/shulib/calibration/calibrate_panel.hpp#L436).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:440`](../../include/shulib/calibration/calibrate_panel.hpp#L440).*
 
 <a id="ksettling"></a>
 
@@ -1659,7 +1660,19 @@ inline constexpr std::string_view kSettling = "SETTLING"
 
 See kNotStarted.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:438`](../../include/shulib/calibration/calibrate_panel.hpp#L438).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:442`](../../include/shulib/calibration/calibrate_panel.hpp#L442).*
+
+<a id="kfindingleft"></a>
+
+## `kFindingLeft`
+
+```cpp
+inline constexpr std::string_view kFindingLeft = "FINDING LEFT"
+```
+
+See kNotStarted (CAL2: the turn that names the groups' sides).
+
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:444`](../../include/shulib/calibration/calibrate_panel.hpp#L444).*
 
 <a id="knextdonewhenmoved"></a>
 
@@ -1671,7 +1684,7 @@ inline constexpr std::string_view kNextDoneWhenMoved = "DONE shows once the moto
 
 NEXT / detail lines (kMediumCols).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:440`](../../include/shulib/calibration/calibrate_panel.hpp#L440).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:446`](../../include/shulib/calibration/calibrate_panel.hpp#L446).*
 
 <a id="knextletgo"></a>
 
@@ -1683,7 +1696,7 @@ inline constexpr std::string_view kNextLetGo = "let go -- DONE shows when it sto
 
 See kNextDoneWhenMoved.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:442`](../../include/shulib/calibration/calibrate_panel.hpp#L442).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:448`](../../include/shulib/calibration/calibrate_panel.hpp#L448).*
 
 <a id="knexttouchdone"></a>
 
@@ -1695,7 +1708,7 @@ inline constexpr std::string_view kNextTouchDone = "touch DONE -- then stand cle
 
 See kNextDoneWhenMoved.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:444`](../../include/shulib/calibration/calibrate_panel.hpp#L444).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:450`](../../include/shulib/calibration/calibrate_panel.hpp#L450).*
 
 <a id="knexttwitch"></a>
 
@@ -1707,7 +1720,7 @@ inline constexpr std::string_view kNextTwitch = "NEXT: motors twitch -- stand cl
 
 See kNextDoneWhenMoved.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:446`](../../include/shulib/calibration/calibrate_panel.hpp#L446).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:452`](../../include/shulib/calibration/calibrate_panel.hpp#L452).*
 
 <a id="knextspins"></a>
 
@@ -1719,7 +1732,7 @@ inline constexpr std::string_view kNextSpins = "NEXT: it spins -- stand clear"
 
 See kNextDoneWhenMoved.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:448`](../../include/shulib/calibration/calibrate_panel.hpp#L448).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:454`](../../include/shulib/calibration/calibrate_panel.hpp#L454).*
 
 <a id="knextsaves"></a>
 
@@ -1731,7 +1744,7 @@ inline constexpr std::string_view kNextSaves = "NEXT: it saves -- stay clear"
 
 See kNextDoneWhenMoved.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:450`](../../include/shulib/calibration/calibrate_panel.hpp#L450).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:456`](../../include/shulib/calibration/calibrate_panel.hpp#L456).*
 
 <a id="ksettlinghandsoff"></a>
 
@@ -1743,7 +1756,7 @@ inline constexpr std::string_view kSettlingHandsOff = "settling -- hands off"
 
 See kNextDoneWhenMoved.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:452`](../../include/shulib/calibration/calibrate_panel.hpp#L452).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:458`](../../include/shulib/calibration/calibrate_panel.hpp#L458).*
 
 <a id="kspinagain"></a>
 
@@ -1755,7 +1768,7 @@ inline constexpr std::string_view kSpinAgain = "hands off -- it spins again"
 
 See kNextDoneWhenMoved.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:454`](../../include/shulib/calibration/calibrate_panel.hpp#L454).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:460`](../../include/shulib/calibration/calibrate_panel.hpp#L460).*
 
 <a id="kspinfirst"></a>
 
@@ -1767,7 +1780,7 @@ inline constexpr std::string_view kSpinFirst = "hands off -- it spins next"
 
 See kNextDoneWhenMoved.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:456`](../../include/shulib/calibration/calibrate_panel.hpp#L456).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:462`](../../include/shulib/calibration/calibrate_panel.hpp#L462).*
 
 <a id="kcopythenrunagain"></a>
 
@@ -1779,7 +1792,7 @@ inline constexpr std::string_view kCopyThenRunAgain = "NEXT: copy these, then RU
 
 Outcome lines (kSmallCols).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:458`](../../include/shulib/calibration/calibrate_panel.hpp#L458).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:464`](../../include/shulib/calibration/calibrate_panel.hpp#L464).*
 
 <a id="kcopynow"></a>
 
@@ -1791,7 +1804,7 @@ inline constexpr std::string_view kCopyNow = "NOT SAVED -- copy these numbers NO
 
 See kCopyThenRunAgain.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:460`](../../include/shulib/calibration/calibrate_panel.hpp#L460).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:466`](../../include/shulib/calibration/calibrate_panel.hpp#L466).*
 
 <a id="kcopythese"></a>
 
@@ -1803,7 +1816,7 @@ inline constexpr std::string_view kCopyThese = "copy these numbers"
 
 See kCopyThenRunAgain.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:462`](../../include/shulib/calibration/calibrate_panel.hpp#L462).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:468`](../../include/shulib/calibration/calibrate_panel.hpp#L468).*
 
 <a id="kfullreasononserial"></a>
 
@@ -1815,7 +1828,7 @@ inline constexpr std::string_view kFullReasonOnSerial = "the full reason is on t
 
 See kCopyThenRunAgain.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:464`](../../include/shulib/calibration/calibrate_panel.hpp#L464).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:470`](../../include/shulib/calibration/calibrate_panel.hpp#L470).*
 
 <a id="klabeldone"></a>
 
@@ -1827,7 +1840,7 @@ inline constexpr std::string_view kLabelDone = "DONE"
 
 Button labels (MEDIUM; a label also fits its box: 12 characters).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:466`](../../include/shulib/calibration/calibrate_panel.hpp#L466).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:472`](../../include/shulib/calibration/calibrate_panel.hpp#L472).*
 
 <a id="klabelabort"></a>
 
@@ -1839,7 +1852,7 @@ inline constexpr std::string_view kLabelAbort = "ABORT"
 
 See kLabelDone.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:468`](../../include/shulib/calibration/calibrate_panel.hpp#L468).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:474`](../../include/shulib/calibration/calibrate_panel.hpp#L474).*
 
 <a id="klabelrunagain"></a>
 
@@ -1851,7 +1864,7 @@ inline constexpr std::string_view kLabelRunAgain = "RUN AGAIN"
 
 See kLabelDone.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:470`](../../include/shulib/calibration/calibrate_panel.hpp#L470).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:476`](../../include/shulib/calibration/calibrate_panel.hpp#L476).*
 
 <a id="kheaderflipped"></a>
 
@@ -1863,7 +1876,7 @@ inline constexpr std::string_view kHeaderFlipped = "FRONT FLIPPED"
 
 Header word: the FRONT FLIPPED held screen (CAL1).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:472`](../../include/shulib/calibration/calibrate_panel.hpp#L472).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:478`](../../include/shulib/calibration/calibrate_panel.hpp#L478).*
 
 <a id="kheadermechturned"></a>
 
@@ -1875,7 +1888,7 @@ inline constexpr std::string_view kHeaderMechTurned = "MECHANISM PORT TURNED"
 
 Header word: the held screen when a declared mechanism motor turned with the push (CAL1).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:474`](../../include/shulib/calibration/calibrate_panel.hpp#L474).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:480`](../../include/shulib/calibration/calibrate_panel.hpp#L480).*
 
 <a id="kheadersavednew"></a>
 
@@ -1887,7 +1900,7 @@ inline constexpr std::string_view kHeaderSavedNew = "SAVED -- NEW FRONT"
 
 Header word: SAVED after USE NEW (CAL1).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:476`](../../include/shulib/calibration/calibrate_panel.hpp#L476).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:482`](../../include/shulib/calibration/calibrate_panel.hpp#L482).*
 
 <a id="kpushfrontfirst"></a>
 
@@ -1899,7 +1912,7 @@ inline constexpr std::string_view kPushFrontFirst = "PUSH FRONT FIRST"
 
 LARGE: the push instruction — the end that leads the push is the FRONT (CAL1).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:478`](../../include/shulib/calibration/calibrate_panel.hpp#L478).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:484`](../../include/shulib/calibration/calibrate_panel.hpp#L484).*
 
 <a id="knothingsavedyet"></a>
 
@@ -1911,7 +1924,7 @@ inline constexpr std::string_view kNothingSavedYet = "NOTHING SAVED YET"
 
 LARGE: every held screen's headline.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:480`](../../include/shulib/calibration/calibrate_panel.hpp#L480).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:486`](../../include/shulib/calibration/calibrate_panel.hpp#L486).*
 
 <a id="kfrontrule"></a>
 
@@ -1923,7 +1936,7 @@ inline constexpr std::string_view kFrontRule = "the end that leads the push is F
 
 MEDIUM: the rule, shown while the IMU warms up (CAL1).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:482`](../../include/shulib/calibration/calibrate_panel.hpp#L482).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:488`](../../include/shulib/calibration/calibrate_panel.hpp#L488).*
 
 <a id="kflipwhat"></a>
 
@@ -1935,7 +1948,7 @@ inline constexpr std::string_view kFlipWhat = "the card calls the end you led BA
 
 MEDIUM: FRONT FLIPPED — what the records say (never what the operator did: a LEFT/RIGHT cable swap gives the same record as the other end leading).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:485`](../../include/shulib/calibration/calibrate_panel.hpp#L485).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:491`](../../include/shulib/calibration/calibrate_panel.hpp#L491).*
 
 <a id="kflipagain"></a>
 
@@ -1947,7 +1960,7 @@ inline constexpr std::string_view kFlipAgain = "RUN AGAIN: you led with the BACK
 
 SMALL: FRONT FLIPPED — RUN AGAIN's case.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:487`](../../include/shulib/calibration/calibrate_panel.hpp#L487).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:493`](../../include/shulib/calibration/calibrate_panel.hpp#L493).*
 
 <a id="kflipnew"></a>
 
@@ -1959,7 +1972,7 @@ inline constexpr std::string_view kFlipNew = "USE NEW: you led with the FRONT (c
 
 SMALL: FRONT FLIPPED — USE NEW's case (a cable swap between the sides looks exactly like a flip).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:489`](../../include/shulib/calibration/calibrate_panel.hpp#L489).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:495`](../../include/shulib/calibration/calibrate_panel.hpp#L495).*
 
 <a id="kflipwarn"></a>
 
@@ -1971,7 +1984,7 @@ inline constexpr std::string_view kFlipWarn = "USE NEW after a wrong push revers
 
 SMALL: FRONT FLIPPED — the warning.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:491`](../../include/shulib/calibration/calibrate_panel.hpp#L491).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:497`](../../include/shulib/calibration/calibrate_panel.hpp#L497).*
 
 <a id="kmechnotoncard"></a>
 
@@ -1983,7 +1996,7 @@ inline constexpr std::string_view kMechNotOnCard = "it is declared a mechanism: 
 
 SMALL: MECHANISM PORT TURNED — when the card's record does not drive with the port.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:493`](../../include/shulib/calibration/calibrate_panel.hpp#L493).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:499`](../../include/shulib/calibration/calibrate_panel.hpp#L499).*
 
 <a id="kmechsave"></a>
 
@@ -1995,7 +2008,7 @@ inline constexpr std::string_view kMechSave = "SAVE: it is a mechanism the push 
 
 SMALL: MECHANISM PORT TURNED — SAVE's case.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:495`](../../include/shulib/calibration/calibrate_panel.hpp#L495).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:501`](../../include/shulib/calibration/calibrate_panel.hpp#L501).*
 
 <a id="kmechagain"></a>
 
@@ -2007,7 +2020,7 @@ inline constexpr std::string_view kMechAgain = "RUN AGAIN = save nothing: a driv
 
 SMALL: MECHANISM PORT TURNED — RUN AGAIN's case.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:497`](../../include/shulib/calibration/calibrate_panel.hpp#L497).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:503`](../../include/shulib/calibration/calibrate_panel.hpp#L503).*
 
 <a id="klabelnew"></a>
 
@@ -2019,7 +2032,7 @@ inline constexpr std::string_view kLabelNew = "USE NEW"
 
 Label: the held screen's left box (PanelButtonId::SaveHeld) on FRONT FLIPPED.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:499`](../../include/shulib/calibration/calibrate_panel.hpp#L499).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:505`](../../include/shulib/calibration/calibrate_panel.hpp#L505).*
 
 <a id="klabelsave"></a>
 
@@ -2031,7 +2044,7 @@ inline constexpr std::string_view kLabelSave = "SAVE"
 
 Label: the held screen's left box on MECHANISM PORT TURNED.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:501`](../../include/shulib/calibration/calibrate_panel.hpp#L501).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:507`](../../include/shulib/calibration/calibrate_panel.hpp#L507).*
 
 <a id="knotefirst"></a>
 
@@ -2043,7 +2056,7 @@ inline constexpr std::string_view kNoteFirst = "FIRST RECORD -- the end you push
 
 SMALL: the finished screen's NOTE after a first record (no record on the card).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:503`](../../include/shulib/calibration/calibrate_panel.hpp#L503).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:509`](../../include/shulib/calibration/calibrate_panel.hpp#L509).*
 
 <a id="knotenotchecked"></a>
 
@@ -2055,7 +2068,7 @@ inline constexpr std::string_view kNoteNotChecked = "FRONT NOT CHECKED -- see th
 
 SMALL: the NOTE when the front could not be checked (the card's record does not decode, or the check could not tell).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:506`](../../include/shulib/calibration/calibrate_panel.hpp#L506).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:512`](../../include/shulib/calibration/calibrate_panel.hpp#L512).*
 
 <a id="kwarningcut"></a>
 
@@ -2067,7 +2080,7 @@ inline constexpr std::string_view kWarningCut = " ..."
 
 SMALL: the warning row's ending when the NOTE takes its second line (CAL1).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:508`](../../include/shulib/calibration/calibrate_panel.hpp#L508).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:514`](../../include/shulib/calibration/calibrate_panel.hpp#L514).*
 
 <a id="kflipwhattyped"></a>
 
@@ -2079,7 +2092,7 @@ inline constexpr std::string_view kFlipWhatTyped = "typed ports: the end you led
 
 MEDIUM: FRONT FLIPPED against the team's TYPED drive ports (CAL1 D6 (a)) — what they say.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:510`](../../include/shulib/calibration/calibrate_panel.hpp#L510).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:516`](../../include/shulib/calibration/calibrate_panel.hpp#L516).*
 
 <a id="kflipnewtyped"></a>
 
@@ -2091,7 +2104,7 @@ inline constexpr std::string_view kFlipNewTyped = "USE NEW: you led with the FRO
 
 SMALL: FRONT FLIPPED against the typed ports — USE NEW's case: the FRONT led, so the typed ports (or the cables since they were typed) are wrong.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:513`](../../include/shulib/calibration/calibrate_panel.hpp#L513).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:519`](../../include/shulib/calibration/calibrate_panel.hpp#L519).*
 
 <a id="kflipwarntyped"></a>
 
@@ -2103,7 +2116,7 @@ inline constexpr std::string_view kFlipWarnTyped = "USE NEW reverses autons tune
 
 SMALL: FRONT FLIPPED against the typed ports — the warning: the autons tuned on them.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:516`](../../include/shulib/calibration/calibrate_panel.hpp#L516).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:522`](../../include/shulib/calibration/calibrate_panel.hpp#L522).*
 
 <a id="knotetypedsame"></a>
 
@@ -2115,7 +2128,7 @@ inline constexpr std::string_view kNoteTypedSame = "FRONT MATCHES YOUR TYPED DRI
 
 SMALL: the NOTE when the card held no usable record and EVERY port of the typed drive ports and this push agrees (same side, same sign, none in one list only).
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:520`](../../include/shulib/calibration/calibrate_panel.hpp#L520).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:526`](../../include/shulib/calibration/calibrate_panel.hpp#L526).*
 
 <a id="knotefixtyped"></a>
 
@@ -2127,7 +2140,7 @@ inline constexpr std::string_view kNoteFixTyped = "FIX YOUR TYPED DRIVE PORTS --
 
 SMALL: the NOTE after USE NEW against the typed drive ports: they call the saved front the back.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:522`](../../include/shulib/calibration/calibrate_panel.hpp#L522).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:528`](../../include/shulib/calibration/calibrate_panel.hpp#L528).*
 
 <a id="knotetypedpartial"></a>
 
@@ -2139,7 +2152,7 @@ inline constexpr std::string_view kNoteTypedPartial = "FRONT MATCHES, SOME TYPED
 
 SMALL: the NOTE when the front matched the typed drive ports but some port did not (a sign, a side, a port in one list only): the serial log names each one.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:525`](../../include/shulib/calibration/calibrate_panel.hpp#L525).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:531`](../../include/shulib/calibration/calibrate_panel.hpp#L531).*
 
 <a id="struct-checked"></a>
 
@@ -2151,7 +2164,7 @@ struct Checked
 
 One literal and the budget it must fit.
 
-*struct, declared at [`include/shulib/calibration/calibrate_panel.hpp:529`](../../include/shulib/calibration/calibrate_panel.hpp#L529).*
+*struct, declared at [`include/shulib/calibration/calibrate_panel.hpp:535`](../../include/shulib/calibration/calibrate_panel.hpp#L535).*
 
 <a id="checked-text"></a>
 
@@ -2163,7 +2176,7 @@ std::string_view text
 
 the literal
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:530`](../../include/shulib/calibration/calibrate_panel.hpp#L530).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:536`](../../include/shulib/calibration/calibrate_panel.hpp#L536).*
 
 <a id="checked-cols"></a>
 
@@ -2175,19 +2188,19 @@ std::size_t cols
 
 its line's budget
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:531`](../../include/shulib/calibration/calibrate_panel.hpp#L531).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:537`](../../include/shulib/calibration/calibrate_panel.hpp#L537).*
 
 <a id="kall"></a>
 
 ## `kAll`
 
 ```cpp
-inline constexpr Checked kAll[] = { {kHeaderIdle, kHeaderCols}, {kHeaderImu, kHeaderCols}, {kHeaderPush, kHeaderCols}, {kHeaderPulses, kHeaderCols}, {kHeaderSpin, kHeaderCols}, {kHeaderSaved, kHeaderCols}, {kHeaderNotSaved, kHeaderCols}, {kHeaderMeasured, kHeaderCols}, {kHeaderStopped, kHeaderCols}, {kNotStarted, kLargeCols}, {kHandsOff, kLargeCols}, {kImuWarming, kLargeCols}, {kPushFrontFirst, kLargeCols}, {kStandClear, kLargeCols}, {kTwitching, kLargeCols}, {kSpinning, kLargeCols}, {kSettling, kLargeCols}, {kNextDoneWhenMoved, kMediumCols}, {kNextLetGo, kMediumCols}, {kNextTouchDone, kMediumCols}, {kNextTwitch, kMediumCols}, {kNextSpins, kMediumCols}, {kNextSaves, kMediumCols}, {kSettlingHandsOff, kMediumCols}, {kSpinAgain, kMediumCols}, {kSpinFirst, kMediumCols}, {kCopyThenRunAgain, kSmallCols}, {kCopyNow, kSmallCols}, {kCopyThese, kSmallCols}, {kFullReasonOnSerial, kSmallCols}, {kLabelDone, 12}, {kLabelAbort, 12}, {kLabelRunAgain, 12}, {kHeaderFlipped, kHeaderCols}, {kHeaderMechTurned, kHeaderCols}, {kHeaderSavedNew, kHeaderCols}, {kNothingSavedYet, kLargeCols}, {kFrontRule, kMediumCols}, {kFlipWhat, kMediumCols}, {kFlipAgain, kSmallCols}, {kFlipNew, kSmallCols}, {kFlipWarn, kSmallCols}, {kMechNotOnCard, kSmallCols}, {kMechSave, kSmallCols}, {kMechAgain, kSmallCols}, {kLabelNew, 12}, {kLabelSave, 12}, {kNoteFirst, kSmallCols}, {kNoteNotChecked, kSmallCols}, {kWarningCut, kSmallCols}, {kFlipWhatTyped, kMediumCols}, {kFlipNewTyped, kSmallCols}, {kFlipWarnTyped, kSmallCols}, {kNoteTypedSame, kSmallCols}, {kNoteFixTyped, kSmallCols}, {kNoteTypedPartial, kSmallCols}, }
+inline constexpr Checked kAll[] = { {kHeaderIdle, kHeaderCols}, {kHeaderImu, kHeaderCols}, {kHeaderPush, kHeaderCols}, {kHeaderPulses, kHeaderCols}, {kHeaderSpin, kHeaderCols}, {kHeaderSaved, kHeaderCols}, {kHeaderNotSaved, kHeaderCols}, {kHeaderMeasured, kHeaderCols}, {kHeaderStopped, kHeaderCols}, {kNotStarted, kLargeCols}, {kHandsOff, kLargeCols}, {kImuWarming, kLargeCols}, {kPushFrontFirst, kLargeCols}, {kStandClear, kLargeCols}, {kTwitching, kLargeCols}, {kSpinning, kLargeCols}, {kSettling, kLargeCols}, {kNextDoneWhenMoved, kMediumCols}, {kFindingLeft, kLargeCols}, {kNextLetGo, kMediumCols}, {kNextTouchDone, kMediumCols}, {kNextTwitch, kMediumCols}, {kNextSpins, kMediumCols}, {kNextSaves, kMediumCols}, {kSettlingHandsOff, kMediumCols}, {kSpinAgain, kMediumCols}, {kSpinFirst, kMediumCols}, {kCopyThenRunAgain, kSmallCols}, {kCopyNow, kSmallCols}, {kCopyThese, kSmallCols}, {kFullReasonOnSerial, kSmallCols}, {kLabelDone, 12}, {kLabelAbort, 12}, {kLabelRunAgain, 12}, {kHeaderFlipped, kHeaderCols}, {kHeaderMechTurned, kHeaderCols}, {kHeaderSavedNew, kHeaderCols}, {kNothingSavedYet, kLargeCols}, {kFrontRule, kMediumCols}, {kFlipWhat, kMediumCols}, {kFlipAgain, kSmallCols}, {kFlipNew, kSmallCols}, {kFlipWarn, kSmallCols}, {kMechNotOnCard, kSmallCols}, {kMechSave, kSmallCols}, {kMechAgain, kSmallCols}, {kLabelNew, 12}, {kLabelSave, 12}, {kNoteFirst, kSmallCols}, {kNoteNotChecked, kSmallCols}, {kWarningCut, kSmallCols}, {kFlipWhatTyped, kMediumCols}, {kFlipNewTyped, kSmallCols}, {kFlipWarnTyped, kSmallCols}, {kNoteTypedSame, kSmallCols}, {kNoteFixTyped, kSmallCols}, {kNoteTypedPartial, kSmallCols}, }
 ```
 
 EVERY literal above with its budget — the list the compile-time check walks.
 
-*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:535`](../../include/shulib/calibration/calibrate_panel.hpp#L535).*
+*constant, declared at [`include/shulib/calibration/calibrate_panel.hpp:541`](../../include/shulib/calibration/calibrate_panel.hpp#L541).*
 
 <a id="panelliteralsfit"></a>
 
@@ -2199,7 +2212,7 @@ EVERY literal above with its budget — the list the compile-time check walks.
 
 True when every named literal and every STOPPED wording fits its budget and is ASCII with no '%' — evaluated at compile time below, so a budget change that breaks one fails the build.
 
-*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:572`](../../include/shulib/calibration/calibrate_panel.hpp#L572).*
+*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:579`](../../include/shulib/calibration/calibrate_panel.hpp#L579).*
 
 <a id="panellayoutholds"></a>
 
@@ -2211,7 +2224,7 @@ True when every named literal and every STOPPED wording fits its budget and is A
 
 True when the fixed layout keeps its promises: everything on the screen above row 236; ABORT's slot inside the powered row; and no middle box (a held screen's two choices, RUN AGAIN) whose HIT box reaches the hit box of anything in the button row — so a second tap where DONE or ABORT was lands on nothing in the next layout. The two choices do not touch each other.
 
-*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:595`](../../include/shulib/calibration/calibrate_panel.hpp#L595).*
+*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:602`](../../include/shulib/calibration/calibrate_panel.hpp#L602).*
 
 <a id="struct-wrapped"></a>
 
@@ -2223,7 +2236,7 @@ template <std::size_t Cols, std::size_t Lines> struct Wrapped
 
 Text broken into at most `Lines` lines of at most `Cols` characters — see wrapWords().
 
-*struct, declared at [`include/shulib/calibration/calibrate_panel.hpp:621`](../../include/shulib/calibration/calibrate_panel.hpp#L621).*
+*struct, declared at [`include/shulib/calibration/calibrate_panel.hpp:628`](../../include/shulib/calibration/calibrate_panel.hpp#L628).*
 
 <a id="wrapped-line"></a>
 
@@ -2235,7 +2248,7 @@ char line[Lines][Cols + 1]{}
 
 The lines, each NUL-terminated.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:623`](../../include/shulib/calibration/calibrate_panel.hpp#L623).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:630`](../../include/shulib/calibration/calibrate_panel.hpp#L630).*
 
 <a id="wrapped-count"></a>
 
@@ -2247,7 +2260,7 @@ std::size_t count = 0
 
 How many lines are used.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:625`](../../include/shulib/calibration/calibrate_panel.hpp#L625).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:632`](../../include/shulib/calibration/calibrate_panel.hpp#L632).*
 
 <a id="wrapped-complete"></a>
 
@@ -2259,7 +2272,7 @@ bool complete = true
 
 False when the text did not fit: a word longer than `Cols` (it is never split), or more text than `Lines` lines hold (the lines hold what fitted, in order; the rest is NOT shown and this flag says so).
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:629`](../../include/shulib/calibration/calibrate_panel.hpp#L629).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:636`](../../include/shulib/calibration/calibrate_panel.hpp#L636).*
 
 <a id="wrapwords"></a>
 
@@ -2271,7 +2284,7 @@ template <std::size_t Cols, std::size_t Lines> [[nodiscard]] constexpr Wrapped<C
 
 Break `text` into lines of at most `Cols` characters, ONLY at spaces: a word — and therefore a number like 1.37500 — is never split, runs of spaces collapse to one, and nothing is dropped silently (Wrapped::complete). constexpr, so a literal's wrapping can be checked at compile time. Allocation-free.
 
-*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:637`](../../include/shulib/calibration/calibrate_panel.hpp#L637).*
+*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:644`](../../include/shulib/calibration/calibrate_panel.hpp#L644).*
 
 <a id="viewfor"></a>
 
@@ -2283,7 +2296,7 @@ Break `text` into lines of at most `Cols` characters, ONLY at spaces: a word —
 
 The view for this frame. `secondsSinceLayoutChange` arms the non-ABORT buttons once it reaches kArmingDelaySeconds (TouchGate::view() tracks it); `save` tells the finished screen whether the program managed to write the result. A pure function of the calibrator's public queries.  CAL1: four steps (1/4..4/4), PUSH FRONT FIRST, the front rule while the IMU warms up — the end that leads the push is the FRONT, so there is no WHICH END question (removed by CAL1 Part B). `save` Held paints the held screen `finish.hold` names — FRONT FLIPPED or MECHANISM PORT TURNED, NOTHING SAVED YET, a left box (SaveHeld, labelled USE NEW or SAVE) and RUN AGAIN (which discards the run). `finish.front` New makes a SAVED header "SAVED -- NEW FRONT" in amber; `finish.note` is one amber SMALL row on the finished screen (a calibrator warning that needs two rows is then cut to one, ending " ...").
 
-*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:788`](../../include/shulib/calibration/calibrate_panel.hpp#L788).*
+*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:800`](../../include/shulib/calibration/calibrate_panel.hpp#L800).*
 
 <a id="hittest"></a>
 
@@ -2295,7 +2308,7 @@ The view for this frame. `secondsSinceLayoutChange` arms the non-ABORT buttons o
 
 The index of the ARMED button whose hit box (hitBox()) contains (x, y), or −1. A greyed button is never hit; neither is anything outside every button.
 
-*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:1072`](../../include/shulib/calibration/calibrate_panel.hpp#L1072).*
+*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:1090`](../../include/shulib/calibration/calibrate_panel.hpp#L1090).*
 
 <a id="layoutkey"></a>
 
@@ -2307,7 +2320,7 @@ The index of the ARMED button whose hit box (hitBox()) contains (x, y), or −1.
 
 A number that changes exactly when the LAYOUT does — the screen and every button's identity and rectangle — and NOT when a button merely arms. TouchGate restarts its arming clock on a change.
 
-*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:1083`](../../include/shulib/calibration/calibrate_panel.hpp#L1083).*
+*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:1101`](../../include/shulib/calibration/calibrate_panel.hpp#L1101).*
 
 <a id="struct-touchsample"></a>
 
@@ -2319,7 +2332,7 @@ struct TouchSample
 
 One read of the touch screen, PROS-free: what screen_touch_status() returns, reduced to what a release-edge reader needs.
 
-*struct, declared at [`include/shulib/calibration/calibrate_panel.hpp:1106`](../../include/shulib/calibration/calibrate_panel.hpp#L1106).*
+*struct, declared at [`include/shulib/calibration/calibrate_panel.hpp:1124`](../../include/shulib/calibration/calibrate_panel.hpp#L1124).*
 
 <a id="touchsample-error"></a>
 
@@ -2331,7 +2344,7 @@ bool error = false
 
 The read FAILED (PROS: E_TOUCH_ERROR, every field −1). Ignored — and it must not move the release count, or the next good read would replay the last touch.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1109`](../../include/shulib/calibration/calibrate_panel.hpp#L1109).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1127`](../../include/shulib/calibration/calibrate_panel.hpp#L1127).*
 
 <a id="touchsample-releasecount"></a>
 
@@ -2343,7 +2356,7 @@ std::int32_t releaseCount = 0
 
 PROS's release_count: it only ever increases, one per finger lifted.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1111`](../../include/shulib/calibration/calibrate_panel.hpp#L1111).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1129`](../../include/shulib/calibration/calibrate_panel.hpp#L1129).*
 
 <a id="touchsample-x"></a>
 
@@ -2355,7 +2368,7 @@ std::int16_t x = 0
 
 Where the LAST touch was — stale while idle, so it means something only on a new release.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1113`](../../include/shulib/calibration/calibrate_panel.hpp#L1113).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1131`](../../include/shulib/calibration/calibrate_panel.hpp#L1131).*
 
 <a id="touchsample-y"></a>
 
@@ -2367,7 +2380,7 @@ std::int16_t y = 0
 
 See x.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1115`](../../include/shulib/calibration/calibrate_panel.hpp#L1115).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1133`](../../include/shulib/calibration/calibrate_panel.hpp#L1133).*
 
 <a id="enum-class-touchaction"></a>
 
@@ -2379,7 +2392,7 @@ enum class TouchAction : std::uint8_t
 
 What a touch should do.
 
-*enum class, declared at [`include/shulib/calibration/calibrate_panel.hpp:1119`](../../include/shulib/calibration/calibrate_panel.hpp#L1119).*
+*enum class, declared at [`include/shulib/calibration/calibrate_panel.hpp:1137`](../../include/shulib/calibration/calibrate_panel.hpp#L1137).*
 
 <a id="touchaction-none"></a>
 
@@ -2391,7 +2404,7 @@ None
 
 nothing — no new release, a miss, a greyed button, or a stale layout
 
-*enumerator, declared at [`include/shulib/calibration/calibrate_panel.hpp:1120`](../../include/shulib/calibration/calibrate_panel.hpp#L1120).*
+*enumerator, declared at [`include/shulib/calibration/calibrate_panel.hpp:1138`](../../include/shulib/calibration/calibrate_panel.hpp#L1138).*
 
 <a id="touchaction-answer"></a>
 
@@ -2403,7 +2416,7 @@ Answer
 
 send TouchResult::answer to the calibrator
 
-*enumerator, declared at [`include/shulib/calibration/calibrate_panel.hpp:1121`](../../include/shulib/calibration/calibrate_panel.hpp#L1121).*
+*enumerator, declared at [`include/shulib/calibration/calibrate_panel.hpp:1139`](../../include/shulib/calibration/calibrate_panel.hpp#L1139).*
 
 <a id="touchaction-runagain"></a>
 
@@ -2415,7 +2428,7 @@ RunAgain
 
 rebuild the calibrator (the program's job — drivetrain_calibrator.hpp)
 
-*enumerator, declared at [`include/shulib/calibration/calibrate_panel.hpp:1122`](../../include/shulib/calibration/calibrate_panel.hpp#L1122).*
+*enumerator, declared at [`include/shulib/calibration/calibrate_panel.hpp:1140`](../../include/shulib/calibration/calibrate_panel.hpp#L1140).*
 
 <a id="touchaction-saveheld"></a>
 
@@ -2427,7 +2440,7 @@ SaveHeld
 
 (CAL1) a held screen's USE NEW / SAVE: save this run AS MEASURED
 
-*enumerator, declared at [`include/shulib/calibration/calibrate_panel.hpp:1123`](../../include/shulib/calibration/calibrate_panel.hpp#L1123).*
+*enumerator, declared at [`include/shulib/calibration/calibrate_panel.hpp:1141`](../../include/shulib/calibration/calibrate_panel.hpp#L1141).*
 
 <a id="struct-touchresult"></a>
 
@@ -2439,7 +2452,7 @@ struct TouchResult
 
 The outcome of one touch read.
 
-*struct, declared at [`include/shulib/calibration/calibrate_panel.hpp:1127`](../../include/shulib/calibration/calibrate_panel.hpp#L1127).*
+*struct, declared at [`include/shulib/calibration/calibrate_panel.hpp:1145`](../../include/shulib/calibration/calibrate_panel.hpp#L1145).*
 
 <a id="touchresult-action"></a>
 
@@ -2451,7 +2464,7 @@ TouchAction action = TouchAction::None
 
 What to do.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1129`](../../include/shulib/calibration/calibrate_panel.hpp#L1129).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1147`](../../include/shulib/calibration/calibrate_panel.hpp#L1147).*
 
 <a id="touchresult-answer"></a>
 
@@ -2463,7 +2476,7 @@ Answer answer = Answer::Abort
 
 The answer, when action is Answer.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1131`](../../include/shulib/calibration/calibrate_panel.hpp#L1131).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1149`](../../include/shulib/calibration/calibrate_panel.hpp#L1149).*
 
 <a id="touchresult-hit"></a>
 
@@ -2475,7 +2488,7 @@ int hit = -1
 
 The button index hit in the DRAWN view (−1 for none) — for the serial log.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1133`](../../include/shulib/calibration/calibrate_panel.hpp#L1133).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1151`](../../include/shulib/calibration/calibrate_panel.hpp#L1151).*
 
 <a id="touchresult-newrelease"></a>
 
@@ -2487,7 +2500,7 @@ bool newRelease = false
 
 True when this read carried a NEW release (logged even when it hits nothing).
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1135`](../../include/shulib/calibration/calibrate_panel.hpp#L1135).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:1153`](../../include/shulib/calibration/calibrate_panel.hpp#L1153).*
 
 <a id="class-touchgate"></a>
 
@@ -2499,7 +2512,7 @@ class TouchGate
 
 The touch discipline, in one place: the release EDGE only; error reads ignored and never replayed; the layout clock that arms buttons kArmingDelaySeconds after every layout change; and a re-check against the calibrator before any answer — because the view a finger landed on may be one frame older than the state machine.
 
-*class, declared at [`include/shulib/calibration/calibrate_panel.hpp:1142`](../../include/shulib/calibration/calibrate_panel.hpp#L1142).*
+*class, declared at [`include/shulib/calibration/calibrate_panel.hpp:1160`](../../include/shulib/calibration/calibrate_panel.hpp#L1160).*
 
 <a id="touchgate-touchgate"></a>
 
@@ -2511,7 +2524,7 @@ explicit TouchGate(std::int32_t releaseCountAtStart) noexcept
 
 `releaseCountAtStart`: PROS's release_count when the panel first appears, so a tap made before the program existed is never replayed as an answer.
 
-*function, declared at [`include/shulib/calibration/calibrate_panel.hpp:1146`](../../include/shulib/calibration/calibrate_panel.hpp#L1146).*
+*function, declared at [`include/shulib/calibration/calibrate_panel.hpp:1164`](../../include/shulib/calibration/calibrate_panel.hpp#L1164).*
 
 <a id="touchgate-view"></a>
 
@@ -2523,7 +2536,7 @@ explicit TouchGate(std::int32_t releaseCountAtStart) noexcept
 
 The view to paint now. Restarts the arming clock at `nowSeconds` whenever the layout (layoutKey()) differs from the last view this returned — so the program never has to track it, and a new layout's buttons come up greyed on the very first frame they appear. `finish` is viewFor()'s (CAL1; the default is no hold, no NOTE). CAL1: on a held screen the clock ALSO restarts when the QUESTION changes — the hold's reason, or (MECHANISM PORT TURNED, one screen per port) its port: FRONT FLIPPED's USE NEW and every MECHANISM PORT TURNED's SAVE share one box and one id, so layoutKey() alone cannot see the next question arrive, and a reflexive second tap would land on the next question's live box.
 
-*function, declared at [`include/shulib/calibration/calibrate_panel.hpp:1157`](../../include/shulib/calibration/calibrate_panel.hpp#L1157).*
+*function, declared at [`include/shulib/calibration/calibrate_panel.hpp:1175`](../../include/shulib/calibration/calibrate_panel.hpp#L1175).*
 
 <a id="touchgate-touch"></a>
 
@@ -2535,7 +2548,7 @@ The view to paint now. Restarts the arming clock at `nowSeconds` whenever the la
 
 One touch read against the view that is ON THE SCREEN (`drawn`). A new release that lands on an armed button becomes an answer only if the calibrator still accepts it now (DONE also needs pushReady()); RUN AGAIN only once the run has ended. CAL1: a HELD screen's left box is SaveHeld — never an answer — and only on a held screen while the run is Done.
 
-*function, declared at [`include/shulib/calibration/calibrate_panel.hpp:1179`](../../include/shulib/calibration/calibrate_panel.hpp#L1179).*
+*function, declared at [`include/shulib/calibration/calibrate_panel.hpp:1197`](../../include/shulib/calibration/calibrate_panel.hpp#L1197).*
 
 ## Design commentary, from the header
 

@@ -3,8 +3,9 @@
 //   node tools/route_maker/goldens.mjs --write
 //
 // For every test/goldens/route_maker/*.route.json: rewrite it in the project file's canonical form
-// (load -> save) and write its export, `<name>.cpp` (exportRegion + a final newline) — the file the C++
-// suite compiles and runs (test/route_maker_golden_test.cpp). test/export.test.mjs fails when a committed
+// (load -> save) and write its export, `<name>.cpp` (exportRegion of EVERY route + a final newline, on the
+// route's fixture robot's committed description) — the file the C++ suite compiles and runs
+// (test/route_maker_golden_test.cpp). test/export.test.mjs fails when a committed
 // golden differs from what this would write; run this, then READ the diff before committing it.
 // gl0_empty.cpp is NOT one of them: it is §6.3's contract text, kept by hand (no route.json), so the exporter
 // is held to it (export.test.mjs's GL0) instead of re-making it.
@@ -20,6 +21,12 @@ import { exportRegion } from './src/model/export.mjs';
 
 export const GOLDEN_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'test', 'goldens', 'route_maker');
 
+/** A golden's robot: the committed fixture description (x, y, z), or null (robots one and two are made at build). */
+export function goldenRobot(id) {
+    const f = path.join(GOLDEN_DIR, 'robots', `${id}.json`);
+    return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null;
+}
+
 /** Every golden: [name, its canonical project text, its export text]. */
 export function goldens() {
     const out = [];
@@ -30,7 +37,7 @@ export function goldens() {
         if (!loaded.ok) {
             throw new Error(`${f}: ${loaded.words}`);
         }
-        out.push([name, saveProject(loaded.project), `${exportRegion(loaded.project.routes[0])}\n`]);
+        out.push([name, saveProject(loaded.project), `${exportRegion(loaded.project.routes, goldenRobot(loaded.project.routes[0].robot))}\n`]);
     }
     return out;
 }

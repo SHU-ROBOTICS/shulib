@@ -1173,8 +1173,10 @@ TEST_CASE("IMU1 T10 (b): in the one band, a REST capture carries exactly one dou
 // two, the first read was 0 — rest declared, the window completed, a pulse STARTED while the robot
 // turned; far from it the last read was 0 — status().atRest lied (re-check R8). At 3 deg/s (over
 // restYawRateFloor's 2 deg/s) with every motor still: no pulse ever starts, the window refuses with
-// RestTimeout saying the robot is still rotating, and status().atRest is false on every tick.
-TEST_CASE("IMU1 T11: the calibrator never finds rest while the robot is turned by hand at 3 deg/s") {
+// RestTimeout saying the robot is still rotating, and status().atRest is false once the window holds
+// the turn (CAL2: the rest is the heading's average over restSettleTime, so a turn just begun reads
+// still for restYawRateFloor / rate of that window -- here 2/3 of it).
+TEST_CASE("IMU1 T11: the calibrator never starts a pulse while the robot is turned by hand at 3 deg/s") {
     using calib_rig::CalibRig;
     constexpr double kGapS = 25e-6;
     constexpr int kImuPort = 2;  // calib_rig::facts()'s IMU port
@@ -1191,7 +1193,7 @@ TEST_CASE("IMU1 T11: the calibrator never finds rest while the robot is turned b
         // The hand turn starts 2 in before the push ends (under a degree of yaw by DONE, inside the
         // 3 deg straightBound), so the rate is steady by the rest window's first tick — HA-213's
         // copy lags a turn's start. DONE is touched without waiting for pushReady(), whose atRest()
-        // a turning robot never satisfies (an old screen's behaviour, RunOptions::waitForReady).
+        // a robot turning for a whole window never satisfies (RunOptions::waitForReady).
         double turnFrom = -1.0;
         m.truthCwDeg = [&turnFrom](double t) {
             return turnFrom < 0.0 ? 0.0 : 3.0 * std::max(0.0, t - turnFrom);
@@ -1213,7 +1215,9 @@ TEST_CASE("IMU1 T11: the calibrator never finds rest while the robot is turned b
             }
             if (dc.phase() == cal::Phase::SideAssign) {  // last tick's outcome, read before this one
                 ++restTicks;
-                atRestTicks += dc.status().atRest ? 1 : 0;
+                // CAL2: rest averages the heading over restSettleTime, so a turn that has just begun
+                // reads still until the window holds enough of it -- never past one window.
+                atRestTicks += dc.status().atRest && restTicks > 50 ? 1 : 0;
                 for (std::size_t i = 0; i < CalibRig::kCandidates; ++i) {
                     poweredTicks += rg.candidates[i]->commandedVoltage().value() != 0.0 ? 1 : 0;
                 }

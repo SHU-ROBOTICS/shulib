@@ -28,6 +28,7 @@
 #include "source_pins.hpp"
 #include "shulib/competition/override_mirror.hpp"
 #include "team/autons.hpp"
+#include "team/skills_route.hpp"
 #include "team/robot_one_autons.hpp"
 #include "team/robot_one_driver.hpp"
 #include "team/robot_two_driver.hpp"
@@ -244,9 +245,10 @@ TEST_CASE("twin: the words -- robot two says robot one's words, but for its own 
     CHECK(std::string_view{w1.routeFilePath} == "src/team/skills_route.cpp");
 }
 
-TEST_CASE("twin: the autons -- robot two registers robot one's list, in robot one's order, its skills route MIRRORED (the one difference)") {
+TEST_CASE("twin: the autons -- robot two registers robot one's list, in robot one's order, each route marked mirrored MIRRORED (the one difference)") {
     // BUG CAUGHT: robot two's list drifting from robot one's (an auton on one robot only, another schedule);
-    // robot two running the skills route UNmirrored (both robots in the same Quadrant), or robot one mirrored.
+    // robot two running a route marked mirrored UNmirrored (both robots in the same Quadrant), one NOT marked
+    // mirrored mirrored, or robot one mirrored (RMP1-C D2: every route of src/team/skills_route.cpp's list).
     const auto r1 = registered(&sb::registerRobotOneAutons);
     const auto r2 = registered(&sb::registerAutons);
     // A new auton goes in BOTH robots' files (guide chapter 16, "Writing the next auton").
@@ -262,10 +264,18 @@ TEST_CASE("twin: the autons -- robot two registers robot one's list, in robot on
         CHECK(a.endActionAt.value() == b.endActionAt.value());
         CHECK(a.hardStopAt.value() == b.hardStopAt.value());
         CHECK(a.mirror == nullptr);  // robot one runs everything as written
-        const bool skills = std::string_view{a.name} == "skills";
-        CHECK((b.mirror != nullptr) == skills);  // robot two mirrors ONLY the skills route
-        if (skills) {
+        bool team = false;
+        bool marked = false;
+        for (const sb::TeamRoute& route : sb::teamRoutes()) {
+            const bool same = std::string_view{route.entry().name} == a.name;
+            team = team || same;
+            marked = marked || (same && route.mirror == sb::Mirror::ForRobotTwo);
+        }
+        CHECK((b.mirror != nullptr) == marked);  // robot two mirrors ONLY the routes marked so
+        if (team) {
             CHECK(a.routine == b.routine);  // ONE route function, both robots
+        }
+        if (marked) {
             CHECK(b.mirror == &shulib::competition::override2026::kSkillsMirror);
         }
     }

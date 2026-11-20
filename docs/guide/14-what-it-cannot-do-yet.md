@@ -75,11 +75,12 @@ The headline limitation, stated as many times as it takes:
   typed there as "chosen, not measured" is not marked at all.
 - **The standard Calibrate has not run on a robot in its current form.** It runs whole on the host test
   plant, and 34 of its runs are compared line for line with recorded ones; the calibrator inside it ran on
-  robot two in an earlier form on 2026-09-24 ([Chapter 19](19-calibrating-your-robot.md)). Its thresholds
-  are invented for a first run (HA-136).
-- **Nothing has run on robot one.** No census has seen it, no reading has been taken from it and no photo
-  is on file. Its programs and autons run on the host test plant on placeholder numbers, and every build
-  that needs a fact nobody has typed refuses
+  robot two in an earlier form on 2026-09-24, and on robot one in the form before this one
+  ([Chapter 19](19-calibrating-your-robot.md)). Its thresholds are invented for a first run (HA-136).
+- **Robot one has run Calibrate and stopped in its pulses.** On 2026-11-16 and 11-17 every run of the form
+  before this one that reached the pulses stopped there (one motor of ten cannot turn that heavy robot); a
+  measurement build finished one run. Its programs and autons run on the host test plant on placeholder
+  numbers, and every build that needs a fact nobody has typed refuses
   ([Chapter 21](21-adding-your-robot-by-hand.md#what-robot-one-does-not-do-yet)).
 - **Every physical constant is a labeled guess.** Control gains, settle tolerances, sensor
   noise levels, drivetrain geometry, fault thresholds — all provisional, and cataloged as
@@ -248,8 +249,8 @@ The mechanism seam that used to be a placeholder here is now real code
   invented starting gains; the robots' programs run on the service since its fifth part (2026-10-29) —
   robot two's claws then, both robots' cascade, side toggles and pistons since 2026-11-16 — never on a
   robot — and the bench page that runs the direction check,
-  Bench Tests' station 13, since its sixth and last (built 2026-10-30; its logic host-tested, the page
-  itself never run on a robot).
+  Bench Tests' station 13, since its sixth and last (built 2026-10-30; its logic host-tested; run on robot
+  one 2026-11-17, its plain words of 2026-11-19 not yet run on a robot).
 - **Deliberately absent:** any concrete mechanism. There is no `shulib::Intake` and never
   will be — mechanism sets change every season, so the library ships the grammar and your
   team writes the nouns ([Chapter 13](13-extending-the-library.md) says how, and why the safe state is declared per
@@ -560,10 +561,10 @@ promises four tiers of use. Today Tiers 2 and 3 exist — the recipe layer
   `.vexbot` file yet, so today a route is still typed in C++. The file reader is the rest of
   roadmap milestone M5, coordinated with the separate VexBuilder project.
   The [route builder](22-making-your-first-route.md) (2026-11) is the first piece a non-coder can use: it builds the
-  skills route by clicking on the field and WRITES the commented C++ into the skills-route file — the team still
+  team's named routes by clicking on the field and WRITES the commented C++ into the skills-route file — the team still
   builds and uploads it, and its **PREVIEW** plays the route from the real library on the host test plant (not the
   robot). What it does not do yet: robot two's mirrored run in PREVIEW, triggers partway through a drive, wall
-  resets, the mirrored robot drawn on the field while you edit, a time bar, the Toggle steps, strafing, moving to a
+  resets, a time bar, the Toggle steps, strafing, moving to a
   pose, driving through points, sensor waits, flywheel steps, a step of your own C++, relative starts, 30 s match
   routes, and exporting a route to VexBuilder. Until they come, they are
   typed by hand inside the route's region; the route builder never overwrites a hand edit there without asking.

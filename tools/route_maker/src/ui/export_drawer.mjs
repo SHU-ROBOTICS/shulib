@@ -4,12 +4,13 @@
 // a hand edit there refused unless the student chooses "Overwrite"); elsewhere, "pick your skills_route.cpp,
 // get the updated one back". While any step has an error the drawer shows ONLY the list of errors, each one click
 // from its step, and no code: the C++ is made only from a route with no error (a step still missing a number has
-// nothing to print). The same hand-edit choice (keep / overwrite) in both ways of writing. Robot two's mirrored
-// line is CHECKED, never written (D6, R2).
+// nothing to print). The same hand-edit choice (keep / overwrite) in both ways of writing. RMP1-C: EVERY route of the
+// project is written (one region), so an error on ANY route stops it (each listed with its route); the line each
+// autons file needs to register the routes is CHECKED, never written (D6, R2).
 
 import { h, icon } from './dom.mjs';
 import { exportRegion } from '../model/export.mjs';
-import { MIRRORED_LINE, SKILLS_ROUTE_FILE, ROBOT_TWO_AUTONS_FILE } from '../model/region.mjs';
+import { teamRoutesLine, SKILLS_ROUTE_FILE, ROBOT_ONE_AUTONS_FILE, ROBOT_TWO_AUTONS_FILE } from '../model/region.mjs';
 import { copyText } from '../host/files_download.mjs';
 
 /** Open the export drawer. */
@@ -17,8 +18,9 @@ export async function openExportDrawer(app) {
     if (document.querySelector('.drawer')) {
         return;  // one at a time (Ctrl+E pressed again)
     }
-    const route = app.route();
-    const errors = app.issues().filter((x) => x.level === 'error');
+    const routes = app.routes();
+    const here = app.at();
+    const errors = [...app.issues().filter((x) => x.level === 'error').map((x) => ({ ...x, route: here })), ...app.otherErrors()];
     const files = app.files();
     const close = () => {
         scrim.remove();
@@ -35,7 +37,7 @@ export async function openExportDrawer(app) {
     const scrim = h('div', { class: 'scrim', onclick: close });
     const body = h('div', { class: 'drawer-body' });
     const drawer = h('aside', { class: 'drawer', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'export-title' },
-        h('div', { class: 'drawer-head' }, icon('code'), h('h2', { id: 'export-title' }, 'Export the route'), h('span', { class: 'spacer' }),
+        h('div', { class: 'drawer-head' }, icon('code'), h('h2', { id: 'export-title' }, routes.length > 1 ? `Export the ${routes.length} routes` : 'Export the route'), h('span', { class: 'spacer' }),
           h('button', { class: 'btn icon ghost', 'aria-label': 'Close', onclick: close }, icon('close'))),
         body);
     document.body.append(scrim, drawer);
@@ -43,18 +45,25 @@ export async function openExportDrawer(app) {
     const refuse = (title, list) => {
         body.append(h('div', { class: 'banner error', role: 'alert' }, icon('error'),
             h('div', {}, h('strong', {}, title),
-              h('ul', {}, list.slice(0, 6).map((x) => h('li', {}, x.stepIndex >= 0 ? `Step ${x.stepIndex + 1}: ` : '', x.words, ' ',
-                  h('button', { class: 'btn ghost', onclick: () => { close(); app.select(x.stepIndex >= 0 ? x.stepIndex : 'start'); } }, 'Go there')))),
+              h('ul', {}, list.slice(0, 6).map((x) => h('li', {}, routes.length > 1 && x.route !== undefined ? h('strong', {}, `"${routes[x.route].name}" `) : '',
+                  x.stepIndex >= 0 ? `Step ${x.stepIndex + 1}: ` : '', x.words, ' ',
+                  h('button', { class: 'btn ghost', onclick: () => {
+                      close();
+                      if (x.route !== undefined) {
+                          app.switchRoute(x.route);
+                      }
+                      app.select(x.stepIndex >= 0 ? x.stepIndex : 'start');
+                  } }, 'Go there')))),
               list.length > 6 ? h('p', { class: 'hint' }, `…and ${list.length - 6} more: the status bar's "Go to step" walks them.`) : null)));
         drawer.querySelector('button[aria-label="Close"]').focus();
     };
     if (errors.length) {
-        refuse(`Fix ${errors.length === 1 ? 'this error' : `these ${errors.length} errors`} first: the robot would not run this route.`, errors);
+        refuse(`Fix ${errors.length === 1 ? 'this error' : `these ${errors.length} errors`} first: the robot would not run ${routes.length > 1 ? 'these routes' : 'this route'}.`, errors);
         return;
     }
     let code;
     try {
-        code = exportRegion(route);
+        code = exportRegion(routes, app.robot());
     } catch (e) {
         // never reached while the checks hold (every number the export prints is one they ask for): if it is,
         // the student sees why, not a dead button
@@ -79,7 +88,7 @@ export async function openExportDrawer(app) {
             h('button', { class: 'btn danger', onclick: () => again(true) }, 'Overwrite')));
     };
     const writeOut = async (overwrite) => {
-        const out = await files.exportToFile(route, app.project(), { overwrite });
+        const out = await files.exportToFile(routes, app.project(), { overwrite, robot: app.robot() });
         if (out.ok) {
             app.setProject(out.project, 'exported');
             const saved = await app.saveQuietly();  // false: route_maker.json changed in the folder since this page read it
@@ -92,7 +101,7 @@ export async function openExportDrawer(app) {
         }
     };
     const downloadOut = async (overwrite) => {
-        const out = await files.exportByDownload(route, app.project(), { overwrite });
+        const out = await files.exportByDownload(routes, app.project(), { overwrite, robot: app.robot() });
         if (out.ok) {
             // the project now remembers this export (its hash) -- but only in this page until route_maker.json is
             // saved: without that, the next export from the saved file would take this code for a hand edit
@@ -108,7 +117,7 @@ export async function openExportDrawer(app) {
     };
     if (files.canWriteFolder) {
         const st = files.connected() ? await files.skillsFileState() : { state: 'unknown' };
-        const mirror = files.connected() ? await files.mirroredLine() : 'unknown';
+        const lines = files.connected() ? await files.teamRoutesLines() : { One: 'unknown', Two: 'unknown' };
         writeCard.append(h('h3', {}, `Write it into ${SKILLS_ROUTE_FILE}`));
         if (!files.connected()) {
             writeCard.append(h('p', {}, 'Connect your shulib folder (the repository\'s top folder) once; then Export writes the route there.'),
@@ -127,17 +136,20 @@ export async function openExportDrawer(app) {
                     : st.words || 'The skills-route file cannot be written.')),
                 h('button', { class: 'btn primary', disabled: true }, `Write into ${SKILLS_ROUTE_FILE}`));
         }
-        writeCard.append(h('p', { class: 'hint' }, mirror === 'present' ? `Robot two runs this route mirrored: its line is in ${ROBOT_TWO_AUTONS_FILE}. ✓`
-            : mirror === 'missing' ? `The line that runs this route mirrored on robot two is missing from ${ROBOT_TWO_AUTONS_FILE}: tell the coordinator. The line: ${MIRRORED_LINE}`
-            : 'Robot two\'s mirrored line is checked once the folder is connected.'));
+        for (const [robot, file] of [['One', ROBOT_ONE_AUTONS_FILE], ['Two', ROBOT_TWO_AUTONS_FILE]]) {
+            const st0 = lines[robot];
+            writeCard.append(h('p', { class: 'hint', 'data-line': robot }, st0 === 'present' ? `Robot ${robot.toLowerCase()} registers every route: its line is in ${file}. ✓`
+                : st0 === 'missing' ? `The line that registers the routes on robot ${robot.toLowerCase()} is missing from ${file}: tell the coordinator. The line: ${teamRoutesLine(robot)}`
+                : `Robot ${robot.toLowerCase()}'s line is checked once the folder is connected.`));
+        }
     } else {
         writeCard.append(h('h3', {}, 'Put it into your skills_route.cpp'),
             h('p', {}, 'This browser cannot write into a folder (Chrome or Edge can). Pick your src/team/skills_route.cpp: you get the updated file back as a download to put in its place.'),
             h('button', { class: 'btn primary', onclick: () => downloadOut(false) }, icon('download'), 'Pick skills_route.cpp and download the updated one'),
-            h('p', { class: 'hint' }, 'Robot two\'s mirrored line is not checked in this browser.'));
+            h('p', { class: 'hint' }, 'The autons files\' lines are not checked in this browser.'));
     }
     body.append(
-        h('p', { class: 'muted', style: 'margin:0' }, 'The route as C++ — every step explained in a comment, the same lines you could type. The robot runs exactly this.'),
+        h('p', { class: 'muted', style: 'margin:0' }, `${routes.length > 1 ? `All ${routes.length} routes` : 'The route'} as C++ — every step explained in a comment, the same lines you could type. The robot runs exactly this.`),
         h('pre', { class: 'code', tabindex: '0', 'aria-label': 'The exported code' }, code),
         h('div', { class: 'row' }, copyBtn),
         writeCard,

@@ -2,7 +2,7 @@
 
 > **Covers:** "shulib Auton Tester" — the program that runs one of the team's autons on the bench,
 > from the brain's screen, with no competition switch; each robot's autons file
-> (`src/team/robot_one_autons.cpp`, `src/team/autons.cpp`) and the skills route both share
+> (`src/team/robot_one_autons.cpp`, `src/team/autons.cpp`) and the routes both share
 > (`src/team/skills_route.cpp`), which it and the competition program both read; what to expect from the
 > first run on a tank, and how to read the result against a tape measure; and previewing a whole
 > route on the laptop before it goes on the robot (`tools/route_preview.py`).
@@ -70,9 +70,9 @@ the order the brain's menu shows them: **robot two's** is `src/team/autons.cpp` 
 **robot one's** `src/team/robot_one_autons.cpp` (`registerRobotOneAutons()`). Both programs — the tester
 and the competition program — call the build's robot's list; neither has an auton of its own. The two
 robots are one build (robot two is robot one's twin), so the two files hold the same autons — with ONE
-difference, the team lead's: robot two runs the team's **skills route** mirrored across the field's
-diagonal ([cookbook chapter 9](../cookbook/09-one-route-two-robots.md)). The route itself lives once, in
-`src/team/skills_route.cpp`, shared by both. The host test suite compiles all three files and runs every
+difference, the team lead's: robot two runs each of the team's routes marked mirrored — the **skills route**
+among them — mirrored across the field's diagonal ([cookbook chapter 9](../cookbook/09-one-route-two-robots.md)).
+The routes themselves live once, in `src/team/skills_route.cpp`, shared by both. The host test suite compiles all three files and runs every
 auton in them on the host test plant through the tester's own run sequence, so a change to an auton is
 tested before it is uploaded.
 
@@ -112,12 +112,15 @@ void registerAutons(competition::AutonRegistry& registry) {
     //    test that the whole library works on this robot, on the skills schedule.
     registry.add(competition::acceptanceRunEntry(competition::AutonKind::Skills, 57_s, 59_s));
 
-    // 3. THE TEAM'S SKILLS ROUTE (src/team/skills_route.cpp), MIRRORED for robot two:
-    registry.add(competition::mirrored(skillsRoute(), competition::override2026::kSkillsMirror));
+    // 3. THE TEAM'S ROUTES (src/team/skills_route.cpp, named in the route builder): each route marked mirrored for
+    //    robot two MIRRORED across the skills diagonal, the others as written.
+    addTeamRoutes(registry, TeamRobot::Two);
 }
 ```
 
-Robot one's list is the same with `registry.add(skillsRoute());` — the route as written — on its last line.
+Robot one's list is the same with `addTeamRoutes(registry, TeamRobot::One);` — every route as written — on its last
+line. The routes are the ones the team named in the route builder ([Chapter 22](22-making-your-first-route.md)), the
+skills route among them.
 Every entry is a SKILLS entry: the only competition before the 21st is skills (the team lead's ruling).
 
 Each entry is **data**: a name (at most 29 characters, shown as `AUTON: <name>`; 25 for a mirrored
@@ -130,9 +133,9 @@ end action included. A hard stop that landed exactly on the run's 60 s would nev
 to act, which is why 59 s. An entry whose hard stop does not fit its period is **refused by name
 when it is registered** — and **dropped, that entry alone**: it is not on the menu (the menu names it
 in red, `REFUSED auton '<name>': ...`), the boot logs its whole sentence (`DROPPED: auton '<name>':
-...`), and every other auton still runs. The skills route's entry is not in the autons file: both
-robots take it from `src/team/skills_route.cpp`, and the boot's line after the count says so (`(the
-skills route both robots share is fixed in src/team/skills_route.cpp)`). That is the team lead's ruling for the competition program
+...`), and every other auton still runs. The route builder's routes are not in the autons file: both
+robots take them from `src/team/skills_route.cpp`, and the boot's line after the count says so (`(the
+route builder's routes are fixed in src/team/skills_route.cpp)`). That is the team lead's ruling for the competition program
 (2026-10-02: one bad auton must never cost the rest, or a match's driver period); the tester does the
 same, so a student fixing one auton can still test the others.
 
@@ -265,10 +268,10 @@ expects is itself one of the beliefs the bench worksheet checks (the
 Both robots have the same mechanisms — the cascade, the right and left side toggles, and three pistons:
 the claw, the front toggle (declared as `flipper`) and the ramp — declared in
 `src/robots/mechanism_table.hpp` inside each robot's namespace (`robot_one`, `robot_two`). An autons
-file says `using namespace robot_one;` (or `robot_two`), and the shared skills route
+file says `using namespace robot_one;` (or `robot_two`), and the route builder's routes
 `using namespace this_robot;` — the BUILDING robot's names — so an auton names them directly:
-`r.set(claw["open"])`, `r.run(rightToggle, 12_volt, 0.5_s)`, `r.move(cascade.to(18_in), 2_s)`. (In the
-shared route, which robot two runs MIRRORED, a side toggle is picked by side —
+`r.set(claw["open"])`, `r.run(rightToggle, 12_volt, 0.5_s)`, `r.move(cascade.to(18_in), 2_s)`. (In a
+route robot two runs MIRRORED, a side toggle is picked by side —
 `competition::isMirrored(ctx) ? leftToggle : rightToggle` — because a mirror swaps the robot's sides;
 [chapter 17](17-the-competition-program.md#what-it-cannot-carry).)
 The cascade has no limit switch: it learns where its bottom is by stalling gently down into its stop,
@@ -366,7 +369,7 @@ an absent mechanism safe, and the drive does not need it.
 
 Add a function beside `fortyInchesForward`, and an entry for it in BOTH robots' lists — robot one's
 `src/team/robot_one_autons.cpp` and robot two's `src/team/autons.cpp`: the host suite fails while the twins'
-lists differ (the skills route itself goes in `src/team/skills_route.cpp`, once, for both robots). Keep the
+lists differ (a route made in the route builder goes in `src/team/skills_route.cpp`, once, for both robots). Keep the
 schedule a real match schedule — the students will copy it — and remember a tank turns first
 (`face()`) and then drives. Build, run the host tests, upload the tester, and try it on the bench,
 wheels up first. When you change a line this chapter quotes, the build tells you which listing to

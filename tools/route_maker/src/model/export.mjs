@@ -1,13 +1,14 @@
 // export.mjs — the route → THE C++ the students read (RMP1 brief D4 (a); §6.3 THE CONTRACT; run RMP1-A1).
 //
-// One function, `exportRegion(route)`, writes the whole marked region of src/team/skills_route.cpp — the
-// BEGIN line to the END line, inclusive — as commented `Routine` code: every step numbered as the page
-// numbers it and explained in plain words, every number through numbers.mjs's ONE formatter with its unit
-// literal (`_in`, `_deg`, `_s`, `_volt`), a level named through the facts ledger (`facts::lv(i).name`) so
-// renaming a level never breaks a route. It is DETERMINISTIC and depends on the route ALONE (no time, no
-// hash, no robot description, no machine): the same route always writes the same bytes, which is what the
-// hand-edit check (region.mjs) and the goldens (test/goldens/route_maker/) rely on. An EMPTY route writes
-// §6.3's empty region byte for byte (GL0).
+// One function, `exportRegion(routes, robot)`, writes the whole marked region of src/team/skills_route.cpp — the
+// BEGIN line to the END line, inclusive — as commented `Routine` code: EVERY route of the project (RMP1-C D2), each
+// its own steps function and entry, then the ONE list `kTeamRoutes` both robots register (addTeamRoutes, outside
+// the region). Every step numbered as the page numbers it and explained in plain words, every number through
+// numbers.mjs's ONE formatter with its unit literal (`_in`, `_deg`, `_s`, `_volt`), a level named through the facts
+// ledger (`facts::lv(i).name`) so renaming a level never breaks a route. It is DETERMINISTIC: it depends on the
+// routes and on robot one's description only where a step needs it (a lift's height to go up FROM, D7; its
+// bottom) — no time, no hash, no machine — which is what the hand-edit check (region.mjs) and the goldens
+// (test/goldens/route_maker/) rely on. The empty project writes §6.3's empty region byte for byte (GL0).
 //
 // THE RULES IT KEEPS (each pinned by a test or a golden the C++ suite compiles and runs):
 //   * on one step it writes `label`, then `onFail`, then the call — the only order the library accepts
@@ -28,8 +29,9 @@
 // Pure: no DOM, no file API.
 
 import { fmt } from './numbers.mjs';
-import { plannedPoses, CARE_MOTION_FIELDS } from './route.mjs';
+import { plannedPoses, CARE_MOTION_FIELDS, MOTION_KINDS, ROUTE_NAME } from './route.mjs';
 import { dist } from './geometry.mjs';
+import { plannedHeights, targetKind, moveTarget, unitOf } from './lift.mjs';
 
 /** Every marker line is this many characters (§6.3's BEGIN and END lines are 91). */
 const MARKER_WIDTH = 91;
@@ -183,8 +185,23 @@ export function libraryCalls(step) {
     return (step.do === 'driveTo' || step.do === 'reverseTo') && step.faceFirst ? 2 : 1;
 }
 
+/** A move to a number (D7): its goal `m.to(<target>)` and its words, from the height before it. */
+function targetMove(step, n, robot, before) {
+    const m = robot && (robot.mechanisms || []).find((x) => x.ident === step.mechanism);
+    const target = m ? moveTarget(step, m, before) : null;
+    if (target === null) {
+        throw new Error(`export: step ${n} moves the ${step.mechanism} to a height this route builder does not know`);
+    }
+    const u = unitOf(m);
+    const tk = targetKind(step);
+    const at = `${fmt(target)} ${u}`;
+    const how = tk === 'up' || tk === 'down' ? `${tk.toUpperCase()} ${fmt(step[tk])} ${u}, to ${at}`
+        : tk === 'bottom' ? `BACK TO THE BOTTOM (${at})` : `to ${at}`;
+    return { goal: `${step.mechanism}.to(${u === 'deg' ? fmt(target) : len(target)})`, how };
+}
+
 /** The plain-words description and the C++ lines of one step (numbered `n` on the page, `lib` in the brain's log). */
-function stepLines(step, n, plan, lib = n) {
+function stepLines(step, n, plan, lib = n, robot = null, before = null) {
     const labelPart = step.label ? `"${step.label}": ` : '';
     let words;
     const code = [];
@@ -234,15 +251,31 @@ function stepLines(step, n, plan, lib = n) {
             code.push(call(step.do, [`{${list.join(', ')}}`], opt));
             break;
         }
+        case 'forward':
+        case 'backward': {
+            const q = plan && plan.point;
+            if (!q) {
+                throw new Error(`export: step ${n} drives from a pose this route builder does not know`);
+            }
+            const back = step.do === 'backward';
+            words = back ? `BACK UP ${fmt(step.inches)} in, straight back, to ${pt(q.x, q.y)}`
+                         : `DRIVE FORWARD ${fmt(step.inches)} in, straight on, to ${pt(q.x, q.y)}`;
+            code.push(call(back ? 'reverseTo' : 'driveTo', [len(q.x), len(q.y)], opt));
+            break;
+        }
         case 'move':
-            words = `MOVE the ${step.mechanism} to ${presetWords(step)} and wait until it is there: at most ${fmt(step.boundS)} s`;
-            code.push(call('move', [presetGoal(step), sec(step.boundS)], null));
+        case 'startMove': {
+            const t = targetKind(step) === 'preset' ? null : targetMove(step, n, robot, before);
+            const goal = t ? t.goal : presetGoal(step);
+            if (step.do === 'move') {
+                words = `MOVE the ${step.mechanism} ${t ? `${t.how},` : `to ${presetWords(step)}`} and wait until it is there: at most ${fmt(step.boundS)} s`;
+            } else {
+                words = `START the ${step.mechanism} ${t ? t.how.replace(', to ', ', toward ') : `toward ${presetWords(step)}`} and keep going (at most `
+                    + `${fmt(step.boundS)} s; a WAIT UNTIL DONE collects it)`;
+            }
+            code.push(call(step.do, [goal, sec(step.boundS)], null));
             break;
-        case 'startMove':
-            words = `START the ${step.mechanism} toward ${presetWords(step)} and keep going (at most ${fmt(step.boundS)} s;`
-                + ' a WAIT UNTIL DONE collects it)';
-            code.push(call('startMove', [presetGoal(step), sec(step.boundS)], null));
-            break;
+        }
         case 'set':
             words = `SET the ${step.mechanism} to "${step.position}" (it takes the ${step.mechanism}'s move time)`;
             code.push(call('set', [`${step.mechanism}[${lit(step.position)}]`], null));
@@ -277,7 +310,7 @@ function stepLines(step, n, plan, lib = n) {
         default:
             throw new Error(`export: step ${n} is "${step.do}", which this route builder cannot write`);
     }
-    const isMotion = ['driveTo', 'reverseTo', 'turnTo', 'face', 'faceAway', 'curveTo', 'reverseCurveTo'].includes(step.do);
+    const isMotion = MOTION_KINDS.has(step.do);
     const twoCalls = libraryCalls(step) === 2;
     let sentence = `Step ${n} — ${labelPart}${words}${isMotion ? careWords(step, twoCalls ? '; the drive: ' : ', ') : ''}`;
     if (!sentence.endsWith('.') && !sentence.endsWith('.)')) {
@@ -311,47 +344,60 @@ function entryLine(code, note) {
 }
 
 /**
- * The whole marked region for `route` (BEGIN to END, inclusive), WITHOUT a final newline — region.mjs
- * keeps the file's own line ending and final newline when it splices this in.
+ * Each route's C++ name stem (D2): its name's letters and digits in camelCase ("skills" -> skills, "left side 2" ->
+ * leftSide2), "route" before a leading digit (or for a name with none), and a number after a repeat — so each route's
+ * `<stem>Steps` and `<stem>Route` are its own.
  */
-export function exportRegion(route) {
-    const name = route.name;
+export function routeIdents(routes) {
+    const used = new Set();
+    return routes.map((r, i) => {
+        const words = String(r.name).match(/[A-Za-z0-9]+/g) || [];
+        let id = words.map((w, k) => (k === 0 ? (w === w.toUpperCase() ? w.toLowerCase() : w[0].toLowerCase() + w.slice(1))
+                                              : w[0].toUpperCase() + w.slice(1))).join('');
+        if (!id || /^[0-9]/.test(id)) {
+            id = `route${id || i + 1}`;
+        }
+        let out = id;
+        for (let k = 2; used.has(out); ++k) {
+            out = `${id}${k}`;
+        }
+        used.add(out);
+        return out;
+    });
+}
+
+/** One route's steps function and entry (inside the region's anonymous namespace). */
+function routeBlock(route, id, robot) {
     const L = [];
-    L.push(markerLine(name, 'BEGIN'));
-    L.push('// Made in the route maker from src/team/route_maker.json. Change the route there and export again:');
-    L.push('// the route maker will not overwrite a hand edit between BEGIN and END.');
-    L.push('// To make this hand-written code instead, delete the BEGIN and END lines.');
-    L.push('namespace {');
-    L.push("// The skills route, in ROBOT ONE's numbers. Robot two runs this same function MIRRORED across");
-    L.push("// the field's diagonal (robot two's autons file says so in one line).");
-    L.push('chassis::RoutineResult skillsSteps(competition::AutonContext& ctx) {');
-    L.push(`    chassis::Routine r{ctx, ${lit(name)}};`);
+    L.push(...(route.mirroredFor
+        ? [`// The route "${route.name}", in ROBOT ONE's numbers. Robot two runs this same function MIRRORED across`,
+           "// the field's diagonal (the list at the bottom says so)."]
+        : [`// The route "${route.name}", in ROBOT ONE's numbers. Robot two runs it as written`,
+           '// (the list at the bottom says so).']));
+    L.push(`chassis::RoutineResult ${id}Steps(competition::AutonContext& ctx) {`);
+    L.push(`    chassis::Routine r{ctx, ${lit(route.name)}};`);
     if (route.steps.length === 0) {
         L.push("    // NO STEPS YET: the team's route is made in the route maker and written here.");
     } else {
         const plan = plannedPoses(route);
+        const heights = plannedHeights(route, robot);
         let lib = 1;  // the brain's log's number for the next call
         route.steps.forEach((s, i) => {
             L.push('');
-            L.push(...stepLines(s, i + 1, plan[i], lib));
+            L.push(...stepLines(s, i + 1, plan[i], lib, robot, heights[i].before[s.mechanism] ?? null));
             lib += libraryCalls(s);
         });
         L.push('');
     }
     L.push('    return r.result();');
     L.push('}');
-    L.push('}  // namespace');
     L.push('');
-    if (route.start) {
-        L.push("// The entry both robots register: robot one's start, the 60 s skills schedule.");
-    } else {
-        L.push('// The entry both robots register.');
-    }
-    L.push('competition::AutonEntry skillsRoute() {');
+    L.push(route.start ? "// Its entry: robot one's start, the 60 s skills schedule." : '// Its entry.');
+    L.push(`competition::AutonEntry ${id}Route() {`);
     L.push('    competition::AutonEntry e{};');
-    L.push(entryLine(`    e.name = ${lit(name)};`, "what the brain's menu shows"));
+    L.push(entryLine(`    e.name = ${lit(route.name)};`, "what the brain's menu shows"));
     L.push(entryLine('    e.kind = competition::AutonKind::Skills;', 'the 60 s skills run'));
-    L.push(entryLine('    e.routine = &skillsSteps;', 'the steps above'));
+    L.push(entryLine(`    e.routine = &${id}Steps;`, 'the steps above'));
     if (route.start) {
         const s = route.start;
         L.push(`    e.start = competition::StartPose::field(${len(s.x)}, ${len(s.y)}, ${deg(s.headingDeg)});  `
@@ -365,6 +411,47 @@ export function exportRegion(route) {
     L.push(`    e.hardStopAt = ${sec(route.hardStopAtS)};   // everything stops, ${fmt(60 - route.hardStopAtS)} s before the run's 60 s`);
     L.push('    return e;');
     L.push('}');
-    L.push(markerLine(name, 'END'));
+    return L;
+}
+
+/** The list entry's two words: robot two's way, and whether both robots run it at the same time (D3). */
+function listEntry(route, id) {
+    const mirror = route.mirroredFor ? 'Mirror::ForRobotTwo' : 'Mirror::None';
+    const together = !route.mirroredFor || route.together === false ? 'Together::No'
+        : route.together === true ? 'Together::Yes' : 'Together::NotAnswered';
+    return `    {&${id}Route, ${mirror}, ${together}},`;
+}
+
+/**
+ * The whole marked region for `routes` (the project's, in order; one route is taken too) BEGIN to END, inclusive,
+ * WITHOUT a final newline — region.mjs keeps the file's own line ending and final newline when it splices this in.
+ * `robot`: robot one's description, needed only by a step that moves an arm or a lift by or to a number.
+ */
+export function exportRegion(routes, robot = null) {
+    const list = Array.isArray(routes) ? routes : [routes];
+    const ids = routeIdents(list);
+    const L = [];
+    L.push(markerLine(ROUTE_NAME, 'BEGIN'));
+    L.push('// Made in the route maker from src/team/route_maker.json. Change the route there and export again:');
+    L.push('// the route maker will not overwrite a hand edit between BEGIN and END.');
+    L.push('// To make this hand-written code instead, delete the BEGIN and END lines.');
+    L.push('namespace {');
+    list.forEach((route, k) => {
+        if (k) {
+            L.push('');
+        }
+        L.push(...routeBlock(route, ids[k], robot));
+    });
+    L.push('}  // namespace');
+    L.push('');
+    L.push("// EVERY ROUTE, in the order the brain's menu lists them (addTeamRoutes, below the END line, registers them).");
+    L.push('// Robot one registers each as written; robot two MIRRORS one marked Mirror::ForRobotTwo. Together::Yes: both');
+    L.push('// robots run it at the SAME time, so the host suite checks they never come too close.');
+    L.push('const TeamRoute kTeamRoutes[] = {');
+    const entries = list.map((route, k) => listEntry(route, ids[k]));
+    const col = Math.max(...entries.map((e) => [...e].length)) + 2;
+    entries.forEach((e, k) => L.push(`${e}${' '.repeat(col - [...e].length)}// ${lit(list[k].name)}`));
+    L.push('};');
+    L.push(markerLine(ROUTE_NAME, 'END'));
     return L.join('\n');
 }

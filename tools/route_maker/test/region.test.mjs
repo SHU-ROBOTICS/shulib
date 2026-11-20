@@ -5,8 +5,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { findRegion, spliceRegion, regionText, regionHash, sha256Hex, isTeamPath, hasMirroredLine, lineEnding,
-         MIRRORED_LINE } from '../src/model/region.mjs';
+import { findRegion, spliceRegion, regionText, regionHash, sha256Hex, isTeamPath, hasTeamRoutesLine, lineEnding,
+         teamRoutesLine } from '../src/model/region.mjs';
 import { exportRegion } from '../src/model/export.mjs';
 import { newRoute, setStart, addStep } from '../src/model/route.mjs';
 import { GOLDENS } from './helpers.mjs';
@@ -83,14 +83,18 @@ test('FA3: NOTHING outside the region changes; the file\'s CRLF and its final ne
     assert.ok(spliceRegion(back.text, exportRegion(newRoute()), { lastHash: back.hash }).ok, 'CRLF round trip');
 });
 
-test('FA4: robot two\'s mirrored line found / missing / commented out', () => {
+test('FA4: each autons file\'s line that registers the team\'s routes found / missing / commented out / the other robot\'s', () => {
     const file = (body) => `void registerAutons(competition::AutonRegistry& registry) {\n${body}\n}\n`;
-    assert.ok(hasMirroredLine(file(`    ${MIRRORED_LINE}`)));
-    assert.ok(hasMirroredLine(file('    registry.add( competition::mirrored( skillsRoute( ),\n        competition::override2026::kSkillsMirror ) );')));
-    assert.ok(!hasMirroredLine(file(`    // ${MIRRORED_LINE}`)), 'a commented-out line does not register anything');
-    assert.ok(!hasMirroredLine(file(`    /* ${MIRRORED_LINE} */`)));
-    assert.ok(!hasMirroredLine(file('    registry.add(skillsRoute());')), 'NOT mirrored');
-    assert.ok(!hasMirroredLine(file('')));
+    for (const robot of ['One', 'Two']) {  // RMP1-C D2: each autons file registers the team's routes with ONE line
+        const other = robot === 'One' ? 'Two' : 'One';
+        assert.ok(hasTeamRoutesLine(file(`    ${teamRoutesLine(robot)}`), robot));
+        assert.ok(hasTeamRoutesLine(file(`    addTeamRoutes( registry ,\n        TeamRobot::${robot} ) ;`), robot));
+        assert.ok(!hasTeamRoutesLine(file(`    // ${teamRoutesLine(robot)}`), robot), 'a commented-out line does not register anything');
+        assert.ok(!hasTeamRoutesLine(file(`    /* ${teamRoutesLine(robot)} */`), robot));
+        assert.ok(!hasTeamRoutesLine(file(`    ${teamRoutesLine(other)}`), robot), `robot ${other}'s line is not robot ${robot}'s`);
+        assert.ok(!hasTeamRoutesLine(file('    registry.add(skillsRoute());'), robot), 'the old one-route line');
+        assert.ok(!hasTeamRoutesLine(file(''), robot));
+    }
 });
 
 test('SHA-256 is the standard one (FIPS 180-4 vectors), so every host hashes alike', () => {

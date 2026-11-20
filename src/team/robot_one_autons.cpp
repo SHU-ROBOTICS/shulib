@@ -1,12 +1,11 @@
 // robot_one_autons.cpp -- THE TEAM'S AUTONS for robot one, and registerRobotOneAutons() at the bottom,
 // the one list the programs read on a robot-one build.
 //
-// A STARTER FILE (chunk ROB1-A, 2026-11-11; the ROB1 brief's D8): the team's SKILLS ROUTE (since ROB1-BT,
-// 2026-11-16: src/team/skills_route.cpp, shared with robot two, which runs it mirrored), the "40in forward"
-// registered as a SKILLS auton (the only competition on Nov 21 is skills — the team lead's ruling), and
-// the library's acceptance run. THE SKILLS ROUTE IS THE STUDENTS' (the guardrail G4) — made in the route
-// maker, or by hand, in src/team/skills_route.cpp. Every line here is the team's to explain, defend and
-// change.
+// A STARTER FILE (chunk ROB1-A, 2026-11-11; the ROB1 brief's D8): the "40in forward" registered as a SKILLS auton
+// (the only competition on Nov 21 is skills — the team lead's ruling), the library's acceptance run, and the
+// team's ROUTES (since ROB1-BT and RMP1-C: src/team/skills_route.cpp, the skills route and every route the team
+// names, shared with robot two). THE ROUTES ARE THE STUDENTS' (the guardrail G4) — made in the route maker, or by
+// hand, in src/team/skills_route.cpp. Every line here is the team's to explain, defend and change.
 //
 // Both robots' autons files work the same way: the auton you test on the bench ("shulib
 // Auton Tester") is the auton that runs in the competition program; the frame is x ahead, y to the left,
@@ -79,8 +78,9 @@ void registerRobotOneAutons(competition::AutonRegistry& registry) {
     //    test that the whole library works on this robot, on the skills schedule.
     registry.add(competition::acceptanceRunEntry(competition::AutonKind::Skills, 57_s, 59_s));
 
-    // 3. THE TEAM'S SKILLS ROUTE (src/team/skills_route.cpp), as written: robot one's numbers.
-    registry.add(skillsRoute());
+    // 3. THE TEAM'S ROUTES (src/team/skills_route.cpp, named in the route builder; "skills" among them), each as
+    //    written: robot one's numbers.
+    addTeamRoutes(registry, TeamRobot::One);
 }
 
 }  // namespace shulib::bench

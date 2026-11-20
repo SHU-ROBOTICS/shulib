@@ -920,18 +920,18 @@ TEST_CASE("station 13 readings (U1): a 12:60 arm turned one output turn reads 36
     CHECK(std::string{a.unit} == "deg");
     char t[96];
     ms::unitsText(t, sizeof t, arm, a);
-    CHECK(std::string{t} == "ARM +360.0 deg (power-up = home 0.0; 5.00:1)");
+    CHECK(std::string{t} == "output +360.00 deg since power-up (+360.0 deg)");
     const mech::MechanismSpec lift = mech_fixture::robot_x::lift.spec();
     const ms::UnitsReading l = ms::unitsReading(lift, 2.0 * kPi, 0.0);  // direct: one motor turn = one spool turn
     CHECK(l.value == doctest::Approx(kPi * 1.5).epsilon(1e-12));
     CHECK(std::string{l.unit} == "in");
     ms::unitsText(t, sizeof t, lift, l);
-    CHECK(std::string{t} == "LIFT +4.71 in (power-up = home 0.00; 1.00:1)");
+    CHECK(std::string{t} == "output +360.00 deg since power-up (+4.71 in)");
     const mech::MechanismSpec fly = mech_fixture::robot_x::flywheel.spec();  // 72:12 — geared UP six times
     const ms::UnitsReading f = ms::unitsReading(fly, 0.0, 600.0 * 2.0 * kPi / 60.0);  // the motor at 600 rpm
     CHECK(f.value == doctest::Approx(3600.0).epsilon(1e-12));
     ms::unitsText(t, sizeof t, fly, f);
-    CHECK(std::string{t} == "FLYWHEEL +3600 rpm out (0.17:1)");
+    CHECK(std::string{t} == "output +3600 rpm");
     // the power-up pose is the declared HOME: robot y's dr4b rests at 0 in — a linkage, so its height runs
     // through the sine from there, and at power-up it reads its home exactly
     const mech::MechanismSpec dr4b = mech_fixture::robot_y::dr4b.spec();
@@ -947,12 +947,12 @@ TEST_CASE("station 13 readings (U1): a 12:60 arm turned one output turn reads 36
     Bench b{robotX()};
     b.build();
     b.motor(1).setPosition(AngleDim{5.0 * 2.0 * kPi});
-    CHECK(has(panel(b, 0), "ARM +360.0 deg (power-up = home 0.0; 5.00:1)"));
-    CHECK(has(panel(b, 0), "m1 p1 +1800.0deg +0.00r/s 0.00A 31C"));
+    CHECK(has(panel(b, 0), "output +360.00 deg since power-up (+360.0 deg)"));
+    CHECK(has(panel(b, 0), "motor 1 (port 1) +1800.0 deg 0.00 A 31C"));
     Bench y{robotY()};
     y.build();
     y.motor(1).setPosition(AngleDim{5.0 * 2.0 * kPi});
-    CHECK(has(panel(y, 0), "ARM +600.0 deg (power-up = home 0.0; 3.00:1)"));
+    CHECK(has(panel(y, 0), "output +600.00 deg since power-up (+600.0 deg)"));
 }
 
 TEST_CASE("station 13 readings: a motor's temperature is 'unknown' when its read failed — never the adapter's "
@@ -969,7 +969,7 @@ TEST_CASE("station 13 readings: a motor's temperature is 'unknown' when its read
     Bench b{robotTwo()};
     b.build();
     b.motor(6).setTemperature(20.0);  // what a held adapter would say
-    CHECK(has(panel(b, 0, std::numeric_limits<double>::infinity()), "m1 p6 +0.0deg +0.00r/s 0.00A unknown"));
+    CHECK(has(panel(b, 0, std::numeric_limits<double>::infinity()), "motor 1 (port 6) +0.0 deg 0.00 A unknown"));
     CHECK_FALSE(has(panel(b, 0, std::numeric_limits<double>::infinity()), "20C"));
 }
 
@@ -979,26 +979,26 @@ TEST_CASE("station 13 readings: a limit switch PRESSED, RELEASED and FAILING are
     // failed read shown as a level, or a failing switch remembered as failing after it answers again.
     char s[96];
     ms::switchText(s, sizeof s, "home sw", 'B', true, true, false);
-    CHECK(std::string{s} == "home sw B: reads 1 = PRESSED (if HA-184)");
+    CHECK(std::string{s} == "home sw B: reads 1 = PRESSED");
     ms::switchText(s, sizeof s, "home sw", 'B', false, true, false);
-    CHECK(std::string{s} == "home sw B: reads 0 = released (if HA-184)");
+    CHECK(std::string{s} == "home sw B: reads 0 = released");
     ms::switchText(s, sizeof s, "home sw", 'B', true, true, true);
     CHECK(std::string{s} == "home sw B: NOT ANSWERING (a read failed)");
     ms::switchText(s, sizeof s, "piece sw", 'E', false, false, false);  // a pressedLevel of 0: 0 is PRESSED
-    CHECK(std::string{s} == "piece sw E: reads 0 = PRESSED (if HA-184)");
+    CHECK(std::string{s} == "piece sw E: reads 0 = PRESSED");
     Bench b{robotX()};  // the lift's home switch on 3-wire B
     b.build();
     b.dev.fakeDigitalIn(2).setState(true);
-    CHECK(has(panel(b, 1), "home sw B: reads 1 = PRESSED (if HA-184)"));
+    CHECK(has(panel(b, 1), "home sw B: reads 1 = PRESSED"));
     CHECK(has(panel(b, 1), "  RECORD it pressed, released, and cable OUT"));  // the screen ASKS for all three
     CHECK_FALSE(has(panel(b, 0), "cable OUT"));  // the arm has no switch: nothing asked
     b.dev.fakeDigitalIn(2).setState(false);
-    CHECK(has(panel(b, 1), "home sw B: reads 0 = released (if HA-184)"));
+    CHECK(has(panel(b, 1), "home sw B: reads 0 = released"));
     b.dev.fakeLineReadFaults(2).failing(true);
     CHECK(has(panel(b, 1), "home sw B: NOT ANSWERING (a read failed)"));
     b.dev.fakeLineReadFaults(2).failing(false);
     (void)panel(b, 1);  // the paint after the failure stopped catches up with the count
-    CHECK(has(panel(b, 1), "home sw B: reads 0 = released (if HA-184)"));
+    CHECK(has(panel(b, 1), "home sw B: reads 0 = released"));
     std::vector<std::string> rec;
     b.st->record(4, 1, [](std::uint8_t) { return 31.0; }, [&](const char* l) { rec.emplace_back(l); });
     CHECK(has(rec, "[R3A] mech REC 4 'lift' home switch 3-wire B reads 0 (pressedLevel 1; HA-184), read faults "));
@@ -1193,7 +1193,7 @@ TEST_CASE("station 13's prompts: every line of robot two's prompts fits where tw
     REQUIRE(b.st->ceiling() == 12.0);
     b.tick(Bench::held(false, false, true));
     REQUIRE(b.st->phase() == ms::Phase::Confirm);
-    CHECK(std::string{b.st->confirmText().foot2} == "ceiling 12 V, R1 raises; numbers INVENTED (HA-182)");
+    CHECK(std::string{b.st->confirmText().foot2} == "12 V now, R1 for more");
     fits(b.st->confirmText());
 }
 
@@ -1387,12 +1387,12 @@ TEST_CASE("station 13 gate 4 and a power mechanism's maxVolts (R-2): the jog and
     g.tick(Bench::held());
     g.tick(Bench::held(true));
     REQUIRE(g.st->phase() == ms::Phase::Confirm);
-    CHECK(std::string{g.st->confirmText().foot2} == "ceiling 3 V, at most 6.0 V (maxVolts); R1 raises");
+    CHECK(std::string{g.st->confirmText().foot2} == "3 V now, its most 6 V");
     g.st->confirm(true, true);
     g.tick(Bench::held());
     char gl[96];
-    g.st->gatesText(0, true, gl, sizeof gl);
-    CHECK(std::string{gl} == "ceiling 3V, max 6.0V | L1+UP/DN | L1+A | R1");
+    g.st->limitText(0, gl, sizeof gl);
+    CHECK(std::string{gl} == "3 V now (R1 for more)");
     g.tick(Bench::held(true));
     CHECK(g.volts(1) == 3.0);  // under its maxVolts: the ceiling itself
     g.tick(Bench::held());
@@ -1408,6 +1408,8 @@ TEST_CASE("station 13 gate 4 and a power mechanism's maxVolts (R-2): the jog and
         g.tick(Bench::held(false, true));
         CHECK(g.volts(1) == -6.0);
         g.tick(Bench::held());
+        g.st->limitText(0, gl, sizeof gl);
+        CHECK(std::string{gl} == "6 V now (the most)");  // R1 gives it no more past its maxVolts
     }
     CHECK(g.logged("ceiling 9 V -> 12 V; 'gentle' at most 6.0 V (its maxVolts)"));
     CHECK(has(record(g, 1, 0), "[R3A] mech REC 1 'gentle' POWER built, armed, ceiling 12 V (its maxVolts 6.0 V: the jog "
@@ -1418,8 +1420,8 @@ TEST_CASE("station 13 gate 4 and a power mechanism's maxVolts (R-2): the jog and
     // robot two's pivots keep the default 12 V: nothing capped (the gate-4 case reaches 12 V)
     Bench b{robotTwo()};
     b.build();
-    b.st->gatesText(0, true, gl, sizeof gl);
-    CHECK(std::string{gl} == "ceiling 3V | L1+UP/DN jog | L1+A check | R1 raise");
+    b.st->limitText(0, gl, sizeof gl);
+    CHECK(std::string{gl} == "3 V now (R1 for more)");
     CHECK_FALSE(has(record(b, 1, 0), "maxVolts"));
 }
 
@@ -1574,8 +1576,8 @@ TEST_CASE("station 13 direction check starts from REST (R-7, R-30): A during a j
     b.st->announceText(a, sizeof a, t0 + 500);
     CHECK(std::string_view{a}.find("starts in 0.5 s") != std::string_view::npos);
     char g[96];
-    b.st->gatesText(0, true, g, sizeof g);
-    CHECK(std::string{g} == "CHECK: watch it -- keep L1 held");
+    b.st->doNowText(0, Bench::held(), t0, g, sizeof g);
+    CHECK(std::string{g} == "Watch it: it moves + in 1.0 s -- keep L1 held");
     for (std::uint32_t k = 1; k < ms::kAnnounceMs / 10; ++k) {
         CHECK(b.volts(6) == 0.0);
         b.tick(Bench::held(false, false, true));
@@ -1586,8 +1588,8 @@ TEST_CASE("station 13 direction check starts from REST (R-7, R-30): A during a j
     b.tick(Bench::held(false, false, true));  // t0 + 1.00 s: the jog
     CHECK(b.st->phase() == ms::Phase::Jogging);
     CHECK(b.volts(6) == 3.0);
-    b.st->gatesText(0, true, g, sizeof g);
-    CHECK(std::string{g} == "CHECK: jog +3.0 V -- keep L1 held");
+    b.st->doNowText(0, Bench::held(), b.nowMs, g, sizeof g);
+    CHECK(std::string{g} == "Checking which way it moves -- keep L1 held");
     // THE SETTLE WINDOW is the announcement's last 0.4 s, sampled at t0 + 0.60 s exactly
     const auto settle = [](double moveRad, std::uint32_t beforeTickAt) {
         Bench c{robotX()};
@@ -1672,7 +1674,8 @@ TEST_CASE("station 13 direction check starts from REST (R-7, R-30): A during a j
 }
 
 TEST_CASE("station 13's live page PAGES its readings (R-8): a 4-motor lift with an angle sensor and a home switch "
-          "has 10 lines, more than the panel's kShownLines — its switch and HA-184's question on page 2, never cut") {
+          "has 14 lines (its guide first), more than the panel's kShownLines — its switch and HA-184's question on the "
+          "last page, never cut") {
     // BUG CAUGHT: bench_r3a.cpp asking panelLines() for its 7 panel lines only, so such a lift's home switch and
     // its "RECORD it pressed, released, and cable OUT" were cut off the page without a word.
     CHECK(ms::readingsPage(7, 7, 0).pages == 1);  // n == shown: one page, all of them, no footer
@@ -1700,18 +1703,20 @@ TEST_CASE("station 13's live page PAGES its readings (R-8): a 4-motor lift with 
     b.build();
     REQUIRE(b.st->built(0));
     const std::vector<std::string> all = panel(b, 0);
-    REQUIRE(all.size() == 10);
-    CHECK(all[4] == "LIFT +0.00 in (power-up = home 0.00; 1.00:1)");
-    CHECK(all[5] == "angle p10: raw +0.0deg, as mounted +0.0deg");
-    CHECK(all[8] == "home sw B: reads 0 = released (if HA-184)");
-    CHECK(all[9] == "  RECORD it pressed, released, and cable OUT");
+    REQUIRE(all.size() == 14);  // S13UX D3: the guide first (a heading, its bottom stop, level 'floor', its top stop)
+    CHECK(all[0] == "To measure it, RECORD at each step (1 of 3):");
+    CHECK(all[8] == "output +0.00 deg since power-up (+0.00 in)");
+    CHECK(all[9] == "angle p10: raw +0.0deg, as mounted +0.0deg");
+    CHECK(all[12] == "home sw B: reads 0 = released");
+    CHECK(all[13] == "  RECORD it pressed, released, and cable OUT");
     for (const std::string& l : all) CHECK(l.size() <= ms::Station::kPanelColumns);
     const ms::ReadingsPage first = ms::readingsPage(all.size(), ms::Station::kShownLines, 0);
     const ms::ReadingsPage second = ms::readingsPage(all.size(), ms::Station::kShownLines, 1);
-    CHECK(first.pages == 2);
+    const ms::ReadingsPage third = ms::readingsPage(all.size(), ms::Station::kShownLines, 2);
+    CHECK(first.pages == 3);
     CHECK(first.count + 1 == ms::Station::kShownLines);  // the panel's last line is the footer
     CHECK(second.first == first.count);
-    CHECK(second.first + second.count == all.size());  // the switch and its question: page 2
+    CHECK(third.first + third.count == all.size());  // the switch and its question: the last page
     CHECK(all.size() <= ms::Station::kMaxPanelLines);
 }
 
@@ -1753,7 +1758,7 @@ TEST_CASE("station 13 readings (R-25): a PIECE switch is a limit switch too — 
     y.build();
     y.dev.fakeDigitalIn(5).setState(true);
     const std::vector<std::string> p = panel(y, 5);
-    CHECK(has(p, "piece sw E: reads 1 = PRESSED (if HA-184)"));
+    CHECK(has(p, "piece sw E: reads 1 = PRESSED"));
     CHECK(has(p, "  RECORD it pressed, released, and cable OUT"));
     CHECK(has(record(y, 2, 5), "[R3A] mech REC 2 'catapult' piece switch 3-wire E reads 1 (pressedLevel 1; HA-184), "
                                "read faults 0 -- RECORD it pressed, released and with its cable OUT"));
@@ -2056,10 +2061,10 @@ TEST_CASE("station 13 readings (R-18): each motor's temperature is read on ITS O
     char out[ms::Station::kMaxPanelLines][ms::Station::kPanelBytes]{};
     std::size_t n = b.st->panelLines(0, only6, out, ms::Station::kMaxPanelLines);
     REQUIRE(n >= 1);
-    CHECK(std::string{out[0]} == "m1 p6 +0.0deg +0.00r/s 0.00A 31C");
+    CHECK(std::string{out[1]} == "motor 1 (port 6) +0.0 deg 0.00 A 31C");  // after its guide line (S13UX D3)
     n = b.st->panelLines(1, only6, out, ms::Station::kMaxPanelLines);
     REQUIRE(n >= 1);
-    CHECK(std::string{out[0]} == "m1 p7 +0.0deg +0.00r/s 0.00A unknown");
+    CHECK(std::string{out[1]} == "motor 1 (port 7) +0.0 deg 0.00 A unknown");
     std::vector<std::string> rec;
     b.st->record(1, 0, only6, [&](const char* l) { rec.emplace_back(l); });
     CHECK(has(rec, "motor 1 port 6 pos +0.000 rad (+0.0 deg) vel +0.000 rad/s cur 0.000 A temp 31C"));
@@ -2110,7 +2115,7 @@ TEST_CASE("station 13 readings (R-20): a sensor that FAILED during an earlier en
     b.dev.fakeLineReadFaults(2).failing(false);
     b.dev.fakeReadFaults(9).failing(false);
     b.reenter();
-    CHECK(has(panel(b, 1), "home sw B: reads 0 = released (if HA-184)"));  // the FIRST paint of the new entry
+    CHECK(has(panel(b, 1), "home sw B: reads 0 = released"));  // the FIRST paint of the new entry
     CHECK(has(panel(b, 3), "-> no piece"));
 }
 
@@ -2149,25 +2154,8 @@ TEST_CASE("station 13 gate 5's stall window (R-22): its edge is exact at ANY clo
     CHECK(b.st->cut(0));
 }
 
-TEST_CASE("station 13's gates line: what the panel says for each state, every one within the panel's columns") {
-    // BUG CAUGHT: the gates line moved into the Station (for the maxVolts and the announcement) drifting from what
-    // the page means — a cut shown as idle, a check shown as idle.
-    char g[96];
-    Bench b{robotTwo()};
-    b.build();
-    b.st->gatesText(0, false, g, sizeof g);
-    CHECK(std::string{g} == "CONTROLLER NOT CONNECTED -- nothing can be powered");
-    b.arm();
-    b.tick(Bench::held(true));
-    b.st->gatesText(0, true, g, sizeof g);
-    CHECK(std::string{g} == "POWERED +3.0 V -- let go of L1 to stop");
-    for (int k = 0; k <= 300; ++k) b.tick(Bench::held(true));
-    REQUIRE(b.st->cut(0));
-    b.st->gatesText(0, true, g, sizeof g);
-    CHECK(std::string{g} == "CUT: a jog held for its stated maximum, 3.0 s (HA");
-    CHECK(std::string_view{g}.size() <= ms::Station::kPanelColumns);
-    b.st->gatesText(1, true, g, sizeof g);
-    CHECK(std::string{g} == "ceiling 3V | L1+UP/DN jog | L1+A check | R1 raise");
+TEST_CASE("station 13's verdict on the panel: its finding, its sentence, and 'nothing is saved'") {
+    // BUG CAUGHT: the verdict's panel text drifting from the judgement it shows.
     char v[ms::Station::kTextBytes];
     Bench c{robotX()};
     c.build();
@@ -2177,6 +2165,880 @@ TEST_CASE("station 13's gates line: what the panel says for each state, every on
     c.st->verdictPanelText(v, sizeof v);
     CHECK(std::string_view{v}.starts_with("REVERSED: 'arm' moved the OTHER way"));
     CHECK(std::string_view{v}.ends_with(" -- edit the robot file, rebuild, upload (nothing is saved)"));
+}
+
+// ═══ S13UX — station 13 made plain (2026-11-19): D2 the "what to do now" line, D3 the lift's guide and RECORD's
+// big line, D4 the jog-time cut that L1 re-arms, D5 the declared current cap ═══════════════════════════════════
+
+namespace {
+/// D2's line for mechanism `i` at `now` (the bench's clock when 0).
+std::string doNow(Bench& b, std::size_t i, const ms::Pad& pad, std::uint32_t now = 0) {
+    char out[96];
+    b.st->doNowText(i, pad, now != 0 ? now : b.nowMs, out, sizeof out);
+    return out;
+}
+/// Hold UP with L1 for `ms` (the press included), then let go of UP (L1 held).
+void jogFor(Bench& b, std::uint32_t ms, bool up = true) {
+    for (std::uint32_t t = 0; t < ms; t += static_cast<std::uint32_t>(ms::kTickMs)) b.tick(Bench::held(up, !up));
+    b.tick(Bench::held());
+}
+/// RECORD as bench_r3a.cpp does it: every mechanism's lines, then recorded().
+std::vector<std::string> recordAll(Bench& b, int rec) {
+    std::vector<std::string> out;
+    for (std::size_t i = 0; i < b.st->count(); ++i) {
+        b.st->record(rec, i, [](std::uint8_t) { return 30.0; }, [&](const char* l) { out.emplace_back(l); });
+    }
+    b.st->recorded(rec);
+    b.drain();
+    return out;
+}
+const mech::MechanismTable& robotOne() { return shulib::bench::robot_one::kRobotOneMechanisms; }
+/// The latest `mech guide:` log line ("" when none).
+std::string lastGuide(const Bench& b) {
+    for (auto l = b.log.rbegin(); l != b.log.rend(); ++l) {
+        if (l->find("mech guide:") != std::string::npos) return *l;
+    }
+    return "";
+}
+}  // namespace
+
+TEST_CASE("S13UX D2: ONE 'what to do now' line for every state — no link, a field link, L1 up, L1 held, a confirm, "
+          "a jog with its seconds, a jog that did not move, each cut — every line within the panel's 50 columns") {
+    // BUG CAUGHT (robot one, 2026-11-17): a page that never said the controller was the problem, that L1 must be
+    // held, that a 3 V jog did not move, or what a cut needs — "I'm confused what it's asking me".
+    std::vector<std::string> said;
+    const auto line = [&](Bench& b, std::size_t i, const ms::Pad& pad, std::uint32_t now = 0) {
+        said.push_back(doNow(b, i, pad, now));
+        return said.back();
+    };
+    Bench u{robotTwo()};  // nothing made yet
+    CHECK(line(u, 0, Bench::held()) == "Answer the CLEAR question first");
+    Bench b{robotTwo()};
+    b.dev.refusePort(7);
+    b.build();
+    CHECK(line(b, 0, ms::Pad{}) == "Pair the controller to the brain: it has no link");
+    // a field link: the station still WORKS (a DISABLED one ends it — the boot's state screen), so it is said only
+    // when nothing else is: never over "hold L1", a jog, a confirm or a cut (each checked below)
+    ms::Pad field = Bench::held();
+    field.field = true;
+    CHECK(line(b, 0, field) == "Controller says FIELD: unplug the field cable");
+    field.deadMan = false;
+    CHECK(line(b, 0, field) == "Hold L1 to power the claw pivot 6");
+    CHECK(line(b, 0, ms::Pad{.field = true}) == "Pair the controller to the brain: it has no link");
+    CHECK(line(b, 1, Bench::held()) == "Not found on the brain: check its cable, or NEXT");
+    CHECK(line(b, 0, Bench::loose()) == "Hold L1 to power the claw pivot 6");
+    CHECK(line(b, 0, Bench::held()) == "UP / DOWN jog it; A checks which way (L1 held)");
+    b.tick(Bench::held());
+    b.tick(Bench::held(true));
+    REQUIRE(b.st->phase() == ms::Phase::Confirm);
+    CHECK(line(b, 0, Bench::held(true)) == "Touch YES on the screen -- keep L1 held");
+    field.deadMan = true;
+    CHECK(line(b, 0, field) == "Touch YES on the screen -- keep L1 held");
+    b.st->confirm(true, true);
+    // UP still held through the YES moves nothing (only a fresh press does): the line says so
+    CHECK(line(b, 0, Bench::held(true)) == "Let go of UP, then press it again");
+    CHECK(line(b, 0, Bench::held(false, true)) == "Let go of DOWN, then press it again");
+    b.tick(Bench::held());
+    const std::uint32_t t = b.nowMs;
+    b.tick(Bench::held(true));  // the press: the jog's clock starts
+    CHECK(line(b, 0, Bench::held(true), t + 1800) == "Moving UP -- 1.8 s of 3 s (let go to stop)");
+    field.plus = true;
+    CHECK(line(b, 0, field, t + 1800) == "Moving UP -- 1.8 s of 3 s (let go to stop)");
+    field.plus = false;
+    CHECK(line(b, 0, Bench::held(true), t + 1899) == "Moving UP -- 1.8 s of 3 s (let go to stop)");
+    b.tick(Bench::held());
+    const std::uint32_t d = b.nowMs;
+    b.tick(Bench::held(false, true));
+    CHECK(line(b, 0, Bench::held(false, true), d + 400) == "Moving DOWN -- 0.4 s of 3 s (let go to stop)");
+    b.tick(Bench::held());
+    // the pneumatic claw: its own words
+    b.select(2);
+    CHECK(line(b, 2, Bench::loose()) == "Hold L1 to fire the claw");
+    CHECK(line(b, 2, Bench::held()) == "UP fires it to 'open' (keep L1 held)");
+    CHECK(line(b, 2, Bench::held(false, true)) == "DOWN does nothing here: UP fires it");  // it fires on UP only
+    CHECK(line(b, 2, Bench::held(true, true)) == "Let go of UP, then press it again");
+    b.tick(Bench::held());
+    b.tick(Bench::held(true));
+    b.st->confirm(true, true);
+    b.drain();
+    REQUIRE(b.st->phase() == ms::Phase::Asking);
+    CHECK(line(b, 2, Bench::held()) == "Where did it go? Touch your answer below");
+    b.st->answer(1);
+    CHECK(line(b, 2, Bench::held()) == "UP fires it again; let go of L1 to make it safe");
+    // a motor check's question, the announcement, a lift's own words
+    Bench x{robotX()};
+    x.build();
+    x.select(1);
+    x.arm();
+    CHECK(line(x, 1, Bench::held()) == "UP raises, DOWN lowers; A checks its way (L1 held)");
+    x.select(0);
+    x.arm();
+    x.tick(Bench::held());
+    const std::uint32_t a0 = x.nowMs;
+    x.tick(Bench::held(false, false, true));
+    CHECK(line(x, 0, Bench::held(), a0 + 400) == "Watch it: it moves + in 0.6 s -- keep L1 held");
+    for (int k = 0; k < 99; ++k) x.tick(Bench::held(false, false, true));
+    x.tick(Bench::held(false, false, true));
+    REQUIRE(x.st->phase() == ms::Phase::Jogging);
+    CHECK(line(x, 0, Bench::held()) == "Checking which way it moves -- keep L1 held");
+    for (int k = 0; k < 60 && x.st->phase() == ms::Phase::Jogging; ++k) {
+        x.motor(1).setPosition(AngleDim{x.motor(1).position().value() + 0.02});
+        x.motor(1).setCurrent(Current{0.3});
+        x.tick(Bench::held(false, false, true));
+    }
+    REQUIRE(x.st->phase() == ms::Phase::Asking);
+    CHECK(line(x, 0, Bench::held()) == "Which way did it move? Touch your answer below");
+    for (const std::string& l : said) {
+        CAPTURE(l);
+        CHECK(l.size() <= ms::Station::kPanelColumns);
+    }
+}
+
+TEST_CASE("S13UX D2: a jog that did NOT move — R1 offered only under a cap that holds and never to a power "
+          "mechanism, worded for a stop; judged after 0.4 s or more; gone when R1, NEXT or the next jog changes it") {
+    // BUG CAUGHT: the cascade barely lifting at 3 V and the page silent about R1; a tap called a failure; the advice
+    // left standing at a new ceiling; and (the review, 2026-11-19) "press R1" with the cap NOT SET (guide 21: keep
+    // 3 V), on a mechanism with no cap, on a toggle against its stop, or as an order at a stop.
+    Bench b{robotOne()};  // the cascade: a lift capped at 2.0 A, two motors
+    b.build();
+    b.arm();
+    REQUIRE(b.st->capHeld(0));
+    jogFor(b, 100);  // a tap: 0.1 s, nothing moved — not judged
+    CHECK(doNow(b, 0, Bench::held()) == "UP raises, DOWN lowers; A checks its way (L1 held)");
+    jogFor(b, 500);  // half a second at 3 V, every motor still
+    CHECK(doNow(b, 0, Bench::held()) == "Did not move at 3 V. Not at a stop? R1 for 6 V");
+    CHECK(b.logged("'cascade': the jog did NOT move it at 3.0 V"));
+    CHECK(doNow(b, 0, Bench::loose()) == "Hold L1 to power the cascade");  // L1 first, always
+    b.tick(Bench::held(false, false, false, true));  // R1: 6 V
+    b.tick(Bench::held());
+    CHECK(doNow(b, 0, Bench::held()) == "UP raises, DOWN lowers; A checks its way (L1 held)");
+    jogFor(b, 500, false);  // DOWN at 6 V, still
+    CHECK(doNow(b, 0, Bench::held()) == "Did not move at 6 V. Not at a stop? R1 for 9 V");
+    // NEXT round to it again: the ceiling back at 3 V, the 6 V finding gone
+    for (std::size_t k = 0; k < b.st->count(); ++k) b.st->next();
+    REQUIRE(b.st->selected() == 0);
+    CHECK(doNow(b, 0, Bench::held()) == "UP raises, DOWN lowers; A checks its way (L1 held)");
+    // ONE of its two motors turning is a jog that MOVED (the most-moved motor decides)
+    b.tick(Bench::held(true));
+    for (int k = 0; k < 50; ++k) {
+        b.motor(10).setPosition(AngleDim{b.motor(10).position().value() + 0.02});
+        b.tick(Bench::held(true));
+    }
+    b.tick(Bench::held());
+    CHECK(doNow(b, 0, Bench::held()) == "UP raises, DOWN lowers; A checks its way (L1 held)");
+    // a 3 s jog that never moved, cut by the jog cap (robot one's own case): judged too, said after L1's re-arm
+    b.tick(Bench::held(true));
+    for (int k = 0; k < 300; ++k) b.tick(Bench::held(true));
+    REQUIRE(b.st->cutKind(0) == ms::CutKind::JogTime);
+    b.tick(Bench::loose());
+    b.tick(Bench::held());
+    REQUIRE_FALSE(b.st->cut(0));
+    CHECK(doNow(b, 0, Bench::held()) == "Did not move at 3 V. Not at a stop? R1 for 6 V");
+    // at the most: no R1 to offer
+    for (int k = 0; k < 3; ++k) {
+        b.tick(Bench::held(false, false, false, true));
+        b.tick(Bench::held());
+    }
+    REQUIRE(b.st->ceiling() == 12.0);
+    b.tick(Bench::held(true));
+    for (int k = 0; k < 60; ++k) b.tick(Bench::held(true));
+    b.tick(Bench::loose(true));  // L1 let go mid-jog ends it too
+    CHECK(doNow(b, 0, Bench::held()) == "Did not move at 12 V: at a stop, or check cables");
+    // a side toggle (a POWER mechanism, capped): never R1 — "run it briefly, never into its stop"
+    b.select(2);
+    b.arm();
+    REQUIRE(b.st->capHeld(2));
+    jogFor(b, 500);
+    CHECK(doNow(b, 2, Bench::held()) == "Did not move at 3 V: at a stop, or check cables");
+    // the cap NOT SET (refused, or a motor that holds a DIFFERENT number): keep 3 V (guide 21)
+    for (const bool refuse : {true, false}) {
+        CAPTURE(refuse);
+        Bench n{robotOne()};
+        n.build();
+        if (refuse) {
+            n.motor(1).refuseCurrentLimit(true);
+        } else {
+            n.motor(1).currentLimitTakesInstead(1.0);
+        }
+        n.arm();
+        REQUIRE_FALSE(n.st->capHeld(0));
+        jogFor(n, 500);
+        CHECK(doNow(n, 0, Bench::held()) == "Did not move at 3 V, cap NOT SET: check cables");
+    }
+    // NO cap stated — robot x's arm and lift, the claw robot's pivot, a gentle power one: never R1
+    Bench x{robotX()};
+    x.build();
+    for (const std::size_t i : {std::size_t{0}, std::size_t{1}}) {
+        CAPTURE(i);
+        x.select(i);
+        x.arm();
+        jogFor(x, 500);
+        CHECK(doNow(x, i, Bench::held()) == "Did not move at 3 V: at a stop, or check cables");
+    }
+    Bench u{robotTwo()};
+    u.build();
+    u.arm();
+    jogFor(u, 500);
+    CHECK(doNow(u, 0, Bench::held()) == "Did not move at 3 V: at a stop, or check cables");
+    Bench g{a6_fixture::kGentle};
+    g.build();
+    g.arm();
+    jogFor(g, 500);
+    CHECK(doNow(g, 0, Bench::held()) == "Did not move at 3 V: at a stop, or check cables");
+    for (Bench* bp : {&b, &x, &u, &g}) {
+        for (std::size_t i = 0; i < bp->st->count(); ++i) CHECK(doNow(*bp, i, Bench::held()).size() <= 50);
+    }
+}
+
+TEST_CASE("S13UX D2: a check abandoned because it was STILL MOVING says so on the panel — until the next press or "
+          "NEXT") {
+    // BUG CAUGHT (the review, 2026-11-19): only the log said "let it settle, then press A again"; the panel went
+    // from "Watch it" to the plain line with no verdict and nothing saying why.
+    const auto sag = [](Bench& b) {
+        b.tick(Bench::held());
+        b.tick(Bench::held(false, false, true));  // A: the announcement
+        REQUIRE(b.st->phase() == ms::Phase::Announcing);
+        for (int k = 0; k < 120 && b.st->phase() == ms::Phase::Announcing; ++k) {
+            b.motor(10).setPosition(AngleDim{b.motor(10).position().value() + 0.01});
+            b.tick(Bench::held(false, false, true));
+        }
+        REQUIRE(b.st->phase() == ms::Phase::Idle);
+        b.tick(Bench::held());
+    };
+    Bench b{robotOne()};
+    b.build();
+    b.arm();
+    sag(b);
+    CHECK(b.logged("still MOVING when its jog was due"));
+    CHECK_FALSE(b.st->hasVerdict());
+    CHECK(doNow(b, 0, Bench::held()) == "It was still moving: wait, then press A again");
+    CHECK(doNow(b, 0, Bench::loose()) == "Hold L1 to power the cascade");
+    CHECK(doNow(b, 1, Bench::held()) == "UP / DOWN jog it; A checks which way (L1 held)");  // its own page only
+    jogFor(b, 100);  // the next press clears it
+    CHECK(doNow(b, 0, Bench::held()) == "UP raises, DOWN lowers; A checks its way (L1 held)");
+    sag(b);
+    REQUIRE(doNow(b, 0, Bench::held()) == "It was still moving: wait, then press A again");
+    for (std::size_t k = 0; k < b.st->count(); ++k) b.st->next();  // so does NEXT
+    CHECK(doNow(b, 0, Bench::held()) == "UP raises, DOWN lowers; A checks its way (L1 held)");
+}
+
+TEST_CASE("S13UX D2/D4: each cut says what cut it and the ONE way on — the 3 s jog cap: L1 let go and held; a fault: "
+          "DONE, then open 13 again") {
+    // BUG CAUGHT: every cut sending the operator out of the station (robot one: "we need to restart this"), or a
+    // fault cut worded as if L1 cleared it.
+    Bench j{robotTwo()};
+    j.build();
+    j.arm();
+    j.motor(6).setPosition(AngleDim{0.0});
+    for (int k = 0; k <= 300; ++k) {
+        j.motor(6).setPosition(AngleDim{j.motor(6).position().value() + 0.01});
+        j.tick(Bench::held(true));
+    }
+    REQUIRE(j.st->cut(0));
+    CHECK(j.st->cutKind(0) == ms::CutKind::JogTime);
+    CHECK(doNow(j, 0, Bench::held(true)) == "Stopped at 3 s: let go of L1, then hold it again");
+    CHECK(j.logged("CUT 'claw pivot 6': a jog held for its stated maximum, 3.0 s (HA-182) -- let go of L1 and hold it "
+                   "again to go on"));
+    // a FIGHT (robot x's mirrored lift)
+    Bench f{robotX()};
+    f.build();
+    f.select(1);
+    f.arm();
+    f.motor(2).setVelocity(AngularVelocity{3.0});
+    f.motor(3).setVelocity(AngularVelocity{-3.0});
+    for (int k = 0; k < 25; ++k) f.tick(Bench::held(true));
+    REQUIRE(f.st->cut(1));
+    CHECK(f.st->cutKind(1) == ms::CutKind::Fight);
+    CHECK(doNow(f, 1, Bench::held()) == "Its motors FIGHT: DONE, then open 13 again");
+    // the current
+    Bench c{robotTwo()};
+    c.build();
+    c.arm();
+    c.motor(6).setCurrent(Current{2.41});
+    for (int k = 0; k < 25; ++k) c.tick(Bench::held(true));
+    REQUIRE(c.st->cut(0));
+    CHECK(c.st->cutKind(0) == ms::CutKind::Current);
+    CHECK(doNow(c, 0, Bench::held()) == "Drew too much current: DONE, then open 13 again");
+    // the stall signature (robot x's arm states one)
+    Bench s{robotX()};
+    s.build();
+    s.arm();
+    s.motor(1).setCurrent(Current{2.3});
+    for (int k = 0; k < 200 && !s.st->cut(0); ++k) s.tick(Bench::held(true));
+    REQUIRE(s.st->cut(0));
+    CHECK(s.st->cutKind(0) == ms::CutKind::Stall);
+    CHECK(doNow(s, 0, Bench::held()) == "It STALLED: DONE, then open 13 again");
+    // a LIFT's stall is most likely a stop (guide 21 step 3): RECORD first, then DONE
+    Bench l{robotOne()};
+    l.build();
+    l.arm();
+    l.motor(10).setCurrent(Current{1.9});
+    l.motor(1).setCurrent(Current{1.9});
+    for (int k = 0; k < 100 && !l.st->cut(0); ++k) l.tick(Bench::held(true));
+    REQUIRE(l.st->cutKind(0) == ms::CutKind::Stall);
+    CHECK(doNow(l, 0, Bench::held()) == "It STALLED: at a stop? RECORD, then DONE, open 13");
+    (void)recordAll(l, 1);  // RECORDed: the line no longer invites another RECORD (a second one is that step AGAIN)
+    CHECK(doNow(l, 0, Bench::held()) == "RECORDed: now DONE, then open 13 again");
+    for (std::size_t k = 0; k < l.st->count(); ++k) l.st->next();
+    CHECK(doNow(l, 0, Bench::held()) == "RECORDed: now DONE, then open 13 again");
+    (void)recordAll(s, 1);  // robot x's arm is no lift: DONE, as before
+    CHECK(doNow(s, 0, Bench::held()) == "It STALLED: DONE, then open 13 again");
+    // a RECORD before a LATER cut is not this cut's RECORD (robot one's 3 s cut, RECORDed, re-armed, then a stall)
+    Bench r{robotOne()};
+    r.build();
+    r.arm();
+    for (int k = 0; k <= 300; ++k) r.tick(Bench::held(true));
+    REQUIRE(r.st->cutKind(0) == ms::CutKind::JogTime);
+    (void)recordAll(r, 1);
+    CHECK(doNow(r, 0, Bench::held()) == "Stopped at 3 s: let go of L1, then hold it again");
+    r.tick(Bench::loose());
+    r.tick(Bench::held());
+    REQUIRE_FALSE(r.st->cut(0));
+    r.motor(10).setCurrent(Current{1.9});
+    r.motor(1).setCurrent(Current{1.9});
+    for (int k = 0; k < 100 && !r.st->cut(0); ++k) r.tick(Bench::held(true));
+    REQUIRE(r.st->cutKind(0) == ms::CutKind::Stall);
+    CHECK(doNow(r, 0, Bench::held()) == "It STALLED: at a stop? RECORD, then DONE, open 13");
+    // a check CUT mid-jog that still asks: the question first (the row shows only its answers)
+    Bench q{robotOne()};
+    q.build();
+    q.arm();
+    q.announce();
+    for (int k = 0; k < 60 && (k == 0 || q.st->phase() == ms::Phase::Jogging); ++k) {
+        if (k < 5) {
+            q.motor(10).setPosition(AngleDim{q.motor(10).position().value() + 0.02});
+            q.motor(1).setPosition(AngleDim{q.motor(1).position().value() + 0.02});
+        }
+        q.motor(10).setCurrent(Current{k == 0 ? 0.0 : 1.9});
+        q.motor(1).setCurrent(Current{k == 0 ? 0.0 : 1.9});
+        q.tick(Bench::held(false, false, true));
+    }
+    REQUIRE(q.st->phase() == ms::Phase::Asking);
+    REQUIRE(q.st->cutKind(0) == ms::CutKind::Stall);
+    CHECK(doNow(q, 0, Bench::held()) == "Which way did it move? Touch your answer below");
+    q.st->answer(0);
+    q.drain();
+    CHECK(doNow(q, 0, Bench::held()) == "It STALLED: at a stop? RECORD, then DONE, open 13");
+    // a field link never hides a cut
+    ms::Pad fl = Bench::held();
+    fl.field = true;
+    CHECK(doNow(j, 0, fl) == "Stopped at 3 s: let go of L1, then hold it again");
+    for (Bench* b : {&j, &f, &c, &s, &l, &q, &r}) {
+        for (std::size_t i = 0; i < b->st->count(); ++i) CHECK(doNow(*b, i, Bench::held()).size() <= 50);
+    }
+}
+
+TEST_CASE("S13UX D4: a jog-time cut RE-ARMS when L1 is let go and held again — never with L1 held throughout, never "
+          "through a controller drop, never by itself; a FAULT cut never re-arms that way") {
+    // BUG CAUGHT: robot one, 2026-11-17 — after a 3 s jog the operator had to leave the station and re-enter, and
+    // nobody knew; and the opposite danger: a fight or a stall cleared by a finger on L1.
+    const auto jogCut = [](Bench& b) {
+        b.arm();
+        b.tick(Bench::held(true));
+        for (int k = 0; k < 300; ++k) b.tick(Bench::held(true));
+        REQUIRE(b.st->cut(0));
+        REQUIRE(b.st->cutKind(0) == ms::CutKind::JogTime);
+    };
+    Bench b{robotTwo()};
+    b.build();
+    jogCut(b);
+    // L1 HELD THROUGHOUT: arrows let go and pressed again, for 10 s — still cut, nothing driven
+    for (int k = 0; k < 500; ++k) b.tick(Bench::held((k / 50) % 2 == 1));
+    CHECK(b.st->cut(0));
+    CHECK(b.volts(6) == 0.0);
+    CHECK(b.logged("REFUSED 'claw pivot 6': CUT (a jog held for its stated maximum, 3.0 s (HA-182)) -- let go of L1 "
+                   "and hold it again"));
+    // a controller DROP and back with L1 held: not a deliberate let-go
+    b.tick(ms::Pad{});
+    b.tick(ms::Pad{});
+    b.tick(Bench::held());
+    CHECK(b.st->cut(0));
+    // let go (connected) — still cut until it is HELD again
+    b.tick(Bench::loose(true));
+    CHECK(b.st->cut(0));
+    CHECK(doNow(b, 0, Bench::loose()) == "Stopped at 3 s: let go of L1, then hold it again");
+    // held again, UP still held from before: re-armed, but nothing resumes by itself
+    b.tick(Bench::held(true));
+    CHECK_FALSE(b.st->cut(0));
+    CHECK(b.st->cutKind(0) == ms::CutKind::None);
+    CHECK(std::string{b.st->cutWhy(0)}.empty());
+    CHECK(b.logged("'claw pivot 6': L1 let go and held again -- its 3 s stop is cleared"));
+    CHECK(doNow(b, 0, Bench::held(true)) == "Let go of UP, then press it again");
+    for (int k = 0; k < 20; ++k) b.tick(Bench::held(true));
+    CHECK(b.volts(6) == 0.0);
+    CHECK_FALSE(b.st->live(0));
+    // a fresh press jogs again — still armed (the confirm is per entry), its 3 s from this press
+    b.tick(Bench::held());
+    b.tick(Bench::held(true));
+    CHECK(b.volts(6) == 3.0);
+    for (int k = 0; k < 299; ++k) b.tick(Bench::held(true));
+    CHECK_FALSE(b.st->cut(0));
+    b.tick(Bench::held(true));
+    CHECK(b.st->cut(0));  // and the cap still cuts at 3 s
+
+    // A FAULT: a fight, an over-current — L1 let go and held again changes nothing
+    Bench f{robotX()};
+    f.build();
+    f.select(1);
+    f.arm();
+    f.motor(2).setVelocity(AngularVelocity{3.0});
+    f.motor(3).setVelocity(AngularVelocity{-3.0});
+    for (int k = 0; k < 25; ++k) f.tick(Bench::held(true));
+    REQUIRE(f.st->cut(1));
+    f.motor(2).setVelocity(AngularVelocity{0.0});
+    f.motor(3).setVelocity(AngularVelocity{0.0});
+    for (int k = 0; k < 3; ++k) {
+        f.tick(Bench::loose());
+        f.tick(Bench::held());
+    }
+    f.tick(Bench::held(true));
+    CHECK(f.st->cut(1));
+    CHECK(f.volts(2) == 0.0);
+    CHECK(f.logged("REFUSED 'lift': CUT (its motor(s) 2 disagree with their mates for 250 ms (a FIGHT)) -- leave and "
+                   "re-enter station 13"));
+    Bench c{robotTwo()};
+    c.build();
+    c.arm();
+    c.motor(6).setCurrent(Current{2.41});
+    for (int k = 0; k < 25; ++k) c.tick(Bench::held(true));
+    REQUIRE(c.st->cutKind(0) == ms::CutKind::Current);
+    c.motor(6).setCurrent(Current{0.0});
+    c.tick(Bench::loose());
+    c.tick(Bench::held());
+    c.tick(Bench::held(true));
+    CHECK(c.st->cut(0));
+    CHECK(c.volts(6) == 0.0);
+    // re-entering the station is still the way on from a fault
+    c.reenter();
+    CHECK_FALSE(c.st->cut(0));
+}
+
+TEST_CASE("S13UX D3: a lift's page is its measuring guide — robot one's cascade (no levels): its bottom stop, then "
+          "its top stop, the current step marked and moved on by a RECORD after a jog") {
+    // BUG CAUGHT: a page that never says what to RECORD next ("the screen is confusing"), a step that does not move
+    // on, or one that runs past the end; and (the verifier, 2026-11-19) a second RECORD with nothing jogged between
+    // labelled the NEXT step — kept for the rest of the run.
+    Bench b{robotOne()};
+    b.build();
+    REQUIRE(b.st->built(0));
+    CHECK(b.st->guideSteps(0) == 2);
+    std::vector<std::string> p = panel(b, 0);
+    REQUIRE(p.size() >= 3);
+    CHECK(p[0] == "To measure it, RECORD at each step (1 of 2):");
+    CHECK(p[1] == "> 1. Lower it onto its bottom stop, then RECORD");
+    CHECK(p[2] == "  2. Top stop: UP at 3-6 V till it stops; RECORD");
+    (void)recordAll(b, 1);
+    CHECK(lastGuide(b) == "[R3A] mech guide: REC 1 = 'cascade' step 1 of 2, its bottom stop");
+    p = panel(b, 0);
+    CHECK(p[0] == "To measure it, RECORD at each step (2 of 2):");
+    CHECK(p[1] == "  1. its bottom stop: RECORDed");
+    CHECK(p[2] == "> 2. Top stop: UP at 3-6 V till it stops; RECORD");
+    // nothing jogged since (robot one, 2026-11-17: two RECORDs, nothing between): that step AGAIN, not the next
+    (void)recordAll(b, 2);
+    CHECK(lastGuide(b) == "[R3A] mech guide: REC 2 = 'cascade' step 1 of 2, its bottom stop -- AGAIN (not jogged since)");
+    b.arm();  // arming powers nothing
+    (void)recordAll(b, 3);
+    CHECK(lastGuide(b) == "[R3A] mech guide: REC 3 = 'cascade' step 1 of 2, its bottom stop -- AGAIN (not jogged since)");
+    CHECK(b.st->guideStep(0) == 1);
+    jogFor(b, 100);  // a jog: the next RECORD is the next step
+    (void)recordAll(b, 4);
+    CHECK(lastGuide(b) == "[R3A] mech guide: REC 4 = 'cascade' step 2 of 2, its top stop");
+    p = panel(b, 0);
+    CHECK(p[0] == "Measured: all 2 steps RECORDed");
+    CHECK(p[2] == "  2. its top stop: RECORDed");
+    (void)recordAll(b, 5);
+    CHECK(lastGuide(b) == "[R3A] mech guide: REC 5 = 'cascade' step 2 of 2, its top stop -- AGAIN (not jogged since)");
+    jogFor(b, 100);
+    (void)recordAll(b, 6);  // past the end: nothing moves on, nothing is said
+    CHECK(b.st->guideStep(0) == 2);
+    CHECK_FALSE(b.logged("REC 6 = 'cascade'"));
+    // a RECORD with ANOTHER mechanism shown moves the cascade's guide on not at all
+    Bench o{robotOne()};
+    o.build();
+    o.select(1);
+    (void)recordAll(o, 1);
+    CHECK(o.st->guideStep(0) == 0);
+    // the other kinds: one line each, first on their page
+    CHECK(panel(o, 1)[0] == "Run it briefly, never into its stop: which way?");
+    CHECK(panel(o, 3)[0] == "Fire it once (UP) and answer where it went");
+    for (std::size_t i = 0; i < o.st->count(); ++i) {
+        for (const std::string& l : panel(o, i)) CHECK(l.size() <= ms::Station::kPanelColumns);
+    }
+    // an ARM (a position mechanism in degrees) is no lift: no guide, the plain jog line
+    Bench x{robotX()};
+    x.build();
+    CHECK(x.st->guideSteps(0) == 0);
+    CHECK(panel(x, 0)[0].starts_with("motor 1 (port 1)"));
+    CHECK(doNow(x, 0, Bench::held()) == "UP / DOWN jog it; A checks which way (L1 held)");
+}
+
+TEST_CASE("S13UX D3: the guide moves on only for a RECORD that READ the lift, and its place (the step, and whether it "
+          "was jogged since) carries over to the next entry while Bench Tests runs") {
+    // BUG CAUGHT (the review, 2026-11-19): an ABSENT cascade's RECORD logged as its bottom stop; a stall at a stop
+    // sending the operator out (DONE, open 13 again) and back to "> 1. Lower it onto its bottom stop", the next
+    // RECORD then labelled step 1.
+    Bench a{robotOne()};
+    a.dev.refusePort(10);
+    a.build();
+    REQUIRE_FALSE(a.st->built(0));
+    (void)recordAll(a, 1);
+    CHECK(a.st->guideStep(0) == 0);
+    CHECK_FALSE(a.logged("mech guide:"));
+    CHECK(std::string{a.st->recordText()} == "REC 1: cascade in the log");
+    // carried over: bench_r3a.cpp keeps guideMark() at the exit and hands it back after the CLEAR (pinned below)
+    Bench b{robotOne()};
+    b.build();
+    (void)recordAll(b, 1);
+    const ms::GuideMark kept = b.st->guideMark(0);
+    REQUIRE(kept.step == 1);
+    CHECK_FALSE(kept.jogged);
+    b.reenter();
+    CHECK(b.st->guideStep(0) == 0);  // a new Station starts at step 1 ...
+    b.st->resumeGuide(0, kept);      // ... until the page hands its place back
+    std::vector<std::string> p = panel(b, 0);
+    CHECK(p[1] == "  1. its bottom stop: RECORDed");
+    CHECK(p[2] == "> 2. Top stop: UP at 3-6 V till it stops; RECORD");
+    (void)recordAll(b, 1);  // nothing jogged since step 1's RECORD, in either entry: step 1 again
+    CHECK(lastGuide(b) == "[R3A] mech guide: REC 1 = 'cascade' step 1 of 2, its bottom stop -- AGAIN (not jogged since)");
+    b.arm();
+    jogFor(b, 100);  // jogged in this entry, RECORDed in the next (a fault cut between): a NEW step
+    const ms::GuideMark moved = b.st->guideMark(0);
+    REQUIRE(moved.step == 1);
+    REQUIRE(moved.jogged);
+    b.reenter();
+    b.st->resumeGuide(0, moved);
+    (void)recordAll(b, 1);  // this entry's REC 1 IS the top stop
+    CHECK(lastGuide(b) == "[R3A] mech guide: REC 1 = 'cascade' step 2 of 2, its top stop");
+    b.st->resumeGuide(0, {99, false});
+    CHECK(b.st->guideStep(0) == 2);  // never past its last step
+    b.st->resumeGuide(1, {3, true});
+    CHECK(b.st->guideStep(1) == 0);  // a toggle has no guide
+    b.st->resumeGuide(99, {1, true});  // no such mechanism: nothing
+}
+
+namespace s13ux_fixture {
+using namespace shulib::mechanism::words;
+// A lift with six levels (one name 15 characters long): the guide's widest case. A lift with a long name:
+// the big line's (its route ids, <name>_home, fit 23).
+inline constexpr Lift tall{.name = "tall", .motors = {Forward}, .cartridge = Blue, .gearing = direct,
+                           .shape = spool(1.5_in), .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.3_s},
+                           .currentCap = {.amps = 2.4}, .range = {0_in, 40_in}, .gravity = constantGravity(1.0_volt),
+                           .home = restsAtStop(0_in),
+                           .presets = {{"pin", 4_in}, {"cup", 8_in}, {"abcdefghijklmno", 12_in}, {"d", 16_in},
+                                       {"e", 20_in}, {"f", 24_in}}};
+inline constexpr MechanismTable kTall = mechanisms(wire(tall, motors(1)));
+inline constexpr Lift longName{.name = "far side cascade", .motors = {Forward}, .cartridge = Blue,
+                               .gearing = direct, .shape = spool(1.5_in), .safe = Hold,
+                               .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.3_s}, .range = {0_in, 40_in},
+                               .gravity = constantGravity(1.0_volt), .home = restsAtStop(0_in)};
+inline constexpr MechanismTable kLongName = mechanisms(wire(longName, motors(1)));
+// The widest lift: four motors, an angle sensor, a home switch AND six levels (kMaxPanelLines' worst case).
+inline constexpr Lift wide{.name = "wide lift", .motors = {Forward, Reversed, Forward, Reversed}, .cartridge = Red,
+                           .gearing = direct, .shape = spool(1.5_in), .angleSensor = rotationSensor(), .safe = Hold,
+                           .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.5_s}, .range = {0_in, 24_in},
+                           .gravity = constantGravity(1.0_volt), .home = homeBySwitch(0_in, -3_volt),
+                           .presets = {{"a", 2_in}, {"b", 4_in}, {"c", 6_in}, {"d", 8_in}, {"e", 10_in}, {"f", 12_in}}};
+inline constexpr MechanismTable kWide = mechanisms(wire(wide, motors(1, 2, 3, 4), angleSensor(10), homeSwitch('B')));
+// Capped power mechanisms whose maxVolts print wide: 4 significant digits, the smallest legal, nearly 12.
+inline constexpr Power odd{.name = "odd", .motors = {Forward}, .cartridge = Green, .safe = Brake,
+                           .currentCap = {.amps = 2.5}, .maxVolts = 9.125_volt};
+inline constexpr Power wee{.name = "wee", .motors = {Forward}, .cartridge = Green, .safe = Brake,
+                           .currentCap = {.amps = 2.5}, .maxVolts = 0.0001234_volt};
+inline constexpr Power nearly{.name = "nearly", .motors = {Forward}, .cartridge = Green, .safe = Brake,
+                              .currentCap = {.amps = 2.5}, .maxVolts = 11.96_volt};
+inline constexpr MechanismTable kOdd = mechanisms(wire(odd, motors(5)), wire(wee, motors(6)), wire(nearly, motors(7)));
+}  // namespace s13ux_fixture
+
+TEST_CASE("S13UX D2: DOWN on a pneumatic says it does nothing — robot one's ramp ('up' / 'down') fires on UP only") {
+    // BUG CAUGHT (the verifier, 2026-11-19): the ramp's line `UP fires it to 'down'` invites DOWN, and each DOWN
+    // press then said `Let go of DOWN, then press it again` — a dead end: DOWN never fires a pneumatic.
+    Bench b{robotOne()};
+    b.build();
+    b.select(5);
+    REQUIRE(std::string{b.st->spec(5).name} == "ramp");
+    CHECK(doNow(b, 5, Bench::held()) == "UP fires it to 'down' (keep L1 held)");
+    for (int k = 0; k < 3; ++k) {
+        b.tick(Bench::held());
+        b.tick(Bench::held(false, true));  // a fresh DOWN press
+        CHECK(b.st->phase() == ms::Phase::Idle);
+        CHECK_FALSE(b.st->live(5));
+        CHECK(doNow(b, 5, Bench::held(false, true)) == "DOWN does nothing here: UP fires it");
+    }
+    CHECK(doNow(b, 0, Bench::held(false, true)) == "Let go of DOWN, then press it again");  // a motor one's DOWN jogs
+    b.tick(Bench::held());
+    b.tick(Bench::held(true));
+    CHECK(b.st->phase() == ms::Phase::Confirm);  // UP asks to fire it
+}
+
+TEST_CASE("S13UX D2: the volts fit the panel for every legal maxVolts — 9.125 V, 0.0001234 V, 11.96 V: the did-not-move "
+          "lines and the status line within 50 columns, whole volts bare, others to 0.1 V as the log prints them") {
+    // BUG CAUGHT (the verifier, 2026-11-19): `Did not move at 9.125 V: at a stop, or check cables` — 51 columns.
+    Bench b{s13ux_fixture::kOdd};
+    b.build();
+    const std::string shown[] = {"9.1", "0.0", "12.0"};
+    const auto limit = [&](std::size_t i) {
+        char l[96];
+        b.st->limitText(i, l, sizeof l);
+        return std::string{l};
+    };
+    for (std::size_t i = 0; i < 3; ++i) {
+        CAPTURE(i);
+        b.select(i);
+        b.arm();
+        for (int k = 0; k < 4; ++k) {  // R1 to 12 V: the most is its maxVolts
+            b.tick(Bench::held(false, false, false, true));
+            b.tick(Bench::held());
+        }
+        jogFor(b, 500);
+        const std::string v = shown[i];
+        const std::string still = doNow(b, i, Bench::held());
+        CHECK(still == "Did not move at " + v + " V: at a stop, or check cables");
+        CHECK(limit(i) == v + " V now (the most); cap 2.5 A");
+        b.motor(static_cast<std::uint8_t>(5 + i)).refuseCurrentLimit(true);
+        jogFor(b, 500);
+        const std::string unset = doNow(b, i, Bench::held());
+        CHECK(unset == "Did not move at " + v + " V, cap NOT SET: check cables");
+        CHECK(limit(i) == v + " V now; cap 2.5 A NOT SET: keep 3 V");
+        for (const std::string& l : {still, unset, limit(i)}) CHECK(l.size() <= ms::Station::kPanelColumns);
+    }
+}
+
+TEST_CASE("S13UX D3: a lift WITH levels — each level its own step between the stops, every line within 50 columns") {
+    // BUG CAUGHT: the levels left out of the guide (a row AT each level is what makes each level exact — HA-254),
+    // or a long level name pushing the line off the panel.
+    Bench b{s13ux_fixture::kTall};
+    b.build();
+    CHECK(b.st->guideSteps(0) == 8);
+    std::vector<std::string> p = panel(b, 0);
+    REQUIRE(p.size() >= 9);
+    CHECK(p[0] == "To measure it, RECORD at each step (1 of 8):");
+    CHECK(p[2] == "  2. Jog to level 'pin', tape it, RECORD");
+    CHECK(p[4] == "  4. Jog to level 'abcdefghijklm', tape it, RECORD");
+    CHECK(p[8] == "  8. Top stop: UP at 3-6 V till it stops; RECORD");
+    b.arm();
+    for (int r = 1; r <= 3; ++r) {
+        (void)recordAll(b, r);
+        jogFor(b, 100);  // each step after the first is reached by a jog
+    }
+    p = panel(b, 0);
+    CHECK(p[3] == "  3. level 'cup': RECORDed");
+    CHECK(p[4] == "> 4. Jog to level 'abcdefghijklm', tape it, RECORD");
+    CHECK(b.logged("[R3A] mech guide: REC 3 = 'tall' step 3 of 8, level 'cup'"));
+    for (const std::string& l : p) CHECK(l.size() <= ms::Station::kPanelColumns);
+    CHECK(p.size() <= ms::Station::kMaxPanelLines);
+    // the widest lift: its guide AND every role's line — none cut (its home switch's question is the last)
+    Bench w{s13ux_fixture::kWide};
+    w.build();
+    const std::vector<std::string> all = panel(w, 0);
+    CHECK(all.size() == 19);
+    CHECK(all.back() == "  RECORD it pressed, released, and cable OUT");
+    for (const std::string& l : all) CHECK(l.size() <= ms::Station::kPanelColumns);
+}
+
+TEST_CASE("S13UX D3: RECORD's big line is what RECORD wrote for the SHOWN mechanism — its output degrees EQUAL to the "
+          "serial line's, the name cut before the number, gone when anything moves or NEXT") {
+    // BUG CAUGHT: robot one — the number the coordinator types (the cascade's `output … deg`) was only in a serial
+    // line among dozens; a big line that rounds it differently, reads the inches, or shows another mechanism's.
+    Bench b{robotOne()};
+    b.build();
+    b.motor(10).setPosition(AngleDim{65.6});
+    b.motor(1).setPosition(AngleDim{65.6});
+    const std::vector<std::string> rec = recordAll(b, 2);
+    std::string serial;
+    for (const std::string& l : rec) {
+        if (l.starts_with("[R3A] mech REC 2 'cascade' LIFT ") && l.find("(output ") != std::string::npos) serial = l;
+    }
+    REQUIRE_FALSE(serial.empty());
+    const std::size_t at = serial.find("(output ") + 8;
+    const std::string number = serial.substr(at, serial.find(" deg", at) - at);
+    CHECK(number != "+0.00");
+    REQUIRE(b.st->recordShown());
+    CHECK(std::string{b.st->recordText()} == "REC 2: cascade output " + number + " deg");
+    CHECK(std::string_view{b.st->recordText()}.size() <= ms::Station::kTitleColumns);
+    // the reading line shows the SAME digits before the RECORD too
+    CHECK(has(panel(b, 0), "output " + number + " deg since power-up"));
+    // the name is cut, never the number
+    Bench t{s13ux_fixture::kLongName};
+    t.build();
+    t.motor(1).setPosition(AngleDim{-1745.3});  // about -99998.6 deg: the widest number a reading line holds
+    std::string far;
+    for (const std::string& l : recordAll(t, 12)) {
+        const std::size_t o = l.find("(output ");
+        if (o != std::string::npos) far = l.substr(o + 8, l.find(" deg", o) - o - 8);
+    }
+    REQUIRE(far.starts_with("-9999"));
+    CHECK(std::string{t.st->recordText()} == "REC 12: far sid output " + far + " deg");  // the name cut to 7
+    CHECK(std::string_view{t.st->recordText()}.size() <= ms::Station::kTitleColumns);
+    // anything powered ends it; so does NEXT
+    b.arm();
+    CHECK(b.st->recordShown());  // arming moves nothing
+    b.tick(Bench::held(true));
+    CHECK_FALSE(b.st->recordShown());
+    b.tick(Bench::held());
+    (void)recordAll(b, 3);
+    REQUIRE(b.st->recordShown());
+    b.st->next();
+    CHECK_FALSE(b.st->recordShown());
+    // the other kinds: a pneumatic's position, a power mechanism written to the log
+    (void)recordAll(b, 4);  // 'right toggle' shown
+    CHECK(std::string{b.st->recordText()} == "REC 4: right toggle in the log");
+    b.select(3);
+    (void)recordAll(b, 5);
+    CHECK(std::string{b.st->recordText()} == "REC 5: claw at 'closed'");
+    b.tick(Bench::held());
+    b.tick(Bench::held(true));
+    b.st->confirm(true, true);  // a FIRE ends it too
+    b.drain();
+    CHECK_FALSE(b.st->recordShown());
+    REQUIRE(b.st->live(3));
+    char l[96];
+    b.st->limitText(3, l, sizeof l);
+    CHECK(std::string{l} == "Let go of L1: it goes back to 'closed'");  // its SAFE position, not where it is
+    // a flywheel: the serial line's own rpm digits
+    Bench f{robotX()};
+    f.build();
+    f.select(2);
+    REQUIRE(std::string{f.st->spec(2).name} == "flywheel");
+    f.motor(4).setVelocity(AngularVelocity{60.7357});
+    std::string rpm;
+    for (const std::string& r : recordAll(f, 3)) {
+        const std::size_t o = r.find("'flywheel' FLYWHEEL ");
+        if (o != std::string::npos) rpm = r.substr(o + 20, r.find(" rpm", o) - o - 20);
+    }
+    REQUIRE(rpm.find('.') != std::string::npos);
+    CHECK(std::string{f.st->recordText()}.ends_with(" output " + rpm + " rpm"));
+    CHECK(std::string_view{f.st->recordText()}.size() <= ms::Station::kTitleColumns);
+}
+
+TEST_CASE("S13UX D5: the DECLARED current cap is in each motor while station 13 powers it — the cascade's and the "
+          "toggles'; nothing written before, nothing for a mechanism without one, an absent one untouched") {
+    // BUG CAUGHT: guide 21's "never press R1 on the cascade" — station 13 ran the cascade UNCAPPED (2.5 A) while
+    // every program caps it at 2.0 A; or a cap written into a motor nobody powers.
+    namespace facts = shulib::bench::robot_one_facts;
+    Bench b{robotOne()};
+    b.dev.refusePort(9);  // the right toggle unplugged
+    b.build();
+    REQUIRE_FALSE(b.st->built(1));
+    for (const std::uint8_t port : std::initializer_list<std::uint8_t>{10, 1, 2}) {
+        CAPTURE(port);
+        CHECK(b.motor(port).currentLimitWrites() == 0);  // nothing written before anything is powered
+        CHECK(b.motor(port).currentLimit().value() == 2.5);
+    }
+    CHECK(b.st->statesCap(0));
+    char l[96];
+    b.st->limitText(0, l, sizeof l);
+    CHECK(std::string{l} == "3 V now (R1 for more); cap 2.0 A when powered");
+    b.arm();  // the cascade: its cap before its first volt
+    CHECK(b.motor(10).currentLimit().value() == doctest::Approx(facts::kCascadeCapAmps.value()));
+    CHECK(b.motor(1).currentLimit().value() == doctest::Approx(facts::kCascadeCapAmps.value()));
+    CHECK(b.st->capHeld(0));
+    CHECK(b.logged("'cascade': current cap 2.00 A per motor -- set and read back"));
+    b.st->limitText(0, l, sizeof l);
+    CHECK(std::string{l} == "3 V now (R1 for more); cap 2.0 A");
+    // a motor that lost power comes back at 2.5 A: the next jog writes the cap again
+    b.motor(1).losePower();
+    b.tick(Bench::held(true));
+    CHECK(b.motor(1).currentLimit().value() == doctest::Approx(facts::kCascadeCapAmps.value()));
+    CHECK(b.volts(10) != 0.0);
+    b.tick(Bench::held());
+    // the left toggle (port 2): its own cap
+    b.select(2);
+    b.arm();
+    CHECK(b.motor(2).currentLimit().value() == doctest::Approx(facts::kSideToggleCapAmps.value()));
+    // the ABSENT right toggle: never written, never powered
+    b.select(1);
+    b.tick(Bench::held());
+    b.tick(Bench::held(true));
+    CHECK(b.motor(9).currentLimitWrites() == 0);
+    CHECK(b.volts(9) == 0.0);
+    // the confirm says the cap
+    Bench c{robotOne()};
+    c.build();
+    c.tick(Bench::held());
+    c.tick(Bench::held(true));
+    REQUIRE(c.st->phase() == ms::Phase::Confirm);
+    CHECK(std::string{c.st->confirmText().foot2} == "3 V now, R1 for more, capped at 2.0 A");
+    // a motor that will not take it: said, and the mechanism still runs (a cap is a limit, never a gate)
+    c.motor(1).refuseCurrentLimit(true);
+    c.st->confirm(true, true);
+    c.drain();
+    CHECK_FALSE(c.st->capHeld(0));
+    CHECK(c.logged("'cascade': motor 2 (port 1) did NOT take its current cap 2.00 A (reads 2.50 A) -- it runs uncapped"));
+    char m[96];
+    c.st->limitText(0, m, sizeof m);
+    CHECK(std::string{m} == "3 V now; cap 2.0 A NOT SET: keep 3 V");
+    c.tick(Bench::held());
+    c.tick(Bench::held(true));
+    CHECK(c.volts(10) == 3.0);
+    // a mechanism that states NO cap (the claw robot's pivots): nothing written, ever
+    Bench n{robotTwo()};
+    n.build();
+    CHECK_FALSE(n.st->statesCap(0));
+    n.arm();
+    jogFor(n, 200);
+    CHECK(n.motor(6).currentLimitWrites() == 0);
+    n.st->limitText(0, m, sizeof m);
+    CHECK(std::string{m} == "3 V now (R1 for more)");
+    // the direction check writes it again too (a motor that lost power, HA-220)
+    Bench k{robotOne()};
+    k.build();
+    k.arm();
+    k.motor(1).losePower();
+    k.tick(Bench::held());
+    k.tick(Bench::held(false, false, true));
+    REQUIRE(k.st->phase() == ms::Phase::Announcing);
+    CHECK(k.motor(1).currentLimit().value() == doctest::Approx(facts::kCascadeCapAmps.value()));
+    // a motor that takes a DIFFERENT number: NOT SET (only the read-back can tell; guide 21 then keeps 3 V)
+    Bench d{robotOne()};
+    d.build();
+    d.motor(1).currentLimitTakesInstead(1.0);
+    d.arm();
+    CHECK_FALSE(d.st->capHeld(0));
+    d.st->limitText(0, m, sizeof m);
+    CHECK(std::string{m} == "3 V now; cap 2.0 A NOT SET: keep 3 V");
+}
+
+TEST_CASE("pin (S13UX): bench_r3a.cpp feeds the field link into the Station, places and paints D2's line, RECORD's "
+          "big line and the status line, calls recorded() after RECORD, paints no log line, and keeps a lift's guide "
+          "while Bench Tests runs") {
+    // BUG CAUGHT: what only bench_r3a.cpp does — a D2 line never painted, a field link never read (robot one's FIELD
+    // CONNECTED controller, 2026-11-17), RECORD's big line never set, or the engineering log lines back on the panel.
+    const std::string code = source_pins::stripComments(source_pins::readFile("src/programs/bench_r3a.cpp"));
+    const std::string body =
+        source_pins::squeeze(source_pins::bodyOf(code, "void mechanismsStation(pros::c::v5_device_e_t*)"));
+    REQUIRE_FALSE(body.empty());
+    const auto at = [&](const std::string& what) {
+        CHECK_MESSAGE(source_pins::count(body, what) == 1, "mechanismsStation must hold exactly one: ", what);
+        return body.find(what);
+    };
+    const std::size_t field = at("pad.field = (pros::c::competition_get_status() & COMPETITION_CONNECTED) != 0;");
+    const std::size_t tick = at("st.tick(pad, now);");
+    CHECK(field < tick);
+    at("doNow.place(pros::E_TEXT_SMALL, kDoNowY, kSmall);");
+    const std::size_t doNow = at("st.doNowText(i, pad, now, d, sizeof d);");
+    CHECK(doNow < at("doNow.set(d, "));
+    at("if (st.recordShown()) { title.set(st.recordText(), kColGood);");
+    at("if (st.recordShown()) { status.set(statusText, statusPen); } else {");
+    const std::size_t rec = at("st.record(records, i, mech13::rawTemperature, [&](const char* l) {");
+    const std::size_t recorded = at("st.recorded(records);");
+    CHECK(rec < recorded);
+    const std::size_t limit = at("st.limitText(i, l, sizeof l);");
+    CHECK(limit < at("status.set(l, "));
+    // the engineering lines to the log only; a refused role still marks the menu's dot
+    at("mech13::logOnly(mechanismDeclarationLine(list, i).text);");
+    at("if (f.state == mechanism::RoleState::Refused) { setVerdict(Sev::Warn); }");
+    // a lift's place in its guide kept while Bench Tests runs: handed back after the CLEAR, kept at the exit
+    const std::size_t marked = at("st.markCleared();");
+    const std::size_t resume = at("for (std::size_t i = 0; i < st.count(); ++i) st.resumeGuide(i, b.guide[i]);");
+    const std::size_t exit = at("st.exit();");
+    const std::size_t keep = at("for (std::size_t i = 0; i < st.count(); ++i) b.guide[i] = st.guideMark(i);");
+    CHECK(marked < resume);
+    CHECK(resume < doNow);
+    CHECK(exit < keep);
+    // the Station's events go to serial + SD only: never copied onto the status line
+    CHECK(source_pins::count(body, "emit(st.event(k));") == 2);  // the loop's drain and the exit's
+    CHECK(source_pins::count(body, "statusText, sizeof statusText, \"%.54s\"") == 0);
+    CHECK(source_pins::count(body, "st.gatesText(") == 0);
 }
 
 TEST_CASE("pin (R-23, R-6, R-8, R-5): station 13's own safety steps in bench_r3a.cpp — the guard before the first "

@@ -9,7 +9,7 @@ import { routeRobots } from '../src/host/robots.mjs';
 import { exportRegion } from '../src/model/export.mjs';
 import { newProject, loadProject } from '../src/model/project.mjs';
 import { newRoute, setStart, addStep } from '../src/model/route.mjs';
-import { findRegion, MIRRORED_LINE } from '../src/model/region.mjs';
+import { findRegion, teamRoutesLine } from '../src/model/region.mjs';
 import { GOLDENS } from './helpers.mjs';
 
 const EMPTY = fs.readFileSync(path.join(GOLDENS, 'gl0_empty.cpp'), 'utf8');
@@ -66,13 +66,15 @@ test('FA3 (host): a CRLF file stays CRLF, its final newline kept, nothing outsid
     assert.equal(now.slice(b.end), crlf.slice(a.end));
 });
 
-test('FA4 (host): robot two\'s mirrored line read through the folder: present / missing / unknown without one', async () => {
-    const present = makeFiles(memoryHost({ 'src/team/autons.cpp': `  ${MIRRORED_LINE}\n` }));
-    assert.equal(await present.mirroredLine(), 'present');
+test('FA4 (host): each autons file\'s line that registers the routes, read through the folder: present / missing / unknown without one', async () => {
+    const both = { 'src/team/robot_one_autons.cpp': `  ${teamRoutesLine('One')}\n`, 'src/team/autons.cpp': `  ${teamRoutesLine('Two')}\n` };
+    assert.deepEqual(await makeFiles(memoryHost(both)).teamRoutesLines(), { One: 'present', Two: 'present' });
+    const swapped = { 'src/team/robot_one_autons.cpp': teamRoutesLine('Two'), 'src/team/autons.cpp': teamRoutesLine('One') };
+    assert.deepEqual(await makeFiles(memoryHost(swapped)).teamRoutesLines(), { One: 'missing', Two: 'missing' }, 'each file its OWN robot');
     const missing = makeFiles(memoryHost({ 'src/team/autons.cpp': '  registry.add(forty);\n' }));
-    assert.equal(await missing.mirroredLine(), 'missing');
-    const off = makeFiles(memoryHost({ 'src/team/autons.cpp': MIRRORED_LINE }, { connected: false }));
-    assert.equal(await off.mirroredLine(), 'unknown', 'a browser without folder access says "not checked"');
+    assert.deepEqual(await missing.teamRoutesLines(), { One: 'missing', Two: 'missing' }, 'no robot-one file at all: missing');
+    const off = makeFiles(memoryHost(both, { connected: false }));
+    assert.deepEqual(await off.teamRoutesLines(), { One: 'unknown', Two: 'unknown' }, 'a browser without folder access says "not checked"');
 });
 
 test('save and open through the folder; the download way in another browser', async () => {
