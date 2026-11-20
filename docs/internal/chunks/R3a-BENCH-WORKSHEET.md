@@ -895,12 +895,14 @@ The team lead skipped this on 2026-09-24 ("it gets confusing"), and it is option
 that the program stops when the robot cannot turn. If you do it: robot **on blocks, no wheel
 touching anything**, start **slot 4**, and turn every wheel by hand, both sides, the same way,
 several turns, in place of the push (DONE appears only once the shafts have turned at least one
-wheel turn and everything is still again), then touch DONE. At the first
-drive port that motor's wheels jerk three times (3, 6, 9 V) and — because the robot cannot turn
-on blocks — it **stops**, red, `STOPPED -- MOTORS OFF`, usually with `IT ROLLED` /
-`it moved but did not turn` / `on the FLOOR? then report the port` (the gear train turned but the
-robot did not), or `NOTHING MOVED` / `even the top pulse moved nothing` / `on the FLOOR? a wheel
-stuck?`. **That is the program working.** → skipped / stopped with: ______________________
+wheel turn and everything is still again), then touch DONE. *(CAL2, 2026-11-17:)* on a drive whose
+sides are geared together (robot one, and robot two, its twin) the pulses still find the two groups
+(each motor jerks at least once, 3 V up to 12 V), then the short turn (`FINDING LEFT`) cannot turn a
+robot on blocks: it steps up to 6 V and **stops**, red, `STOPPED -- MOTORS OFF`, `COULD NOT SPIN`
+(`... is it pinned, or on blocks?`). On a drive whose motors are not geared together it stops at the
+first drive port instead, after its 12 V jerk, with `IT ROLLED` / `it moved but did not turn`, or
+`NOTHING MOVED` / `even the top pulse moved nothing` / `on the FLOOR? a wheel stuck?`. **That is the
+program working.** → skipped / stopped with: ______________________
 
 **G.4 — the run, on the floor**
 
@@ -930,9 +932,9 @@ works** — wait for its colour; ABORT always works. The screen is resistive: a
 | (blue) `CALIBRATE` | `HANDS OFF` · `STARTING UP` · `finding the motors and the IMU` | nothing — a second or two |
 | (blue) `1/4 IMU` | `HANDS OFF` · `IMU WARMING UP` · the seconds counting · `the end that leads the push is FRONT` · `NEXT: push it 48 in along the tape` · ABORT | **do not touch the robot**, about 2 s |
 | (blue) `2/4 PUSH` | `PUSH FRONT FIRST` · `48 IN ALONG TAPE` · big amber `0 of 9 turned` · `drift +0.0 deg` · `DONE shows once the motors turn` · ABORT | **Push the whole robot, the CAMERA end leading (G.0.4), straight along the tape, from START to the 48 in mark. Then LET GO and step back.** The big number counts drive motors whose shafts have turned — **9 of 9** tonight (a motor that is not on the drivetrain never counts, and does not need to). The bottom line walks you through it: `keep pushing -- the full 48 in` (not far enough yet) → `let go -- DONE shows when it stops` (far enough; the robot or your hand is still moving) → green `touch DONE -- then stand clear`, and the big number turns **GREEN**. **Straight matters:** if the drift line turns **red** — `drift +3.4 deg -- TOO CURVED` — the push turned the robot more than 3 degrees, and DONE will stop the run (`PUSH CURVED`); touch RUN AGAIN and push again, straighter |
-| (blue) `2/4 PUSH`, DONE shown | the same, with a green **DONE** bottom left (grey for half a second first) | touch **DONE** ONCE — then **step back: the next screen powers the motors**. **DONE appears only when the push is good:** at least 2 motors turned, their shafts turned at least one wheel turn (6.28 rad), and the robot and every motor are STILL. If it never appears: push the full 48 in; take your hands off the robot |
-| **(AMBER)** `3/4 PULSES` | `STAND CLEAR` · `TWITCHING MOTORS` · `PORT 12  6 V` (which motor, at which level) · `settling -- hands off` between jerks, `3 of 9  yaw -1.2 of 2.0 deg` during one (green once past 2 degrees) · the sides as they are decided, e.g. `L 11 12  R 16` (`OUT 18` for a port left out) · ABORT bottom right until the first jerk, then **the whole bottom row** | **hands off, stand clear, touch nothing but ABORT.** One drive motor at a time is pulsed for 0.4 s — first at **3 V**; if the robot turned less than **2 degrees**, again at **6 V**, then **9 V**. Two degrees is small: a point 7 to 10 in from where the robot turns moves about **a quarter to a third of an inch**. At 9 V it is a visible **jerk** of one corner, not a drive. Between jerks it waits for the robot and every motor to be still — **any touch on the robot delays it**. The side of each motor is read from which way the robot turned. Nine motors take about a minute |
-| **(AMBER)** `4/4 SPIN` | `STAND CLEAR` · `SPINNING` · `CCW 0.8/2 TURNS` (then `CW ...`) · `at 3 V`, or amber `at 6 V -- stepped up` · `NEXT: it saves -- stay clear` · between the two directions: `SETTLING` · `hands off -- it spins next` / `hands off -- it spins again` · **ABORT is the whole bottom row** | ⚠ **STAND WELL CLEAR.** It spins the robot in place **two full turns counter-clockwise, then two clockwise**, at 3 V. **Two safety stops:** if it spins the **WRONG way** by more than **15 degrees** it stops at once (`SPUN WRONG WAY` / `the sides came out swapped`); if it has not turned **5 degrees within 2 s**, it steps up to **6 V** once, and if it still does not turn within 2 s it stops (`COULD NOT SPIN`). A spin that starts but takes over 20 s also stops (`SPIN TOO SLOW`). 3 m clear, second person at the battery, finger ready |
+| (blue) `2/4 PUSH`, DONE shown | the same, with a green **DONE** bottom left (grey for half a second first) | touch **DONE** ONCE — then **step back: the next screen powers the motors**. **DONE appears only when the push is good:** at least 2 motors turned, their shafts turned at least one wheel turn (6.28 rad), and the robot and every motor are STILL (the robot's heading held for half a second — CAL2; DONE then stays). If it never appears: push the full 48 in; take your hands off the robot |
+| **(AMBER)** `3/4 PULSES` | `STAND CLEAR` · `TWITCHING MOTORS` · `PORT 12  6 V` (which motor, at which level) · `settling -- hands off` between jerks, `3 of 10  yaw -1.2 of 2.0 deg` during one · the groups as they are found, e.g. `A 11 12 13 14 15  B 16 17 18 19 20` (`L 11  R 16` for a port the robot's turn decided, `OUT 18` for a port left out) · ABORT bottom right until the first jerk, then **the whole bottom row** | **hands off, stand clear, touch nothing but ABORT.** *(CAL2: finding the sides.)* One drive motor at a time is pulsed for 0.4 s — **3 V**, then **6**, **9**, **12 V** — until OTHER motors turn with it (2 degrees of their shafts): those share its gear train, one **group** (A, then B). Every motor is then pulsed at least once, from its group's level, to show it drives its train; one that turns its own shaft but moves none of its group stays in it (`KEPT` in the log). On a heavy robot the robot itself barely moves — what you see is the gear trains twitching. A motor that moves no other motor is decided as before, by which way the robot turned (2 degrees). Between jerks it waits for the robot and every motor to be still — **any touch on the robot delays it**. Ten motors take about a minute |
+| **(AMBER)** `4/4 SPIN` | first `FINDING LEFT` · `yaw +0.0 of 5.0 deg at 3 V` (CAL2, with groups); then `STAND CLEAR` · `SPINNING` · `CCW 0.8/2 TURNS` (then `CW ...`) · `at 3 V`, or amber `at 6 V -- stepped up` · `NEXT: it saves -- stay clear` · between the two directions: `SETTLING` · `hands off -- it spins next` / `hands off -- it spins again` · **ABORT is the whole bottom row** | ⚠ **STAND WELL CLEAR.** *(CAL2:)* first a short turn, group A forward and B back, until the robot has turned **5 degrees** (6 V if 3 V does not move it in 2 s; `COULD NOT SPIN` if 6 V does not either) — its direction names which group is LEFT. Then it spins the robot in place **two full turns counter-clockwise, then two clockwise**, at 3 V. **Two safety stops:** if it spins the **WRONG way** by more than **15 degrees** it stops at once (`SPUN WRONG WAY` / `the sides came out swapped`); if it has not turned **5 degrees within 2 s**, it steps up to **6 V** once, and if it still does not turn within 2 s it stops (`COULD NOT SPIN`). A spin that starts but takes over 20 s also stops (`SPIN TOO SLOW`). 3 m clear, second person at the battery, finger ready |
 | **(AMBER)** `FRONT FLIPPED` / `MECHANISM PORT TURNED` | `NOTHING SAVED YET` · what the records say · two boxes in the middle: **USE NEW** (or **SAVE**) and **RUN AGAIN** | **the save is HELD — read G.4b before you touch anything.** Nothing is written until you choose |
 | **(GREEN)** `SAVED` (amber `SAVED -- NEW FRONT` after USE NEW) / **(RED)** `NOT SAVED` | the numbers (G.5) · sometimes one amber NOTE row (G.4b) · RUN AGAIN, the big box middle right | read G.5 |
 | **(RED)** `STOPPED -- MOTORS OFF` | a big red headline, what happened, what to do, `PORT n` when a port is to blame, the first lines of the reason in small grey, `the full reason is on the serial log` if it is longer · RUN AGAIN | every motor is at 0 V and coasting — the robot can be pushed. **Copy the headline and the PORT line.** Fix what it says, then touch **RUN AGAIN** |
@@ -1004,9 +1006,11 @@ serial log says which, in one line:
       extension of Bench Tests' raw probes nothing owns yet (HA-187). → the two lines: __________________
       → pivot 6 turned by hand **______ deg** (measured) · the line said **______ deg**
 
-**LEFT OUT — a motor that turns but moves nothing.** If a motor's own shaft turns (20 degrees or
-more) at 9 V while no other drive motor moves more than 5 degrees, its gear is **slipping or stripped** — port
-18's suspected fault. The run does **not** stop: the port is **LEFT OUT** — never powered again in
+**LEFT OUT — a motor that turns but moves nothing.** If a motor's own shaft turns (90 degrees or
+more — 20 before CAL2's review) at the top level, 12 V, while no other drive motor moves more than 5
+degrees, its gear is **slipping or stripped** — port 18's suspected fault. (A motor in a group whose pulse moves
+none of its mates but turns its own shaft 5 degrees or more stays in its group: `KEPT`.) The run does **not**
+stop: the port is **LEFT OUT** — never powered again in
 this run, in no side of the description — and the run goes on with the others. The pulses screen
 shows it as `OUT 18`; the finished screen as amber `LEFT OUT 18` and the sentence
 `port 18 turns but does not move the robot -- its` / `gear is slipping; it is left out`. The run
@@ -1017,10 +1021,15 @@ line goes on `; claw pivots (declared, not drive motors): 6 7` — they are expe
 the robot has one motor less on that side until you do.
 
 **What a stop means — the words on the red screen.** `IT ROLLED` (`it moved but did not turn`):
-at 9 V one motor moved its gear train but the robot did not turn — on the floor? A robot that
-rolls instead of turning is a finding; report the port. `NOTHING MOVED`: even 9 V moved nothing —
-on the floor? a wheel jammed? `SIGN MISMATCH`: the push and the pulse disagree about which way
-that motor turns — check its cable and gears. `NOT SETTLING` (`something kept moving before a
+at 12 V the other drive motors moved but the robot did not turn — on the floor? A robot that
+rolls instead of turning is a finding; report the port. `NOTHING MOVED`: even 12 V moved nothing —
+on the floor? a wheel jammed? (its log line says how far the other motors moved) — or, for a motor in a
+group, its own shaft did not turn 5 degrees: a dead or jammed motor. `SIGN MISMATCH`:
+the push and the pulse disagree about which way that motor turns, or (CAL2) `a motor turned against
+its push` while another was pulsed — check its cable and gears. `SIDES UNCLEAR` (CAL2): a motor
+moved motors of both groups, a third group turned up, or the robot's turn put a motor against its
+group — check the gears of the port shown. `COULD NOT SPIN`: the short turn or the spin did not turn
+the robot even at 6 V — on blocks? pinned? `NOT SETTLING` (`something kept moving before a
 pulse`): the robot or a motor never came to rest — hands off. `WRONG MOTOR MOVED`: a motor that did
 not move on the push moved during a pulse. `PUSH NOT SEEN` / `PUSH CURVED` / `PUSH TOO SHORT`: the
 push. `ONE SIDE ONLY`: every motor turned it the same way — check the wiring. `MOTOR FIGHTING`: one
@@ -1158,9 +1167,13 @@ order, every line starting `[R3D]`:
   then `push: 9 of 9 candidates moved, drift ..., median travel ...`;
 - one `watch: port 6 (claw pivot 6) ...` line per declared pivot, then `front: the end that LED the
   push is the FRONT -- the signs stand as captured` and `drive ports, signed: -11 +12 ...`;
-- **one line per pulse**: `pulse port 12 (2 of 10) 9.0 V yaw -6.47 deg own +49.8 deg others 49.8
-  deg: LEFT` (the verdict is `under the floor -- next level`, `LEFT`, `RIGHT`, `LEFT OUT
-  (decoupled)`, `ROLLED`, `STILL` or `CONTRADICTION`); `LEFT OUT: port 18 ...` when one is;
+- **two lines per pulse** (CAL2): `pulse port 11 (1 of 10) 9.0 V yaw -6.47 deg own +49.8 deg others
+  49.8 deg: FOLLOWED` (the verdict is `under the floor -- next level`, `FOLLOWED`, `KEPT in its group
+  (no follower)`, `LEFT`, `RIGHT`, `LEFT OUT (decoupled)`, `ROLLED`, `STILL` or `CONTRADICTION`), then
+  `pulse port 11 9.0 V followers 12 13 14 15 (+50 +50 +50 +50 deg)` (or `no followers`, or `turned
+  with it (no group): ...`); `LEFT OUT: port 18 ...` when one is; after the pulses `groups: A 11 12 13
+  14 15 | B 16 17 18 19 20 | by yaw: none`, and after the short turn `sides: group A forward, B back
+  turned the robot -5.8 deg (CW) -- A is LEFT, B is RIGHT`;
 - **one line per spin direction**: `spin CCW 3.0 V yaw +720.2 deg L -78.56 in R +78.56 in W 12.500
   in 7.43 s`;
 - `===== RUN 1 ENDED: DONE =====`, the **MEASURED** line, the signed ports per side, `LEFT OUT`,

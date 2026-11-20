@@ -382,6 +382,10 @@ struct StoppedWords {
             return {"WRONG BUTTON", "an answer came at the wrong time", "RUN AGAIN and follow the screen"};
         case Refusal::InvalidDescription:
             return {"RESULT INVALID", "the numbers do not fit together", "RUN AGAIN; if it repeats, report"};
+        case Refusal::SideConflict:
+            return {"SIDES UNCLEAR", "a port seemed to be on both sides", "check the port shown's gears"};
+        case Refusal::FollowerReversed:
+            return {"SIGN MISMATCH", "a motor turned against its push", "check the port shown's cable"};
     }
     return {"STOPPED", "an unknown refusal", "RUN AGAIN"};
 }
@@ -436,6 +440,8 @@ inline constexpr std::string_view kTwitching = "TWITCHING MOTORS";
 inline constexpr std::string_view kSpinning = "SPINNING";
 /// See kNotStarted.
 inline constexpr std::string_view kSettling = "SETTLING";
+/// See kNotStarted (CAL2: the turn that names the groups' sides).
+inline constexpr std::string_view kFindingLeft = "FINDING LEFT";
 /// NEXT / detail lines (kMediumCols).
 inline constexpr std::string_view kNextDoneWhenMoved = "DONE shows once the motors turn";
 /// See kNextDoneWhenMoved.
@@ -543,6 +549,7 @@ inline constexpr Checked kAll[] = {
     {kStandClear, kLargeCols},
     {kTwitching, kLargeCols},        {kSpinning, kLargeCols},
     {kSettling, kLargeCols},         {kNextDoneWhenMoved, kMediumCols},
+    {kFindingLeft, kLargeCols},
     {kNextLetGo, kMediumCols},       {kNextTouchDone, kMediumCols},
     {kNextTwitch, kMediumCols},      {kNextSpins, kMediumCols},
     {kNextSaves, kMediumCols},       {kSettlingHandsOff, kMediumCols},
@@ -575,7 +582,7 @@ inline constexpr Checked kAll[] = {
             return false;
         }
     }
-    for (int r = 0; r <= static_cast<int>(Refusal::InvalidDescription); ++r) {
+    for (int r = 0; r <= static_cast<int>(Refusal::FollowerReversed); ++r) {
         const StoppedWords w = stoppedWords(static_cast<Refusal>(r));
         if (!screenText(w.headline, kLargeCols) || !screenText(w.why, kMediumCols)
             || !screenText(w.doLine, kMediumCols)) {
@@ -728,8 +735,9 @@ inline constexpr std::int16_t kSmall1Y = 180;
 inline constexpr std::int16_t kSmall2Y = 196;
 inline constexpr std::int16_t kSmall3Y = 212;
 
-/// The L / R / OUT chips as the pulses decide them: "L 11 12  R 16  OUT 18", or — when that would
-/// not fit a MEDIUM line — the counts alone.
+/// The L / R / OUT chips as the pulses decide them: "L 11 12  R 16  OUT 18" — and (CAL2) a group
+/// the spin has not yet named, "A 11 12 13" — or, when that would not fit a MEDIUM line, the counts
+/// alone.
 inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t cap) {
     const CalibrationReport& rep = cal.report();
     char buf[3 * hal::kMaxSmartPorts * 4 + 16] = "";
@@ -739,11 +747,13 @@ inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t c
         used += static_cast<std::size_t>(k > 0 ? k : 0);
         used = used < sizeof buf ? used : sizeof buf - 1;
     };
-    const auto group = [&](const char* tag, int want, bool excludedGroup) {
+    const auto group = [&](const char* tag, int want, bool excludedGroup, int inGroup = 0) {
         bool first = true;
         for (std::size_t i = 0; i < rep.portCount; ++i) {
             const PortObservation& o = rep.ports[i];
-            const bool member = excludedGroup ? o.excluded : (!o.excluded && o.side == want);
+            const bool member = excludedGroup ? o.excluded
+                                : inGroup > 0 ? (!o.excluded && o.side == 0 && o.group == inGroup)
+                                              : (!o.excluded && o.side == want);
             if (!member) {
                 continue;
             }
@@ -759,6 +769,8 @@ inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t c
     };
     group("L", -1, false);
     group("R", +1, false);
+    group("A", 0, false, 1);
+    group("B", 0, false, 2);
     group("OUT", 0, true);
     if (used <= kMediumCols) {
         // `used` characters exactly (the branch bounds them by kMediumCols): "%s" of the whole
@@ -904,7 +916,13 @@ inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t c
             v.headerWord = kHeaderSpin.data();
             addPanelLine(v, d::kTextX, d::kInstr1Y, TextSize::Large, PanelTone::Amber, kStandClear);
             addPanelLine(v, d::kTextX, d::kInstr2Y, TextSize::Large, PanelTone::Amber, kSpinning);
-            if (st.spinDirection != 0.0) {
+            if (st.identifying) {
+                addPanelLine(v, d::kTextX, d::kLiveY, TextSize::Large, PanelTone::Amber, kFindingLeft);
+                std::snprintf(buf, sizeof buf, "yaw %+.1f of %.1f deg at %.0f V",
+                              st.liveYawRad / kDegreesToRadians + 0.0,
+                              cfg.identifyYaw.value() / kDegreesToRadians, st.spinLevelVolts);
+                addPanelLine(v, d::kTextX, d::kDetailY, TextSize::Medium, PanelTone::White, buf);
+            } else if (st.spinDirection != 0.0) {
                 std::snprintf(buf, sizeof buf, "%s %.1f/%.0f TURNS",
                               st.spinDirection > 0.0 ? "CCW" : "CW", st.spinTurns,
                               cfg.spinTurns);

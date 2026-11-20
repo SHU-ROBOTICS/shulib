@@ -100,7 +100,8 @@ current state, so here it is, third heading from the top:
   digital out** by the programs that boot the robots' mechanisms (their pistons, 3-wire lines A to C);
   this README claims neither confirmed on a device. **Optical and ADI digital in are constructed by no
   program yet** — no V5 build compiles them into a package — and **the brain's touch screen adapter is built only into the robots' "shulib Calibrate"** (the
-  library's standard Calibrate since 2026-11-05), which has not run on a robot in that form — and GPS
+  library's standard Calibrate since 2026-11-05), which ran on robot one in the form before this one
+  (2026-11-16 and 11-17) — and GPS
   and rotation appear only in the X-drive build, which has never run. All
   eighteen are host-tested against a hand-written stand-in for PROS, which proves the glue is
   faithful to *our beliefs* about PROS — units, signs, error values — and cannot prove the
