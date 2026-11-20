@@ -276,7 +276,7 @@ autons, and those two take 2: at most 14 routes.
 4. **Export** (**Ctrl+E**) → **Write into src/team/robot_one_driver.hpp**.
 5. Pick robot **two**, do the same, then build and upload.
 
-<video controls preload="metadata" poster="../assets/video/controls-tab.jpg" src="../assets/video/controls-tab.mp4" style="max-width:100%"></video>
+<video controls preload="metadata" poster="../../assets/video/controls-tab.jpg" src="../../assets/video/controls-tab.mp4" style="max-width:100%"></video>
 
 Music: "Wallpaper" by Kevin MacLeod ([incompetech.com](https://incompetech.com)), licensed under [Creative Commons: By Attribution 4.0](https://creativecommons.org/licenses/by/4.0/). Voice: Kokoro.
 
