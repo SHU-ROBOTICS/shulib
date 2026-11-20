@@ -101,10 +101,27 @@ TEST_CASE("P3-T3: shulib Drive drives ONLY through the driver file's run(), once
     CHECK(count(c, "st.driver.run(") == 1U);
     CHECK(count(c, "runDriverControl(") == 0U);
     const std::string run = bodyOf(c, "void runDrive()");
+    // Each tick paints the screen, then the cascade and camera traces (the team lead, 2026-11-20).
     CHECK(count(run,
                 "st.driver.run(r, *st.mechanisms, st.devices->pacer(), [] { return "
-                "pros::c::competition_is_disabled() != 0; }, screen);")
+                "pros::c::competition_is_disabled() != 0; }, [&screen, &trace, &camera](const "
+                "math::ChassisSpeeds& command, bool connected, const teleop::DriveShaperState& shaper, const "
+                "teleop::DriveProtectionState& protection) { screen(command, connected, shaper, protection); "
+                "trace.tick(); camera.tick(); });")
           == 1U);
+    // The traces only READ: the cascade trace's PROS calls are the controller's buttons and the motors'
+    // getters; the camera trace's are the registry, the camera's getters and its one detection switch.
+    const std::string cas = bodyOf(c, "class CascadeTrace {");
+    CHECK(count(cas, "pros::c::") == count(cas, "pros::c::controller_get_digital(") + count(cas, "pros::c::motor_get_"));
+    CHECK(count(cas, "pros::c::motor_get_") == 3U);
+    const std::string cam = bodyOf(c, "class CameraTrace {");
+    CHECK(count(cam, "pros::c::") == count(cam, "pros::c::registry_get_plugged_type(") +
+                                         count(cam, "pros::c::aivision_get_") +
+                                         count(cam, "pros::c::aivision_enable_detection_types(") +
+                                         count(cam, "pros::c::E_DEVICE_AIVISION"));
+    CHECK(count(cam, "pros::c::aivision_enable_detection_types(") == 1U);
+    CHECK(count(c, "trace.tick();") == 1U);
+    CHECK(count(c, "camera.tick();") == 1U);
     // The refused path: paints the refusal again (its serial line says why once more) and idles,
     // before anything reads the robot.
     CHECK(count(run, "if (!st.robot.has_value()) { paintRefusal(); while (true) { "
