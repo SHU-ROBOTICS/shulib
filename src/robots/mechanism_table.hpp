@@ -110,7 +110,7 @@ inline constexpr Lift cascade{
 // no homing. Which way each runs is its `.motors` direction -- OWED until station 13 (the two run mirror-
 // image ways). No stall signature: held against its stop, a toggle is cut only by the driver letting go
 // (the boot says so, HA-154's words); its current cap (chosen, not measured) bounds how hard it pushes
-// there once a program's service binds -- Bench Tests' station 13 binds none, so there it is uncapped.
+// there once a program's service binds, and at Bench Tests' station 13 while it powers it (S13UX).
 inline constexpr Power rightToggle{.name = "right toggle", .motors = {facts::kRightToggleDirection.value()},
                                    .cartridge = facts::kSideToggleCartridge.value(), .safe = Brake,
                                    .currentCap = {.amps = facts::kSideToggleCapAmps.value()}};

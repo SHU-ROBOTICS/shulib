@@ -188,14 +188,22 @@ gains and profile, and the range from the bottom row to the top row.
    Stage A was typed on 2026-11-15 (below) except one answer: which side toggle port is the right one.
 2. **Bench Tests** (slot 3): the census, then station 13 jogs each declared mechanism once to check which
    way it moves. **Calibrate** (slot 4): it discovers the rest of the drive by itself.
-3. **Measure at station 13**: with the cascade on its bottom stop, RECORD; then (once there are levels)
-   jog it up to each level, tape the height and RECORD each; then the top stop, **approached as the last
-   section of this chapter says, never jogged into** — two rows, the bottom stop and the top stop, are
-   the least the library takes. **Read the RECORD's `output … deg`, not its inches** — until Stage B is
-   typed, station 13's inches come from the placeholder rows. Run each side toggle once — briefly, and
-   never held against its stop: station 13 runs it **uncapped** (below) — and say which way is "run"; fire
-   each piston once and say whether it went open (down, for the ramp) or closed. The coordinator types
-   Stage B.
+3. **Measure at station 13** — the cascade's page lists these steps and marks the one you are on; the line
+   under its name always says what to do now. Hold **L1** the whole time (let go and it stops); **UP**
+   raises, **DOWN** lowers. With the cascade on its bottom stop, RECORD; then (once there are levels) jog
+   it up to each level, tape the height and RECORD each; then the top stop: **UP at 3–6 V (R1 raises the
+   3 V start to 6 V), stop when it stops rising**, RECORD — never keep pushing into it. If the line says
+   `It STALLED` at a stop, that IS the stop: **RECORD first, then DONE and open 13 again** — the page keeps
+   your place in the steps while Bench Tests runs. A RECORD with nothing jogged since the last one counts as
+   that step again; to start the steps over, stop the program and run Bench Tests again. Two rows, the
+   bottom stop and the top stop, are the least the library takes. After each RECORD the page shows, large,
+   what it wrote — `REC 2: cascade output +3759.04 deg`: **that `output … deg` is the number the
+   coordinator types, not the inches** (until Stage B is typed, station 13's inches come from the
+   placeholder rows). A jog stops by itself after 3 s: let go of L1 and hold it again to go on. Run each
+   side toggle once — briefly, never held against its stop (it declares no stall signature) — and say
+   which way is "run"; fire each piston once with **UP** (the ramp too: DOWN never fires a piston) and say
+   whether it went open (down, for the ramp) or closed.
+   The coordinator types Stage B.
 4. **Drive, the Auton Tester, Competition, shulib Tune** — and your skills route.
 
 ## Robot one's mechanisms (typed 2026-11-15)
@@ -206,7 +214,7 @@ read off the robot")`, or a starting value `"chosen, not measured -- …"`:
 | Mechanism | What it is | Typed | Still owed |
 |---|---|---|---|
 | **cascade** | a `Lift`: two **blue** motors on ports **10 and 1**, facing each other, **direct** to the spool (typed as the 1:1 tooth count `gears(1, 1)`); a 4-stage string cascade, homed by stalling gently down | ports, directions (the builder: they face each other; port 10 taken as Forward, station 13 confirms), cartridge, gearing; the coordinator's starting cap **2.0 A** per motor and stall signature **1.5 A below 5 rpm for 0.3 s**; its own homing signature **0.45 A** (chosen, not measured — a gentle push's stall); its levels: **none yet** ("for now it will be manual") | its two rows (station 13: the bottom stop and the top stop), its hold volts, its homing push, its volts before it is homed |
-| **right toggle**, **left toggle** | two `Power` mechanisms — each its own arm on its own **green** motor, direct — that RUN one way while their button is held and stop on release; no angles, no homing | their ports **9 and 2**; cartridge; a starting cap of **1.5 A** per motor (chosen, not measured, to bound the push held against a stop; written into the motors by Drive, Competition and the Auton Tester — not by station 13) | **which port is the right one** (the left is the other); which way each runs |
+| **right toggle**, **left toggle** | two `Power` mechanisms — each its own arm on its own **green** motor, direct — that RUN one way while their button is held and stop on release; no angles, no homing | their ports **9 and 2**; cartridge; a starting cap of **1.5 A** per motor (chosen, not measured, to bound the push held against a stop; written into the motors by Drive, Competition, the Auton Tester and station 13) | **which port is the right one** (the left is the other); which way each runs |
 | **claw** | a `Pneumatic` on 3-wire **A** — one piston on the cascade's top stage; it picks up Pins and Cups | its letter; a starting stroke time of 0.5 s (chosen) | which line level opens it |
 | **flipper** — the front toggle | a `Pneumatic` on 3-wire **B** — two forward pistons on one solenoid, pushing where the camera looks; robot one's flipper for the autons' Toggle step | its letter; the flipper's kind = pneumatic (the coordinator's assignment); a starting stroke time of 0.5 s (chosen) | which line level pushes it out |
 | **ramp** | a `Pneumatic` on 3-wire **C** — one piston on the back; it comes down to push other robots | its letter; a starting stroke time of 0.5 s (chosen) | which line level puts it down |
@@ -394,14 +402,16 @@ drive table — is retired. The host suite keeps it as its example robot with cl
   Calibrate's version of that is still being built). Its result is typed into `kRobotOneChassis` (the drive's
   ports, signs, scale and an effective track width of 13.23 in), and the autons drive slower and softer than the
   library's defaults (40 in/s, a heading arrival of 4 degrees — its ten geared motors rock about 2 degrees).
-- **Station 13 does not apply the cascade's current cap yet.** Until it does, keep its ceiling at 3 V on
-  the cascade (never press R1 to raise it) and **never power the cascade into its top stop**: jog up at
-  3 V to just short of it and stop; close the last bit by hand only if the cascade moves freely by hand
-  (its motors turn with the spool: no gears). If it does not, tell the coordinator — the top-stop row then
-  waits for the capped station. Station 13's
-  own cut-outs (two motors fighting, 2.4 A for 250 ms, the stall signature, a 3 s jog) are the only limit
-  until then. **The side toggles are uncapped there too** (and declare no stall signature): run each only
-  briefly to see which way it goes, never held against its stop.
+- **Station 13 does not know where the cascade's top stop is** (it has no soft stops: nothing is homed there).
+  It applies each mechanism's current cap (since 2026-11-19): the cascade's 2.0 A and the side toggles' 1.5 A
+  are written into their motors when you confirm each one and at every jog, and read back — the page's bottom
+  line says `cap 2.0 A`. The motor holds its cap ([HA-219](../hardware-assumptions.md)), so R1 is safe on the
+  cascade under it; still **never power it into its top stop**: approach it at 3–6 V and stop when it stops
+  rising. If the bottom line says `cap 2.0 A NOT SET: keep 3 V`, a motor did not take it: keep the cascade at
+  3 V and tell the coordinator. Station
+  13's own cut-outs (two motors fighting, 2.4 A for 250 ms, the stall signature, a 3 s jog) stay on top of
+  the cap. The side toggles declare no stall signature: run each only briefly, never held against its
+  stop.
 - **No camera, tracking wheels or wall reset**: the camera's port is written down but nothing reads it;
   the boot builds drive-encoder odometry only; robot one has no distance sensors.
 - **No preset levels yet** — the builder's cascade is manual for now; until levels are typed, an auton

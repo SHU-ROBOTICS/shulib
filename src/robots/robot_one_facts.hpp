@@ -467,8 +467,8 @@ ROBOT_ONE_CHECK(kSideToggleCartridge, "the side toggles' cartridge");
 // Form G21: the side toggles' STARTING current cap per motor — CHOSEN, not measured, to bound the push: a
 // toggle held against its stop while its button is held pushes with at most this (the motor's own limit is
 // 2.5 A) — whether that is gentle enough on the real arm nobody has measured. The cap is written into the
-// motors when a program's mechanism service binds; Bench Tests' station 13 binds none, so there the toggles
-// run UNCAPPED (guide 21). The bench raises it if a flip is too weak.
+// motors when a program's mechanism service binds, and by Bench Tests' station 13 while it powers a toggle
+// (S13UX). The bench raises it if a flip is too weak.
 inline constexpr auto kSideToggleCapAmps =
     typed(1.0, 1.5, Stage::A, "the side toggles' starting current cap per motor, amps",
           "chosen, not measured -- the coordinator's ROB1-C2 run, 2026-11-15 (a toggle held against its stop at "

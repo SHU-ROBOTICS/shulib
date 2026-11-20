@@ -844,12 +844,20 @@ saves nothing: you edit the robot file, rebuild and upload.
 
 **Bench Tests** (the bench program, slot 3) has a thirteenth station, **13 MECHANISMS**: it builds the
 robot's mechanisms from its robot file exactly as every program does — no drivetrain, no mechanism service,
-nothing homed — and shows ONE at a time, with three jobs:
+nothing homed — and shows ONE at a time. Under its name, **one line always says what to do now**, in plain
+words: `Hold L1 to power the cascade`, `UP raises, DOWN lowers; A checks its way (L1 held)`, `Moving UP --
+1.8 s of 3 s`, `Did not move at 3 V. Not at a stop? R1 for 6 V` (R1 is offered only under a current cap
+that holds, never to a power mechanism — otherwise `Did not move at 3 V: at a stop, or check cables`),
+`Pair the controller to the brain: it has no link`, `Controller says FIELD: unplug the field cable` (the
+brain's competition status reports a field or switch; the page still works, so it says so only when nothing
+else needs saying), or what stopped it and the one way on. The engineering detail (thresholds, radians, HA numbers)
+goes to the serial and SD log, never the panel. It has three jobs:
 
-- **Every reading, live, in the mechanism's own units.** Each motor's angle since power-up, speed,
-  current and temperature (`unknown` when the read failed — never a guessed "cool"); an arm's or a lift's
-  position **in its declared units**, through its gearing and its shape, taking the power-up pose as its
-  declared home (`ARM +95.0 deg (power-up = home 0.0; 5.00:1)`) — so you read `.range`, the presets and
+- **Every reading, live, in the mechanism's own units.** Each motor's angle since power-up, current and
+  temperature (`unknown` when the read failed — never a guessed "cool"); an arm's or a lift's output
+  turn since power-up in RECORD's own digits, then its position **in its declared units**, through its
+  gearing and its shape, taking the power-up pose as its declared home (`output +95.00 deg since power-up
+  (+95.0 deg)`) — so you read `.range`, the presets and
   the level angle off the robot by moving the arm by hand, and **a gearing typed wrong is a wrong angle on
   the screen** (a 12:60 arm turned one turn reads 360°; typed `gears(12, 36)` it reads 600°); a
   flywheel's output rpm; the angle sensor raw and as mounted, and on its own line **the number
@@ -873,11 +881,15 @@ nothing homed — and shows ONE at a time, with three jobs:
   prompt CLOSES the moment L1 is let go, granting nothing), nothing it never powered is touched, and
   nothing restarts by itself (a button still held when the controller comes back, or through NEXT, is not
   a press); a jog runs only while its arrow is held; a ceiling starting at 3 V — again for each mechanism
-  NEXT shows — that R1 raises to 6, 9, 12, **never past a power mechanism's declared `maxVolts`**; a cut
-  that stops THAT mechanism, names why and keeps it stopped until the station is re-entered — two of its motors fighting for 250 ms, any motor above 2.4 A for 250 ms, its
-  own stall signature, a jog held for 3 s; and leaving the station makes everything safe. **Every one of
+  NEXT shows — that R1 raises to 6, 9, 12, **never past a power mechanism's declared `maxVolts`**; **each
+  mechanism's declared [`.currentCap`](#current-caps--how-hard-a-string-is-pulled) written into its motors
+  when it is confirmed and at every jog, and read back** (the bottom line says `cap 2.0 A`, or `cap 2.0 A
+  NOT SET` when a motor would not take it — it still runs: a cap is a limit, never a gate); a cut that stops
+  THAT mechanism and names why — a jog held for 3 s is cut until **L1 is let go and held again**; a fault
+  (two of its motors fighting for 250 ms, any motor above 2.4 A for 250 ms, its own stall signature) stays
+  cut until you press DONE and open 13 again; and leaving the station makes everything safe. **Every one of
   those numbers is invented for a first run** ([HA-182](../hardware-assumptions.md)'s page entries) and
-  the page says so.
+  the log says so.
 - **The direction check.** Hold L1 and press A with the mechanism at rest (A is refused while a jog runs —
   let go of the arrow first): the page says `ONLY 'arm' should move -- watch it` and drives NOTHING for
   1 s — a mechanism still turning in that second's last 0.4 s (a coast, a sag) abandons the check, since
@@ -889,14 +901,25 @@ nothing homed — and shows ONE at a time, with three jobs:
   positions as buttons, and "nothing / something else moved"). **RECORD** writes every reading and EACH
   mechanism's latest verdict this visit to the serial log and the SD card as `[R3A] mech` lines — each
   line one serial write, a longer one in pieces that each start `[R3A] mech ... (cont.)`, so a grep of the
-  tag keeps the whole sentence and the path stays whole on its line.
+  tag keeps the whole sentence and the path stays whole on its line — and shows, large, the number it wrote
+  for the mechanism on the page, in the RECORD line's own digits (a lift's or an arm's `output … deg`, a
+  flywheel's rpm): `REC 2: cascade output +3759.04 deg`. A **lift's**
+  page starts with its measuring steps, numbered, the current one marked `>`, each RECORD after a jog moving
+  it on (a RECORD with nothing jogged since the last one is that step again, and the log says `AGAIN`): its
+  bottom stop, each level (tape it), its top stop (UP at 3–6 V until it stops rising) — the order of
+  [chapter 21](21-adding-your-robot-by-hand.md#the-order-on-the-robot), step 3. A lift that STALLS at a stop
+  is at that stop: RECORD first (the line then says `RECORDed: now DONE, then open 13 again`), then DONE
+  and open 13 again — its steps carry over while Bench Tests runs (every RECORD reads the same motor
+  counts); to start them over, stop the program and run Bench Tests again. A power mechanism's page
+  starts `Run it briefly, never into its stop: which way?`, a pneumatic's `Fire it once (UP) and answer
+  where it went`.
 
 It saves nothing: edit the robot file at the line the verdict names, rebuild, upload, check again. The
 page's logic is host-tested (the gates, the check's flow, the readings, the RECORD lines —
 `test/bench_mech_station_test.cpp`, over the library's own mechanism parts on a fake provider), and the
 order of the steps only the bench program runs (the CLEAR before anything is made, the dead-man watched
-inside each confirm) is pinned by reading its source; the page itself has **never run on a robot** — the
-bench worksheet's station for it is its first run.
+inside each confirm) is pinned by reading its source. The page ran on robot one on 2026-11-17 (the cascade's
+two rows came from its RECORDs); its plain words (S13UX, 2026-11-19) have not yet run on a robot.
 
 ## The limit — the service runs only when something ticks it
 

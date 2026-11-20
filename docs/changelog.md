@@ -16,6 +16,30 @@
 
 ## API 2.9
 
+### 2026-11-19 — Bench Tests' station 13 made plain: a student can measure a robot's mechanisms alone
+
+> Bench Tests' own page (`src/programs/bench_r3a.{hpp,cpp}`): **no library change, no API change.** Host- and
+> build-gated; not yet run on a robot.
+
+- **One line always says what to do now**, under the mechanism's name: hold L1, which arrow moves it, `Moving UP --
+  1.8 s of 3 s`, `Did not move at 3 V. Not at a stop? R1 for 6 V` (only under a cap that holds), `Pair the
+  controller to the brain: it has no link`, `Controller says FIELD: unplug the field cable`, or what stopped it
+  and the one way on. The panel's lines are
+  plain words; thresholds, radians and HA numbers go to the serial and SD log only.
+- **A lift's page lists its measuring steps** (its bottom stop, each level, its top stop), the current one marked,
+  each RECORD after a jog moving it on; **after a RECORD the page shows, large, what it wrote** (`REC 2: cascade output
+  +3759.04 deg` — the RECORD lines themselves are unchanged).
+- **A jog's 3 s stop is no longer a fault:** let go of L1 and hold it again to go on. A fault (a fight, 2.4 A for
+  250 ms, the stall signature) still needs DONE and station 13 opened again; a lift that stalls at a stop says
+  RECORD first, and its steps carry over to the next visit while Bench Tests runs (stop the program and run Bench
+  Tests again to start them over).
+- **Each mechanism's declared `.currentCap` is applied at station 13** — written into its motors when it is confirmed
+  and at every jog, and read back; the bottom line says `cap 2.0 A` (or `NOT SET: keep 3 V`). The motor holds its
+  cap (HA-219), so R1 is safe on the cascade under it; the top stop is still approached at 3–6 V, never pushed
+  into.
+
+**What you must do:** nothing. Guide 21's "The order on the robot" step 3 and the facts form's C7 say how to measure.
+
 ### 2026-11-17 — Named routes, robot two on the field, a cascade's steps in inches, small moves
 
 > Written when it was built (chunk RMP1, run RMP1-C). **No library change — no API change:** nothing under
