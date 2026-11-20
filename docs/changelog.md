@@ -16,6 +16,24 @@
 
 ## API 2.9
 
+### 2026-11-20 — Robot two takes robot one's numbers; its own buttons
+
+> Written when it was built. **No library change — no API change:** robot two's facts file, its chassis table's
+> cartridge, and the host suite's twin rules changed.
+
+**What you can now do (additive):**
+
+- **Set up robot two in minutes.** It is robot one's build (the team lead, 2026-11-20: "Use robot one's"), so
+  its facts are robot one's values: no cascade measuring, no taped heights. On robot two, run Bench Tests tile 1
+  and station 13's quick pass (each mechanism's direction, each piston once):
+  [Set up your robot first](guide/23-set-up-your-robot-first.md#robot-two-the-quick-pass). Its Bench Tests and
+  Calibrate build now; its Drive and Auton Tester build once the quick pass's five answers are typed.
+- **Give robot two its own buttons.** Each robot's buttons, feel and header map are its own: change robot two's
+  in the route builder's Controls tab (robot two picked) or in `src/team/robot_two_driver.hpp`, without touching
+  robot one's. The host suite checks each robot's map against its own file.
+
+**What you must do:** nothing.
+
 ### 2026-11-20 — The upload command finds make and pros without the PROS terminal
 
 > Written when it was built. **No library change — no API change:** only `tools/upload_auton.py` changed.

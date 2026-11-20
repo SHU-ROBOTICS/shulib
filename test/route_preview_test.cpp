@@ -1070,7 +1070,7 @@ TEST_CASE("route preview RP33b: robot two's owed piston times are hatched, each 
         got[p.mechanism] = p.number;
     }
     CHECK(got == want);
-    CHECK(rp::kRobotTwo.provisional.size() == 3);  // every robot-two fact is owed today
+    CHECK(rp::kRobotTwo.provisional.empty());  // robot one's chosen times, the same build (2026-11-20), as robot one's
 }
 
 // RP34 — the RUN-TIME stamp: --stamp and --autons-hash are printed on the page and on stdout; without

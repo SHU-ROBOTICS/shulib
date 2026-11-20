@@ -463,7 +463,7 @@ TEST_CASE("RMP1: each robot's description reads ITS OWN facts ledger's levels an
     }
     CHECK(one->ledgerOwed == !shulib::bench::robot_one_facts::kCascadeLevels.typed);
     CHECK(two->ledgerOwed == !shulib::bench::robot_two_facts::kCascadeLevels.typed);
-    CHECK(two->ledgerOwed);  // robot two's levels are owed until read off it
+    CHECK_FALSE(two->ledgerOwed);  // robot two's levels: robot one's, the same build (2026-11-20)
 }
 
 TEST_CASE("RMP1: a robot that builds the shared route and declares a cascade marks its levels as its facts ledger's (the tripwire for robot two)") {

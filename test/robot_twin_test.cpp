@@ -147,30 +147,50 @@ TEST_CASE("twin: robot two's facts are robot one's facts -- the same names, stag
     CHECK(ids2.size() == n2);
 }
 
-TEST_CASE("twin: every robot-two fact is OWED until the builder reads it off robot two (but its six chosen settings: Calibrate's two thresholds and the autons' four drive settings)") {
-    // BUG CAUGHT: a robot-two fact typed by copying robot one's — a robot two that links on robot one's ports
-    // without anyone having looked at robot two. The ONLY typed ones are Calibrate's two thresholds: chosen, not
-    // measured, for the same 10-motor drive (the ROB1-BT merge, 2026-11-17). (The day the builder's robot-two
-    // answers are TYPED — the coordinator's G1-F edit — this case is re-pinned in the same change.)
+TEST_CASE("twin: robot two's build facts are robot one's VALUES (the same build); its five wiring facts stay OWED until station 13 on robot two") {
+    // BUG CAUGHT: a robot-two wiring fact (a side toggle's direction, a piston's open level) typed without anyone
+    // having watched robot two move — robot two's homing programs would then build unchecked; a build fact typed
+    // as a number that is not robot one's (the same build: the team lead, 2026-11-20, "Use robot one's"); robot one's
+    // camera (still owed on robot one) claimed as typed on robot two. (When station 13's answers are typed, the
+    // coordinator re-pins this case in the same change.)
     CHECK(two::kRobotTwoFactCount == one::kRobotOneFactCount);
-    CHECK_MESSAGE(two::kRobotTwoOwedCount == two::kRobotTwoFactCount - 6,
-                  "a robot-two fact is TYPED: re-pin this case with it (its value and its source, read off robot two)");
-    for (const auto& f : two::kRobotTwoFacts) {
+    const auto stillOwed = [](std::string_view n) {
+        return n == "the right side toggle's run direction" || n == "the left side toggle's run direction" ||
+               n == "the claw's line level that OPENS it" ||
+               n == "the front toggle's line level that pushes it OUT (open)" ||
+               n == "the ramp's line level that puts it DOWN" || n == "the AI Vision camera's port" ||
+               n == "where the AI Vision camera sits";
+    };
+    int owedHere = 0;
+    for (std::size_t i = 0; i < static_cast<std::size_t>(two::kRobotTwoFactCount); ++i) {
+        const auto& f = two::kRobotTwoFacts[i];
         CAPTURE(f.name);
-        const std::string_view n{f.name};
-        const bool threshold = n == "Calibrate's pulse yaw floor, degrees" ||
-                               n == "Calibrate's rest yaw rate, degrees per second" ||
-                               n == "the autons' top drive speed, in/s" || n == "the autons' top turn rate, rad/s" ||
-                               n == "the autons' heading correction gain" || n == "the autons' heading arrival, degrees";
-        CHECK(f.typed == threshold);
+        CHECK(f.typed == !stillOwed(f.name));
+        owedHere += f.typed ? 0 : 1;
+        if (f.typed) CHECK(one::kRobotOneFacts[i].typed);  // never a number robot one does not have
+    }
+    CHECK(owedHere == 7);
+    CHECK(two::kRobotTwoOwedCount == 7);
+    // the values: robot one's, fact for fact
+    CHECK(two::kCascadePorts.value().first == one::kCascadePorts.value().first);
+    CHECK(two::kCascadePorts.value().second == one::kCascadePorts.value().second);
+    CHECK(two::kRightTogglePort.value() == one::kRightTogglePort.value());
+    CHECK(two::kClawLine.value() == one::kClawLine.value());
+    CHECK(two::kCascadeHomingPushVolts.value() == one::kCascadeHomingPushVolts.value());
+    CHECK(two::kClawStrokeTime.value().value() == one::kClawStrokeTime.value().value());
+    for (std::size_t i = 0; i < shulib::mechanism::kMaxPresets; ++i) {
+        CAPTURE(i);
+        const char* a = two::lv(i).name;  // an unused slot's name is null
+        const char* b = one::lv(i).name;
+        CHECK(((a == nullptr && b == nullptr) || (a != nullptr && b != nullptr && std::string_view{a} == b)));
     }
     CHECK(two::kCalibratePulseYawFloorDeg.value() == one::kCalibratePulseYawFloorDeg.value());
     CHECK(two::kCalibrateRestYawRateDegPerS.value() == one::kCalibrateRestYawRateDegPerS.value());
-    // ...so robot two's Bench Tests and Calibrate wait on every Stage A fact, its other programs on every fact.
-    CHECK(two::owedFor(sb::Program::BenchTests) == 17);
-    CHECK(two::owedFor(sb::Program::Calibrate) == 17);
-    CHECK(two::owedFor(sb::Program::Drive) == 31);
-    CHECK(two::owedFor(sb::Program::Tune) == 31);
+    // ...so robot two's Bench Tests and Calibrate build now; its other programs wait on the five wiring facts.
+    CHECK(two::owedFor(sb::Program::BenchTests) == 0);
+    CHECK(two::owedFor(sb::Program::Calibrate) == 0);
+    CHECK(two::owedFor(sb::Program::Drive) == 5);
+    CHECK(two::owedFor(sb::Program::Tune) == 5);
 }
 
 TEST_CASE("twin: the driver files -- the controls, the feel and the header's map are robot one's, but for the robot's name") {
