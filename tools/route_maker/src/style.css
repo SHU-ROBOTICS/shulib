@@ -714,3 +714,42 @@ input.num.bad { border-color: var(--failed); }
 .g-obstacle-moment.warn { stroke: var(--cut); }
 .field-svg.previewing .g-obstacle { opacity: .6; }
 /* ── end Field obstacles (RMP1-H) ── */
+
+/* ── Mechanism steps (RMP1-J) ── */
+.mech-menu { width: min(320px, calc(100vw - 16px)); }
+.mech-menu .menu-item { min-height: 40px; font-weight: 600; }
+.mech-menu .menu-item.big { min-height: 48px; font-size: var(--t-md); }
+.mech-menu .menu-back { min-height: 32px; font-weight: 450; color: var(--text-muted); }
+.hctl { display: flex; gap: var(--s-4); align-items: flex-start; }
+.hbar { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; }
+.hbar small { color: var(--text-muted); font-size: var(--t-xs); }
+.hbar-track { position: relative; width: 32px; height: 168px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); cursor: pointer; }
+.hbar-track:hover { border-color: var(--accent); }
+.hbar-fill { position: absolute; left: 0; right: 0; bottom: 0; background: var(--accent-soft); border-top: 3px solid var(--accent); border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+.hbar-tick { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--text-muted); }
+.hbar-now { position: absolute; right: -14px; width: 0; height: 0; margin-bottom: -6px; border: 6px solid transparent; border-right: 8px solid var(--text); }
+.hctl-side { flex: 1; min-width: 0; display: grid; gap: var(--s-2); }
+.hctl-side .hint { margin: 0; }
+.lvls { display: flex; flex-wrap: wrap; gap: 6px; }
+.lvl { display: inline-flex; flex-direction: column; align-items: flex-start; min-height: var(--hit); padding: 4px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+       background: var(--surface); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+.lvl small { color: var(--text-muted); font-size: var(--t-xs); font-weight: 450; }
+.lvl.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-strong); }
+.limit-hint .btn { margin-left: 4px; }
+.home-card { display: flex; gap: var(--s-2); padding: var(--s-3); margin-bottom: var(--s-3); border: 1px solid var(--accent); border-radius: var(--radius-md); background: var(--accent-soft); }
+.home-card .ic { color: var(--accent-strong); }
+.home-card strong { display: block; margin-bottom: var(--s-2); }
+.home-card .row { gap: var(--s-2); align-items: center; flex-wrap: wrap; }
+.home-card small { color: var(--text-muted); }
+.g-mech { cursor: pointer; }
+.g-mech-box { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.g-mech:hover .g-mech-box, .g-mech.sel .g-mech-box { fill: var(--accent-soft); stroke-width: 2.5; }
+.g-mech-icon { fill: none; stroke: var(--accent-strong); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.g-mech-text { fill: var(--text); font: 600 12px var(--font-ui); dominant-baseline: central; }
+.g-mech.badge-error .g-mech-box { stroke: var(--failed); fill: var(--error-soft); }
+.g-mech.badge-warn .g-mech-box { stroke: var(--cut); fill: var(--warn-soft); }
+.g-mech.locked { pointer-events: none; }
+.g-mech.locked .g-mech-box { stroke-dasharray: 3 3; }
+.g-mech-band { fill: none; stroke: var(--accent); stroke-width: 9; stroke-opacity: .22; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; pointer-events: none; }
+.field-svg.previewing .g-mech, .field-svg.previewing .g-mech-band { opacity: .45; }
+/* ── end Mechanism steps (RMP1-J) ── */

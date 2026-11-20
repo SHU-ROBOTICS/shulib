@@ -128,26 +128,52 @@ sentence — here the path into point 1 doubles back on itself:
 
 ### 5. Work a mechanism
 
-Pick **Mechanism** (**M**): the menu lists robot one's mechanisms by name, each with what it can do. A claw, a ramp
-or a flipper has one button per position: **Open claw**, **Close claw**, **Ramp down**. (The route in the pictures
-also homes the cascade first: **Cascade → Home it**, with its time limit typed, before the first drive.)
+Press **Mechanism** (**M**). The menu shows robot one's mechanisms, one row each.
 
-![The Mechanism menu: the Cascade's Go up, Go down, Move to, Back to the bottom, Home it and Wait until it is done; each toggle's Run it for a time; the claw's Close claw and Open claw](../assets/route-builder/mechanism-menu.png)
+![The Mechanism menu's first step: robot one's six mechanisms, one row each — Cascade, Right toggle, Left toggle, Claw, Flipper, Ramp — each with its kind](../assets/route-builder/mechanism-menu.png)
 
-**The cascade, in inches.** **Go up _ in**, **Go down _ in**, **Move to _ in** and **Back to the bottom**: type the
-inches and the most time it may take. The library moves a lift to a height, not by an amount, so the page keeps
-track of where the cascade is at every step — after a home it is at the bottom, after "move to 18" at 18 — and
-writes each step as the height it reaches, its own words in the comment (*"Step 4 — MOVE the cascade UP 6 in, to
-18 in"*). On the right, each step says **from** where **to** where. "Go up" before anything says where the cascade
-is, or past the top of its travel (the step says the range), is red, with its fix. An arm turns up and down in degrees the same
-way. Once the cascade has levels (recorded at **Bench Tests station 13**), **Move to a level** appears too; the code
-names a level by its number in robot one's facts, so the route does not change when a level is renamed.
+Click one, and what it does replaces the list, each a large button: the claw's **Close claw** and **Open claw**, a
+toggle's **Run it**, the cascade's **Move the cascade** and **Home it**. **‹ Back** or **Esc** goes back to the list;
+**Esc** again closes it. **Up**, **Down** and **Enter** work too. The new step goes after the selected one.
 
-The cascade only knows where its bottom is once it has been **homed** — pushed gently down until it stalls on its
-stop. A move before that stops the whole route (`NOT_HOMED`), so the page marks such a move red and offers **Home it
-first** (a home step at the start of the route — **type its time limit yourself**: the page never invents one) or
-**Home it while the first leg drives** (the home starts at the beginning, and a "wait until done" finishes it before
-the cascade's first move).
+![The claw picked: its two buttons, Close claw and Open claw, with ‹ Back above them](../assets/route-builder/mechanism-actions.png)
+
+**Where the cascade goes.** A cascade move has one control: its travel drawn as a bar, 0 in at the bottom, 20 in at
+the top. Click the bar, click **Bottom**, or type the **Height**. The arrow beside the bar is where the cascade is
+before this step; the shaded part is where it goes; the line under the height says it: *0 in → 12 in*. An arm works
+the same way, in degrees.
+
+![A cascade move selected: the bar shaded to 12 in, the Height box with 12, "0 in → 12 in", Bottom; under them, Wait here until it is done, and the time limit](../assets/route-builder/mechanism-height.png)
+
+Once the cascade has levels (recorded at **Bench Tests station 13**), each is a mark on the bar and a button beside
+it: click either to pick the level. A level not measured yet has no mark; its button says **not measured yet**, with
+no number. The code moves a lift to a height, not by an amount (`cascade.to(12_in)`), and names a level by its number
+in robot one's facts, so renaming a level never breaks the route. A project made before, with a "go up 6 in" step,
+opens as it was: the step says *up 6 in → 18 in*, its own box edits it, and **Make it a height** turns it into "to 18
+in" — the same C++ line; only its comment now says *to 18 in*.
+
+**Wait here, or keep driving.** A move, a home or a run has two choices: **Wait here until it is done**, or **Keep
+driving while it moves**. Keeping on, the step says where the route waits for it: at a later **Wait for it** step (the
+menu offers it once a step before starts that mechanism). If a later step uses the mechanism again first, **Wait for it
+before step N** is one click away. If nothing waits, the library stops it when the route ends: **Wait for it at the
+end** is one click away.
+
+**Its time limit** is the most the step may take. The page never makes one up: type it, or run PREVIEW and use the
+time PREVIEW measured (step 6).
+
+**Home it first.** The cascade only knows where its bottom is once it has been **homed** — pushed gently down until
+it stalls on its stop. A move before that stops the whole route (`NOT_HOMED`), so the first height move in a route
+that never homes the cascade is red, with ONE card above its details: **Home it at the start**. One click adds the
+home at the start (it runs while the first leg drives) and a **Wait for it** before the move.
+
+![The first cascade move of a route with no home: the card "The cascade must find its bottom first", its one button Home it at the start](../assets/route-builder/mechanism-home-card.png)
+
+**On the field**, each mechanism step is a badge where the robot is when it starts: its number, its icon and one word
+(*5 close*, *4 12 in*). Click a badge to select its step. At the start, the badges sit beside the robot, so the robot
+and its heading knob still drag. A step that keeps driving draws a light band along the path
+to the step that waits for it. Hide, lock and focus (step 10) work on the badges too.
+
+![The field with mechanism badges: 1 home beside the start robot; 3 wait, 4 12 in and 5 close stacked where the drive ends](../assets/route-builder/mechanism-badges.png)
 
 ![A five-step route, ready to export: the steps on the left, the plan on the field, the selected drive on the right](../assets/route-builder/route.png)
 
@@ -197,8 +223,23 @@ library refuses are the library's; the times and the exact path are the host tes
 robot with **shulib Auton Tester** ([chapter 16](16-testing-an-auton-on-the-bench.md)).
 
 PREVIEW runs the route on the page, saved or not. Change the route and the run is put away (an undo brings it
-back); press PREVIEW again. A route with a red step is not run — fix it first (robot two's red waits only for Export). **Cancel** stops a PREVIEW that is
+back); press PREVIEW again. A route with a red step is not run — fix it first (robot two's red waits only for Export,
+and an empty time limit on a mechanism step waits too: PREVIEW times it). **Cancel** stops a PREVIEW that is
 running; one that takes longer than 20 s is stopped, and the page says so.
+
+**A time limit from PREVIEW.** After a PREVIEW, select a step that has a time limit: under it, how long the library
+took there and one click to use it — *PREVIEW took 0.78 s here on the host test plant, + 0.5 s. **Use 1.3 s***. The
+page writes it only when you click. A mechanism step whose limit is still empty runs in PREVIEW with no limit of its
+own (the 57 s cut still ends it), so the first PREVIEW times it; Export still asks for the number. A drive's suggestion
+is above its **Speed, time limit and how close** (its limit may stay empty: the robot's own). It is the stand-in
+drive's time, not your robot's, and the line says so: time the drive on the robot too. A step its time limit stopped
+gets no suggestion: give it a longer limit and PREVIEW again. A step PREVIEW did not finish (skipped, or stopped when
+the route ended), or could not time on its own (two steps starting one mechanism at once), says why, with no number.
+A **Wait for it**'s number is how long the route waited there: after a drive, that depends on the stand-in drive too,
+and its line says so. On the library's starting gains the line says **PLACEHOLDER numbers**: time the route on the
+robot too.
+
+![After a PREVIEW, the cascade's move selected: "PREVIEW took 1.2 s here on the host test plant (on PLACEHOLDER numbers), + 0.5 s." and the button Use 1.7 s under its empty time limit](../assets/route-builder/time-suggestion.png)
 
 ### 7. Export
 
@@ -444,8 +485,8 @@ Then build as usual: the build is the final judge of every line.
 | Back up | **B**, click | the same, backwards (its back turned to the point first) | `r.faceAway(x, y);` `r.reverseTo(x, y);` |
 | Turn | **T**, click | turns in place to face a point, its back to a point, or to a heading | `r.face(x, y)` / `r.faceAway(x, y)` / `r.turnTo(h)` |
 | Curve | **C**, click 1–16 points, Enter | one smooth path through the points (forwards or backwards) | `r.curveTo({...})` / `r.reverseCurveTo({...})` |
-| Mechanism | **M** | a lift up, down or to a height in inches, or back to the bottom (an arm in degrees), or to a level; a pneumatic's position (its own button); a motor for a time; a home | `r.move(cascade.to(18_in), t)`, `r.move(arm.to(90), t)`, `r.startMove(...)`, `r.set(claw["open"])`, `r.run(...)`, `r.home(...)` |
-| Wait until done | **M** → the mechanism | waits for the mechanism's last step | `r.waitUntilDone(m, t)` |
+| Mechanism | **M** → the mechanism → what it does | a lift to a height in inches, or to its bottom (an arm in degrees), or to a level — one control, the bar; a pneumatic's position (its own button); a motor for a time; a home. A move, a home or a run waits until it is done, or keeps driving | `r.move(cascade.to(18_in), t)`, `r.move(arm.to(90), t)`, `r.startMove(...)`, `r.set(claw["open"])`, `r.run(...)`, `r.home(...)` |
+| Wait for it | **M** → the mechanism → **Wait for it** | waits for the mechanism's last step (offered once a step before starts it) | `r.waitUntilDone(m, t)` |
 | Wait | **P** | a pause in seconds — the run's own wait, so the 57 s cut still ends it | `r.then([&] { return ctx.guard.pause(t) ... })` |
 
 Every step also has **If it fails** — stop the route (the default), carry on, or skip ahead to a step you gave a
@@ -478,10 +519,10 @@ one-click fix it offers it.
 | The start | there is no start, a number of it is missing (a `route_maker.json` edited by hand: the list shows `?` for it, and the robot is drawn once you type it), or it is through a wall |
 | Turn first (tank) | a drive is not turned first and starts more than 15° off its line (amber from 0.5°) |
 | The curve | the library refuses it: its first point is behind the robot, two points are closer than 1 in, a point doubles back (amber: a bend tighter than the robot can follow) |
-| Home first | a cascade (or any arm or lift homed by a stall or a switch) is moved before a FINISHED home on every way the route can go |
-| Wait until done | nothing before it starts that mechanism, or a skip can pass over the step that does |
+| Home first | a cascade (or any arm or lift homed by a stall or a switch) is moved before a FINISHED home on every way the route can go (the first such move of a route with no home shows one card for it: **Home it at the start**) |
+| Wait for it | nothing before it starts that mechanism, or a skip can pass over the step that does |
 | Levels and positions | the mechanism, the level or the position is not on the robot (or the mechanism has no levels yet) |
-| Heights | a "go up" or "go down" where the page cannot know the height (nothing homed it or moved it to a height before: **Home it first**), or a height past the travel (one click: only as far as the top, or back to the bottom) |
+| Heights | no height yet; a "go up" or "go down" (a project made before) where the page cannot know the height (nothing homed it or moved it to a height before: **Home it first**, or pick a height on the bar); or a height past the travel (one click: only as far as the top, or back to the bottom) |
 | Both robots together? | a mirrored route has no answer yet (**Yes, at the same time** / **No, one at a time**, one click) |
 | Too close | answered **Yes**: the two robots' squares come closer than 6 in at the start or on a step — the step, the moment and both places said, both squares outlined |
 | Time limits | a time limit is empty or not above 0; volts outside -12 to 12 |
@@ -495,6 +536,7 @@ one-click fix it offers it.
 |---|---|
 | **V** or **Esc** | select (and cancel what is being added) |
 | **D**, **B**, **T**, **C**, **F**, **M**, **P** | drive, back up, turn, curve, straight, mechanism, wait |
+| in the **M** menu: **Up**, **Down**, **Enter**, **Esc** | walk it, pick; **Esc** goes back to the mechanisms, then closes |
 | **Arrow keys** | move the selected point 1 in (**Shift**: 0.25 in) |
 | **H**, **L**, **O** | hide, lock the selected step; focus on it and its neighbours (**Esc** leaves) |
 | a click again on one spot | the next point under it |

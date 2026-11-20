@@ -519,7 +519,7 @@ export function checkRoute(route, robots, field, ctx = {}) {
                 } else if (tk === null) {
                     const many = ['preset', 'up', 'down', 'to'].filter((k) => s[k] !== undefined).length + (s.bottom ? 1 : 0) > 1;
                     out.push(issue('RC18', 'error', i, 'preset', many ? 'This move says where to go more than once: keep one.'
-                        : `Say where the ${mech.name} goes: up, down, to a height${noLevels(mech) ? '' : ', or to a level'}.`, '', { robot: robot.id }));
+                        : `Pick the ${mech.name}'s height: click its bar${noLevels(mech) ? '' : ' or a level'}, or type it.`, '', { robot: robot.id }));
                 } else if (tk !== 'preset' && tk !== undefined) {
                     out.push(...liftIssues(s, i, mech, robot, heights.get(robot)[i].before[s.mechanism]));
                 } else if (s.do === 'move' || s.do === 'startMove') {
@@ -581,7 +581,7 @@ export function checkRoute(route, robots, field, ctx = {}) {
                 const how = mech.homing === 'stall' ? 'by pushing into its stop until it stalls' : 'by its switch';
                 if (running) {
                     out.push(issue('RC25', 'error', i, 'mechanism', `The ${mech.name} is still homing here: a move now REPLACES the home and `
-                        + `stops the route (NOT_HOMED). Put a "wait until done" on the ${mech.name} before this move.`, '',
+                        + `stops the route (NOT_HOMED). Wait for the ${mech.name}'s home before this move.`, '',
                     { robot: robot.id, fix: { kind: 'waitForHome', stepIndex: i, mechanism: s.mechanism } }));
                 } else if (notHomed) {
                     const all = states.every((st) => st.homed[s.mechanism] === 'no');
@@ -641,7 +641,7 @@ function liftIssues(s, i, m, robot, before) {
         const homes = m.homing === 'stall' || m.homing === 'switch';
         return [issue('RCL1', 'error', i, tk, `${cap(tk)} ${fmt(s[tk])} ${u} from where? Where the ${m.name} is here is not known: `
             + `nothing before this step ${homes ? 'homes it or ' : ''}moves it to a ${u === 'deg' ? 'angle' : 'height'}. `
-            + `${homes ? 'Home it first, or make' : 'Make'} this step a "Move to".`, '',
+            + `${homes ? 'Home it first, or pick' : 'Pick'} a height instead: click its bar.`, '',
         { robot: robot.id, notHomed: homes, fix: homes ? { kind: 'homeFirst', stepIndex: i, mechanism: s.mechanism } : null })];
     }
     const target = moveTarget(s, m, before);

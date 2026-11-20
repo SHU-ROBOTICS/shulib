@@ -1,14 +1,16 @@
 // inspector.mjs — THE SELECTED STEP'S FORM (RMP1 brief §1.4): every number with its unit (rounded as it is
 // typed, numbers.mjs), the step's checks right above it in plain words with the library's own sentence beside
 // them and their one-click fixes, then "if it fails" and the label. With nothing selected: the start and the
-// route's name. Nothing here invents a number: an empty time limit stays empty until the student types one.
+// route's name. Nothing here invents a number: an empty time limit stays empty until the student types one, or clicks
+// the one PREVIEW measured (RMP1-J D4).
 // RMP1-G: under the title, one line each when it applies — "2 of 3 here" (a click on a crowded spot), hidden, locked.
 
 import { h, icon, mount } from './dom.mjs';
 import { parseTyped, fmt } from '../model/numbers.mjs';
 import { stepTitle, stepIcon, KIND_LABEL, HOMING_WORDS } from './words.mjs';
-import { ROUTE_NAME, startPose } from '../model/route.mjs';
+import { ROUTE_NAME, startPose, MECHANISM_KINDS } from '../model/route.mjs';
 import { targetKind, unitOf, bottomOf, plannedHeights } from '../model/lift.mjs';
+import { heightPatch, barPick, asHeight, waitsFor, WAIT_PAIR, limitOf, limitHint, limitWords, homeCard } from '../model/mech_steps.mjs';
 import { reflect } from '../model/pair.mjs';
 import { isHidden, isLocked } from '../model/step_view.mjs';
 import { touchOnPurpose } from './field_obstacles.mjs';
@@ -72,7 +74,8 @@ function careSection(step, i, app, issuesOf) {
     const set = (f) => (v) => app.update(i, { care: { [f]: v } });
     const bad = (f) => issuesOf(f).length > 0;
     const turnFirst = (step.do === 'driveTo' || step.do === 'reverseTo') && step.faceFirst;
-    return h('details', { class: 'more section', open: CARE_FIELDS.some((f) => bad(f)) || undefined },
+    return [limitLine(step, i, app, c.timeoutS, set('timeoutS')),  // RMP1-J D4: PREVIEW's time, outside the folded box
+        h('details', { class: 'more section', open: CARE_FIELDS.some((f) => bad(f)) || undefined },
         h('summary', {}, turnFirst ? 'Speed, time limit and how close (the drive)' : 'Speed, time limit and how close'),
         h('p', { class: 'hint' }, turnFirst ? 'Empty means the robot\'s own setting. These are the DRIVE\'s: the turn to face the point first uses the robot\'s own.'
                                             : 'Empty means the robot\'s own setting.'),
@@ -84,7 +87,7 @@ function careSection(step, i, app, issuesOf) {
             numField('Turn speed', c.maxTurnDegPerS, 'deg/s', set('maxTurnDegPerS'), { placeholder: 'robot\'s', bad: bad('maxTurnDegPerS') }),
             step.do === 'turnTo' || step.do === 'face' || step.do === 'faceAway'
                 ? numField('Heading within', c.toleranceDeg, 'deg', set('toleranceDeg'), { placeholder: 'robot\'s', bad: bad('toleranceDeg') })
-                : numField('Arrive within', c.toleranceIn, 'in', set('toleranceIn'), { placeholder: 'robot\'s', bad: bad('toleranceIn') })));
+                : numField('Arrive within', c.toleranceIn, 'in', set('toleranceIn'), { placeholder: 'robot\'s', bad: bad('toleranceIn') })))];
 }
 
 const CARE_FIELDS = ['timeoutS', 'maxSpeedInPerS', 'maxTurnDegPerS', 'toleranceIn', 'toleranceDeg'];
@@ -107,69 +110,119 @@ function failSection(step, i, app) {
                        onchange: (e) => app.update(i, { label: e.target.value.trim() === '' ? undefined : e.target.value.trim() }) })));
 }
 
-/** RMP1-C D7: where an arm or a lift goes — up, down, to a number, the bottom, or a level — with the heights the plan
- *  tracks before and after it ("from 12 in to 18 in"), so a relative step is never a guess. */
-function whereItGoes(step, i, app, m) {
-    const u = unitOf(m);
-    const lift = m.kind === 'lift';
+// ── RMP1-J: a mechanism step, one idea at a time — the home card (D6), where it goes (D2), wait or keep driving (D3),
+// its time limit with PREVIEW's suggestion (D4). Each issue shows under the control it is about; a box that is only
+// "type it" stays out (the control is marked instead).
+
+const HEIGHT_FIELDS = ['preset', 'to', 'up', 'down'];
+/** The issues mechanismFields shows under its controls (not in the list above them). */
+const INLINE = new Set([...HEIGHT_FIELDS, 'boundS']);
+const noHeightYet = (step) => {
     const tk = targetKind(step);
-    const clear = { preset: undefined, up: undefined, down: undefined, to: undefined, bottom: undefined };
-    const level = levelMode(step, m);
-    const choices = [['up', `${lift ? 'Go' : 'Turn'} up`], ['down', `${lift ? 'Go' : 'Turn'} down`], ['to', 'Move to'],
-                     ...(lift ? [['bottom', 'Back to the bottom']] : []), ...((m.presets || []).length ? [['preset', 'A level']] : [])];
-    const out = [h('div', { class: 'seg wide', role: 'radiogroup', 'aria-label': 'Where it goes' },
-        choices.map(([k, words]) => {
-            const on = k === 'preset' ? level : tk === k;
-            return h('button', { class: on ? 'on' : '', role: 'radio', 'aria-checked': String(on), 'data-where': k,
-                onclick: () => !on && app.update(i, { ...clear, ...(k === 'bottom' ? { bottom: true } : k === 'preset' ? {} : { [k]: null }) }) }, words);
-        }))];
-    if (tk === 'up' || tk === 'down' || tk === 'to') {
-        out.push(h('div', { class: 'field-row one' }, numField(tk === 'to' ? 'Move to' : tk === 'up' ? 'How far up' : 'How far down', step[tk], u,
-            (v) => app.update(i, { [tk]: v === undefined ? null : v }), { placeholder: 'type it', bad: !Number.isFinite(step[tk]), name: tk })));
-    }
-    const hs = plannedHeights(app.route(), app.robot())[i];
-    const at = (v) => (v === null || v === undefined ? 'not known' : `${fmt(v)} ${u}`);
-    if (hs) {
-        const before = hs.before[m.ident];
-        const after = hs.after[m.ident];
-        out.push(h('p', { class: 'hint', 'data-heights': '' }, before === null && (tk === 'up' || tk === 'down')
-            ? `Where the ${m.name} is here is not known: home it first, or use "Move to".`
-            : `The ${m.name}: from ${at(before)} to ${at(after)}${m.range ? ` (its travel: ${fmt(m.range[0])} to ${fmt(m.range[1])} ${u})` : ''}.`));
-    }
-    if (tk === 'bottom' && m.range) {
-        out.push(h('p', { class: 'hint' }, `The bottom of its travel: ${fmt(bottomOf(m))} ${u}.`));
-    }
-    return out;
+    return tk === null ? HEIGHT_FIELDS.every((k) => step[k] === undefined || step[k] === null) && !step.bottom
+        : tk !== 'preset' && tk !== 'bottom' && !Number.isFinite(step[tk]);
+};
+
+/** D2: the travel as a bar — its bottom and top, its measured levels as ticks, where it is before this step, where it
+ *  goes; a click picks a height (0.5 in, 1 deg), or the level whose mark it lands on. */
+function heightBar(m, before, after, onPick) {
+    const [lo, hi] = m.range;
+    const u = unitOf(m);
+    const pct = (v) => `${Math.min(Math.max((v - lo) / (hi - lo || 1), 0), 1) * 100}%`;
+    const track = h('div', { class: 'hbar-track', title: `Click a ${u === 'deg' ? 'angle' : 'height'}`, 'data-hbar': '',
+                             onclick: (e) => {
+                                 const r = track.getBoundingClientRect();
+                                 onPick(barPick(m, 1 - (e.clientY - r.top) / (r.height || 1)));
+                             } },
+        after === null ? null : h('i', { class: 'hbar-fill', style: `height:${pct(after)}` }),
+        (m.presets || []).filter((p) => !p.owed).map((p) => h('i', { class: 'hbar-tick', style: `bottom:${pct(p.value)}`, title: p.name })),
+        before === null ? null : h('i', { class: 'hbar-now', style: `bottom:${pct(before)}`, title: `Before this step: ${fmt(before)} ${u}` }));
+    return h('div', { class: 'hbar' }, h('small', {}, `${fmt(hi)} ${u}`), track, h('small', {}, `${fmt(lo)} ${u}`));
 }
 
-/** A move to one of its levels (or one that says nowhere yet, on a mechanism with levels: "A level" chosen). */
-const levelMode = (step, m) => (m.presets || []).length > 0 && (targetKind(step) === 'preset'
-    || (targetKind(step) === null && ['up', 'down', 'to'].every((k) => step[k] === undefined) && !step.bottom));
+function heightControl(step, i, app, m, issues) {
+    const u = unitOf(m);
+    const tk = targetKind(step);
+    const hs = plannedHeights(app.route(), app.robot())[i];
+    const before = hs ? hs.before[m.ident] ?? null : null;
+    const after = hs ? hs.after[m.ident] ?? null : null;
+    const pick = (p) => app.update(i, heightPatch(p));
+    const at = (v) => (v === null ? 'not known' : `${fmt(v)} ${u}`);
+    const rel = tk === 'up' || tk === 'down';
+    const field = rel
+        ? numField(tk === 'up' ? 'How far up' : 'How far down', step[tk], u, (v) => app.update(i, { [tk]: v === undefined ? null : v }),
+                   { placeholder: 'type it', bad: !Number.isFinite(step[tk]), name: tk })
+        : numField(u === 'deg' ? 'Angle' : 'Height', tk === 'to' ? step.to : tk ? after : undefined, u, (v) => pick({ to: v }),
+                   { placeholder: 'pick it', bad: noHeightYet(step), name: 'height' });
+    const choice = (on, words, sub, attrs, onclick) => h('button', { class: `lvl${on ? ' on' : ''}`, 'aria-pressed': String(on), ...attrs, onclick }, words, h('small', {}, sub));
+    const marks = [
+        m.kind === 'lift' && m.range ? choice(tk === 'bottom', 'Bottom', `${fmt(bottomOf(m))} ${u}`, { 'data-level': 'bottom' }, () => pick({ bottom: true })) : null,
+        ...(m.presets || []).map((p) => {
+            const id = p.ledger !== undefined ? p.ledger : p.name;
+            // a level the facts still OWE has no number: never a placeholder shown as a fact
+            return choice(tk === 'preset' && step.preset === id, p.ledger !== undefined ? `Level ${p.ledger} "${p.name}"` : `"${p.name}"`,
+                          p.owed ? 'not measured yet' : `${fmt(p.value)} ${u}`, { 'data-level': String(id) }, () => pick({ level: p }));
+        }),
+    ];
+    const words = rel ? h('p', { class: 'hint', 'data-heights': '' }, `${tk} ${Number.isFinite(step[tk]) ? fmt(step[tk]) : '?'} ${u} → ${at(after)} `,
+                         after === null ? null : h('button', { class: 'link', type: 'button', onclick: () => app.update(i, asHeight(app.route(), app.robot(), i)) }, 'Make it a height'))
+        : h('p', { class: 'hint', 'data-heights': '' }, noHeightYet(step) ? 'Click the bar or a level, or type it.' : `${at(before)} → ${at(after)}`);
+    return h('div', { class: 'section hctl' }, m.range ? heightBar(m, before, after, pick) : null,
+             h('div', { class: 'hctl-side' }, field, words, marks.filter(Boolean).length ? h('div', { class: 'lvls' }, marks) : null,
+               noHeightYet(step) ? null : issues.filter((x) => HEIGHT_FIELDS.includes(x.field)).map((x) => issueBox(x, app))));
+}
 
-function mechanismFields(step, i, app) {
+/** D3: "Wait here until it is done" or "Keep driving while it moves" — and, keeping on, where the route waits for it. */
+function waitChoice(step, i, app, m) {
+    const waits = ['move', 'run', 'home'].includes(step.do);
+    const runs = step.do === 'run' || step.do === 'startRun';
+    const opt = (w, words) => h('button', { class: w === waits ? 'on' : '', role: 'radio', 'aria-checked': String(w === waits), 'data-waits': String(w),
+                                            onclick: () => w !== waits && app.update(i, { do: WAIT_PAIR[step.do] }) }, words);
+    let line = null;
+    if (!waits) {
+        const w = waitsFor(app.route(), i);
+        line = w.wait !== undefined ? h('p', { class: 'hint' }, `The route waits for it at step ${w.wait + 1}.`)
+            : w.needed !== undefined ? h('p', { class: 'hint' }, `Step ${w.needed + 1} uses the ${m.name} again before it may be done. `,
+                h('button', { class: 'link', type: 'button', onclick: () => app.fix({ kind: 'waitForHome', stepIndex: w.needed, mechanism: m.ident }) },
+                  `Wait for it before step ${w.needed + 1}`))
+                : h('p', { class: 'hint' }, 'Nothing waits for it: if the route ends before it is done, the library stops it. ',
+                    h('button', { class: 'link', type: 'button', onclick: () => app.fix({ kind: 'waitForHome', stepIndex: app.route().steps.length, mechanism: m.ident }) },
+                      'Wait for it at the end'));
+    }
+    return h('div', { class: 'section' }, h('div', { class: 'seg wide', role: 'radiogroup', 'aria-label': 'Wait for it?' },
+        opt(true, 'Wait here until it is done'), opt(false, runs ? 'Keep driving while it runs' : 'Keep driving while it moves')), line);
+}
+
+/** D4: PREVIEW's time for step `i` and a one-click limit from it; without a run, how to get one. `current`: the limit. */
+function limitLine(step, i, app, current, use) {
+    const hint = limitHint(app.preview && app.preview.lastRun(), app.route(), i);
+    const m = ((app.robot() || {}).mechanisms || []).find((x) => x.ident === step.mechanism);
+    const w = limitWords(hint, { drive: limitOf(step) === 'timeoutS', current, previewable: !!(app.preview && app.preview.available()), name: m && m.name });
+    return !w ? null : h('p', { class: 'hint limit-hint', 'data-took': w.use === null ? undefined : String(hint.took) }, w.use === null ? w.words : `${w.words} `,
+        w.use === null ? null : w.inUse ? h('strong', {}, 'In use.')
+            : h('button', { class: 'btn small', type: 'button', 'data-use': String(w.use), onclick: () => use(w.use) }, `Use ${fmt(w.use)} s`));
+}
+
+/** D6: the first height move of a mechanism the route never homes — one card, one click (today's fix). */
+function homeCardBox(card, app) {
+    const lift = card.m.kind === 'lift';
+    return h('div', { class: 'home-card', role: 'status' }, h('span', { class: 'ic' }, icon('home')),
+        h('div', {}, h('strong', {}, `The ${card.m.name} must find its ${lift ? 'bottom' : 'zero'} first.`),
+          h('div', { class: 'row' }, h('button', { class: 'btn primary', type: 'button', onclick: () => app.fix(card.fix) }, 'Home it at the start'),
+            h('small', {}, 'while the first leg drives'))));
+}
+
+function mechanismFields(step, i, app, issues) {
     const robot = app.robot();
     const mechs = (robot && robot.mechanisms) || [];
     const m = mechs.find((x) => x.ident === step.mechanism);
     const out = [select('Mechanism', step.mechanism, [...(m ? [] : [[step.mechanism, `${step.mechanism} (not on this robot)`]]),
         ...mechs.map((x) => [x.ident, `${x.name} (${KIND_LABEL[x.kind] || x.kind})`])], (v) => app.update(i, { mechanism: v }), 'mechanism')];
-    if (m && (m.kind === 'arm' || m.kind === 'lift')) {
+    if (m && (step.do === 'home' || step.do === 'startHome')) {
         out.push(h('p', { class: 'hint' }, `The ${m.name} ${HOMING_WORDS[m.homing] || ''}.`));
     }
-    const moveStep = step.do === 'move' || step.do === 'startMove';
-    if (moveStep && m && (m.kind === 'arm' || m.kind === 'lift')) {
-        out.push(...whereItGoes(step, i, app, m));
-    }
-    if (moveStep && m && levelMode(step, m)) {
-        // a level whose height the robot's facts still OWE shows no number: the page never states a placeholder as a fact
-        const height = (p) => (p.owed ? 'not measured yet' : `${fmt(p.value)} ${m.units}`);
-        const opts = (m.presets || []).map((p) => (p.ledger !== undefined ? [`L${p.ledger}`, `level ${p.ledger}: "${p.name}" (${height(p)})`]
-                                                                         : [`N${p.name}`, `"${p.name}" (${height(p)})`]));
-        const cur = step.preset === undefined ? '' : typeof step.preset === 'number' ? `L${step.preset}` : `N${step.preset}`;
-        out.push(select('Level', cur, [['', 'Choose a level', true], ...opts],
-            (v) => app.update(i, { preset: v[0] === 'L' ? Number(v.slice(1)) : v.slice(1) }), 'preset'));
-        if ((m.presets || []).some((p) => p.ledger !== undefined)) {
-            out.push(h('p', { class: 'hint' }, 'A level is written through the robot\'s facts (facts::lv(i)), so renaming it there never breaks the route.'));
-        }
+    if ((step.do === 'move' || step.do === 'startMove') && m && (m.kind === 'arm' || m.kind === 'lift')) {
+        out.push(heightControl(step, i, app, m, issues));
     }
     if (step.do === 'set' && m) {
         out.push(select('Position', step.position ?? '', [['', 'Choose a position', true], ...(m.positions || []).map((p) => [p, p])],
@@ -179,15 +232,15 @@ function mechanismFields(step, i, app) {
         out.push(h('div', { class: 'field-row' }, numField('Volts', step.volts, 'V', (v) => app.update(i, { volts: v }), { placeholder: '-12 to 12' }),
                    numField('For', step.forS, 's', (v) => app.update(i, { forS: v }))));
     }
-    if (['move', 'startMove', 'home', 'startHome', 'waitUntilDone'].includes(step.do)) {
-        out.push(h('div', { class: 'field-row one' }, numField(step.do === 'waitUntilDone' ? 'At most this much longer' : 'Time limit', step.boundS, 's',
-            (v) => app.update(i, { boundS: v }), { placeholder: 'type it', bad: !Number.isFinite(step.boundS), name: 'boundS' })));
+    if (WAIT_PAIR[step.do] && m) {
+        out.push(waitChoice(step, i, app, m));
     }
-    const pair = { move: 'startMove', startMove: 'move', run: 'startRun', startRun: 'run', home: 'startHome', startHome: 'home' };
-    if (pair[step.do]) {
-        const waits = ['move', 'run', 'home'].includes(step.do);
-        out.push(toggle('Wait until it is done', waits ? 'the route waits here' : 'started: the route keeps going (a "wait until done" collects it)',
-                        waits, (on) => app.update(i, { do: on ? (waits ? step.do : pair[step.do]) : (waits ? pair[step.do] : step.do) }), 'waitsHere'));
+    if (limitOf(step) === 'boundS') {
+        const set = (v) => app.update(i, { boundS: v });
+        out.push(h('div', { class: 'field-row one' }, numField(step.do === 'waitUntilDone' ? 'At most this much longer' : 'Time limit', step.boundS, 's',
+            set, { placeholder: 'type it', bad: !Number.isFinite(step.boundS), name: 'boundS' })),
+                 limitLine(step, i, app, step.boundS, set),
+                 issues.filter((x) => x.field === 'boundS' && !x.empty).map((x) => issueBox(x, app)));
     }
     return out;
 }
@@ -258,6 +311,10 @@ export function renderInspector(el, app) {
     const step = route.steps[i];
     const mine = issues.filter((x) => x.stepIndex === i);
     const issuesOf = (f) => mine.filter((x) => x.field === f);
+    // RMP1-J: a mechanism step's own issues show under their controls; D6's card stands for the home rule's
+    const mech = MECHANISM_KINDS.has(step.do);
+    const card = mech ? homeCard(route, app.robot(), i) : null;
+    const top = mine.filter((x) => !(mech && INLINE.has(x.field)) && !(card && x.fix && x.fix.kind === 'homeFirst'));
     const [title] = stepTitle(step, app.robot());
     const body = [];
     const point = () => h('div', { class: 'field-row' },
@@ -322,13 +379,14 @@ export function renderInspector(el, app) {
             body.push(h('p', { class: 'hint' }, 'The run\'s own wait: at 57 s the run cuts it at once.'));
             break;
         default:
-            body.push(...mechanismFields(step, i, app));
+            body.push(...mechanismFields(step, i, app, mine));
     }
     mount(el, 
         h('h2', { class: 'insp-title' }, h('span', { class: 'step-icon' }, icon(stepIcon(step))), `Step ${i + 1}`),
         h('p', { class: 'muted', style: 'margin-top:-8px' }, title),
         viewLines(step, i, st, app),
-        mine.map((x) => issueBox(x, app)),
+        top.map((x) => issueBox(x, app)),
+        card ? homeCardBox(card, app) : null,
         body,
         touchOnPurpose(step, i, app),  // RMP1-H
         failSection(step, i, app),

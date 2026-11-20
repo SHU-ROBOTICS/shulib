@@ -76,6 +76,23 @@ export const ROUTES = {
         { do: 'set', mechanism: 'claw', position: 'open' },
         { do: 'run', mechanism: 'rightToggle', volts: -6, forS: 0.5 },
     ]],
+    // RMP1-J D3 / D4: a started move collected by a wait the drive leaves time for (the wait's own span), and a last
+    // started move the routine's end cancels (the library stops it: no time to suggest)
+    waits: [START, [
+        { do: 'home', mechanism: 'cascade', boundS: 2 },
+        { do: 'startMove', mechanism: 'cascade', to: 18, boundS: 3 },
+        { do: 'driveTo', x: -36, y: -56, faceFirst: false },
+        { do: 'waitUntilDone', mechanism: 'cascade', boundS: 3 },
+        { do: 'startMove', mechanism: 'cascade', to: 4, boundS: 3 },
+    ]],
+    // two starts of the cascade on one pace: the library replaces the first; neither page step owns a time of its own
+    two_moves: [START, [
+        { do: 'home', mechanism: 'cascade', boundS: 2 },
+        { do: 'startMove', mechanism: 'cascade', to: 10, boundS: 3 },
+        { do: 'startMove', mechanism: 'cascade', to: 18, boundS: 3 },
+        { do: 'driveTo', x: -36, y: -56, faceFirst: false },
+        { do: 'waitUntilDone', mechanism: 'cascade', boundS: 3 },
+    ]],
     // the program stops: a wait on a mechanism the run never started throws (the page refuses it first: RC15)
     threw: [START, [
         { do: 'driveTo', x: -36, y: -48, faceFirst: false },

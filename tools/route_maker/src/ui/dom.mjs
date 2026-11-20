@@ -104,7 +104,15 @@ const PATHS = {
     lock: 'M6 11h12v10H6ZM8 11V7a4 4 0 0 1 8 0v4',
     unlock: 'M6 11h12v10H6ZM8 11V7a4 4 0 0 1 7.7-1.5',
     more: 'M5 12h.01M12 12h.01M19 12h.01',
+    // RMP1-J: a mechanism's kind
+    lift: 'M7 3v18M17 3v18M7 15h10M12 12V6m-3 3 3-3 3 3',
+    arm: 'M4 20h7M7 20l4-8 8-5M11 12h.01',
+    motor: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM5 12a7 7 0 0 1 12-4.9M19 12a7 7 0 0 1-12 4.9M17 3.5v3.6h-3.6M7 20.5v-3.6h3.6',
+    piston: 'M3 8h10v8H3ZM13 12h6M19 8v8',
 };
+
+/** An icon's path (24 x 24), for drawing inside the field's own SVG (RMP1-J's badges). */
+export const iconPath = (name) => PATHS[name] || PATHS.help;
 
 /** An icon (24 x 24, stroked in the current colour). */
 export function icon(name, extra = {}) {
