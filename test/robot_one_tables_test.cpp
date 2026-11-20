@@ -224,12 +224,12 @@ TEST_CASE("robot one tables (API 2.10): BOTH robots' cascades go down at most th
     CHECK(mech::specRefusal(cascadeSpec()) == mech::Refusal::None);  // its homing push (down) is within it
 }
 
-TEST_CASE("robot one tables (2026-11-20): the cascade's range tops out kCascadeTopMargin UNDER its top row (1 in), on both robots") {
-    // BUG CAUGHT: a held R1 braking only at the top stop itself (the team lead: "on the bottom and the top it doesnt
-    // auto stop so it stalls"); the margin lost, or applied to the bottom (homing puts the bottom ON its stop).
+TEST_CASE("robot one tables (2026-11-20): the cascade's range tops out kCascadeTopMargin under its top row -- none: the top is its mechanical stop -- on both robots") {
+    // BUG CAUGHT: a soft top the team lead turned down ("stopping it just before it was a bit unnesseary because right
+    // now we are stopping it mechanically") coming back, or the margin applied to the bottom (homing puts it ON its stop).
     CHECK(facts::kCascadeTopMargin.typed);
-    CHECK(facts::kCascadeTopMargin.value().value() == doctest::Approx(1.0));
-    CHECK(cascadeSpec().position.maxPosition == doctest::Approx(facts::cascadeTop().value() - 1.0));
+    CHECK(facts::kCascadeTopMargin.value().value() == 0.0);
+    CHECK(cascadeSpec().position.maxPosition == doctest::Approx(facts::cascadeTop().value()));
     CHECK(cascadeSpec().position.minPosition == facts::cascadeBottom().value());
     CHECK(sb::robot_two::cascade.spec().position.maxPosition == doctest::Approx(sb::robot_two_facts::cascadeSoftTop().value()));
 }

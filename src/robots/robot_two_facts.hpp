@@ -231,7 +231,7 @@ inline constexpr auto kCascadeMaxDownVolts =
 ROBOT_TWO_CHECK(kCascadeMaxDownVolts, "the cascade's most volts DOWN");
 inline constexpr auto kCascadeTopMargin =
     typed(one::kCascadeTopMargin.placeholder, one::kCascadeTopMargin.value(), Stage::B, "the cascade's soft top, under its top row",
-          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- chosen, not measured");
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- none: same as the placeholder, checked");
 ROBOT_TWO_CHECK(kCascadeTopMargin, "the cascade's soft top, under its top row");
 
 // ── RECORDED — gating no build (the camera: VIS1-B reads it) ──

@@ -165,7 +165,7 @@ be cut, and its stall might never trip). Both robots' cascades go down at most 7
 read from their facts files' `kCascadeMaxDownVolts`.
 
 **Resting on the stop it homes onto** (2026-11-20). A hold, or a held button, that has arrived at the end the
-mechanism homes onto (a stall, a switch, or resting there at start) rests on that stop: it never pushes into it
+mechanism homes onto (by a stall: the one stop a homing proves) rests on that stop: it never pushes into it
 beyond holding the mechanism's own weight. A string lift's bottom stop gives a little, so a target exactly on it is
 never quite reached; pushing on toward it only strains the motors until the stall signature cuts them.
 

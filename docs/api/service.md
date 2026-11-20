@@ -925,7 +925,7 @@ class SpeedSlot final : public Slot
 
 SPEED (a Flywheel): spin at an RPM of its output and say when it is "at speed" (file header). The step SUCCEEDS at speed; the wheel keeps spinning until stopped.
 
-*class, declared at [`include/shulib/mechanism/service.hpp:1781`](../../include/shulib/mechanism/service.hpp#L1781).*
+*class, declared at [`include/shulib/mechanism/service.hpp:1787`](../../include/shulib/mechanism/service.hpp#L1787).*
 
 <a id="speedslot-speedslot"></a>
 
@@ -937,7 +937,7 @@ SpeedSlot(detail::SlotHost& host, const MechanismSpec& spec, const MechanismWiri
 
 Built by the service's bind(); `d.motors` is the actuator (nullptr when ABSENT).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:1784`](../../include/shulib/mechanism/service.hpp#L1784).*
+*function, declared at [`include/shulib/mechanism/service.hpp:1790`](../../include/shulib/mechanism/service.hpp#L1790).*
 
 <a id="speedslot-checkspinup"></a>
 
@@ -949,7 +949,7 @@ void checkSpinUp(double rpmGoal, units::Time bound, bool computed = true) const
 
 STEP1-B (the STEP1 brief's D8 (a)): spinUp()'s preconditions, in spinUp()'s order with its messages — every one of them, and nothing else (checkRun()'s rule).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:1795`](../../include/shulib/mechanism/service.hpp#L1795).*
+*function, declared at [`include/shulib/mechanism/service.hpp:1801`](../../include/shulib/mechanism/service.hpp#L1801).*
 
 <a id="speedslot-spinup"></a>
 
@@ -961,7 +961,7 @@ void spinUp(double rpmTarget, units::Time bound, bool computed = true)
 
 Spin up to `rpm` (output rpm) within `bound`: SUCCEEDED once "at speed" (within the band for its time), and it KEEPS spinning; out of time TIMED_OUT, and it still spins (an unreachable speed is not a fault; a jam trips the stall signature). A COMPUTED speed past the free speed is CLAMPED to it and logged once. PRECONDITIONS (checked before anything changes): `rpm` finite; `bound` finite and > 0; a speed that is not `computed` within the free speed.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:1809`](../../include/shulib/mechanism/service.hpp#L1809).*
+*function, declared at [`include/shulib/mechanism/service.hpp:1815`](../../include/shulib/mechanism/service.hpp#L1815).*
 
 <a id="speedslot-spinuppreset"></a>
 
@@ -973,7 +973,7 @@ void spinUpPreset(std::uint8_t i, units::Time bound)
 
 Spin up to preset `i`. PRECONDITION: `i` is one of its presets.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:1832`](../../include/shulib/mechanism/service.hpp#L1832).*
+*function, declared at [`include/shulib/mechanism/service.hpp:1838`](../../include/shulib/mechanism/service.hpp#L1838).*
 
 <a id="speedslot-stop"></a>
 
@@ -985,7 +985,7 @@ void stop()
 
 Stop: a running step CANCELLED, the declared safe state, the claim released. Does nothing to a mechanism another owner holds, or one that is ABSENT.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:1838`](../../include/shulib/mechanism/service.hpp#L1838).*
+*function, declared at [`include/shulib/mechanism/service.hpp:1844`](../../include/shulib/mechanism/service.hpp#L1844).*
 
 <a id="speedslot-spinning"></a>
 
@@ -997,7 +997,7 @@ Stop: a running step CANCELLED, the declared safe state, the claim released. Doe
 
 Commanded to spin (a toggle's state): true from spinUp() until a stop, a stall or a cancel.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:1847`](../../include/shulib/mechanism/service.hpp#L1847).*
+*function, declared at [`include/shulib/mechanism/service.hpp:1853`](../../include/shulib/mechanism/service.hpp#L1853).*
 
 <a id="speedslot-rpm"></a>
 
@@ -1009,7 +1009,7 @@ Commanded to spin (a toggle's state): true from spinUp() until a stop, a stall o
 
 The output speed now, rpm: the angle sensor's when one is wired, else the motors' through the gearing. 0 when ABSENT.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:1850`](../../include/shulib/mechanism/service.hpp#L1850).*
+*function, declared at [`include/shulib/mechanism/service.hpp:1856`](../../include/shulib/mechanism/service.hpp#L1856).*
 
 <a id="speedslot-targetrpm"></a>
 
@@ -1021,7 +1021,7 @@ The output speed now, rpm: the angle sensor's when one is wired, else the motors
 
 The speed it aims at, rpm (0 when it is not spinning).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:1860`](../../include/shulib/mechanism/service.hpp#L1860).*
+*function, declared at [`include/shulib/mechanism/service.hpp:1866`](../../include/shulib/mechanism/service.hpp#L1866).*
 
 <a id="speedslot-atspeed"></a>
 
@@ -1033,7 +1033,7 @@ The speed it aims at, rpm (0 when it is not spinning).
 
 Within the band for its time, now.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:1862`](../../include/shulib/mechanism/service.hpp#L1862).*
+*function, declared at [`include/shulib/mechanism/service.hpp:1868`](../../include/shulib/mechanism/service.hpp#L1868).*
 
 <a id="class-pneumaticslot"></a>
 
@@ -1045,7 +1045,7 @@ class PneumaticSlot final : public Slot
 
 PNEUMATIC: two or three named positions, each the team's level per line (Q13 (a)).
 
-*class, declared at [`include/shulib/mechanism/service.hpp:1941`](../../include/shulib/mechanism/service.hpp#L1941).*
+*class, declared at [`include/shulib/mechanism/service.hpp:1947`](../../include/shulib/mechanism/service.hpp#L1947).*
 
 <a id="pneumaticslot-knoposition"></a>
 
@@ -1057,7 +1057,7 @@ static constexpr std::uint8_t kNoPosition = 0xFF
 
 `commandedPosition()` when the lines match none of the positions.
 
-*field, declared at [`include/shulib/mechanism/service.hpp:1944`](../../include/shulib/mechanism/service.hpp#L1944).*
+*field, declared at [`include/shulib/mechanism/service.hpp:1950`](../../include/shulib/mechanism/service.hpp#L1950).*
 
 <a id="pneumaticslot-pneumaticslot"></a>
 
@@ -1069,7 +1069,7 @@ PneumaticSlot(detail::SlotHost& host, const MechanismSpec& spec, const Mechanism
 
 Built by the service's bind(); `d.pneumatic` is the actuator (nullptr when ABSENT).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:1947`](../../include/shulib/mechanism/service.hpp#L1947).*
+*function, declared at [`include/shulib/mechanism/service.hpp:1953`](../../include/shulib/mechanism/service.hpp#L1953).*
 
 <a id="pneumaticslot-set"></a>
 
@@ -1081,7 +1081,7 @@ void set(std::uint8_t p)
 
 Go to position `p`: EACH line gets the position's level NOW; the step's verdict comes after the move time — SUCCEEDED when the position confirms nothing; a `grabs` / `releases` position with a piece sensor SUCCEEDS when the sensor agrees within the confirm window, else UNCONFIRMED (not counted); with NO sensor (none declared, or the declared one missing this boot) it is UNCONFIRMED and COUNTED done (Q2 (c)). The claim is held until the verdict; the level persists after it. PRECONDITION: `p` is one of its positions.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:1956`](../../include/shulib/mechanism/service.hpp#L1956).*
+*function, declared at [`include/shulib/mechanism/service.hpp:1962`](../../include/shulib/mechanism/service.hpp#L1962).*
 
 <a id="pneumaticslot-commandedposition"></a>
 
@@ -1093,7 +1093,7 @@ Go to position `p`: EACH line gets the position's level NOW; the step's verdict 
 
 The position its lines are at NOW — read back from the DEVICES (so the end-of-run guard's safe state shows here too), or kNoPosition when they match none of its positions (or it is ABSENT).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:1968`](../../include/shulib/mechanism/service.hpp#L1968).*
+*function, declared at [`include/shulib/mechanism/service.hpp:1974`](../../include/shulib/mechanism/service.hpp#L1974).*
 
 <a id="pneumaticslot-laststepbound"></a>
 
@@ -1105,7 +1105,7 @@ The position its lines are at NOW — read back from the DEVICES (so the end-of-
 
 The longest a set() takes to reach its verdict: the move time plus the confirm window, seconds.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:1985`](../../include/shulib/mechanism/service.hpp#L1985).*
+*function, declared at [`include/shulib/mechanism/service.hpp:1991`](../../include/shulib/mechanism/service.hpp#L1991).*
 
 <a id="class-mechanismservice"></a>
 
@@ -1117,7 +1117,7 @@ class MechanismService final : public motion::ITickPacer
 
 THE SERVICE (file header): one slot per mechanism of the robot's list, ticked exactly once per control tick through the pacer seam or the driver loop's stated place.
 
-*class, declared at [`include/shulib/mechanism/service.hpp:2073`](../../include/shulib/mechanism/service.hpp#L2073).*
+*class, declared at [`include/shulib/mechanism/service.hpp:2079`](../../include/shulib/mechanism/service.hpp#L2079).*
 
 <a id="mechanismservice-mechanismservice"></a>
 
@@ -1129,7 +1129,7 @@ explicit MechanismService(motion::ITickPacer& inner) noexcept
 
 `inner` advances the world (the program's watch, or the tick pacer) and must outlive the service. Unbound, pace() ticks nothing and forwards — a program builds the pacer chain before the Robot and binds the service after it (landmine 1).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2078`](../../include/shulib/mechanism/service.hpp#L2078).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2084`](../../include/shulib/mechanism/service.hpp#L2084).*
 
 <a id="mechanismservice-mechanismservice-2"></a>
 
@@ -1141,7 +1141,7 @@ MechanismService(const MechanismService&) = delete
 
 Pinned where it is constructed: the chassis's pacer chain and every slot's claim registration point at it.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2081`](../../include/shulib/mechanism/service.hpp#L2081).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2087`](../../include/shulib/mechanism/service.hpp#L2087).*
 
 <a id="mechanismservice-operator-eq"></a>
 
@@ -1153,7 +1153,7 @@ MechanismService& operator=(const MechanismService&) = delete
 
 Pinned where it is constructed: the chassis's pacer chain and every slot's claim registration point at it. Non-copy-assignable (the copy constructor's reason).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2083`](../../include/shulib/mechanism/service.hpp#L2083).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2089`](../../include/shulib/mechanism/service.hpp#L2089).*
 
 <a id="mechanismservice-mechanismservice-3"></a>
 
@@ -1165,7 +1165,7 @@ MechanismService(MechanismService&&) = delete
 
 Pinned where it is constructed: the chassis's pacer chain and every slot's claim registration point at it. Non-copy-assignable (the copy constructor's reason). Non-movable (the copy constructor's reason).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2085`](../../include/shulib/mechanism/service.hpp#L2085).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2091`](../../include/shulib/mechanism/service.hpp#L2091).*
 
 <a id="mechanismservice-operator-eq-2"></a>
 
@@ -1177,7 +1177,7 @@ MechanismService& operator=(MechanismService&&) = delete
 
 Pinned where it is constructed: the chassis's pacer chain and every slot's claim registration point at it. Non-copy-assignable (the copy constructor's reason). Non-movable (the copy constructor's reason). Non-move-assignable (the copy constructor's reason).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2087`](../../include/shulib/mechanism/service.hpp#L2087).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2093`](../../include/shulib/mechanism/service.hpp#L2093).*
 
 <a id="mechanismservice-destructor-mechanismservice"></a>
 
@@ -1189,7 +1189,7 @@ Pinned where it is constructed: the chassis's pacer chain and every slot's claim
 
 Pinned where it is constructed: the chassis's pacer chain and every slot's claim registration point at it. Non-copy-assignable (the copy constructor's reason). Non-movable (the copy constructor's reason). Non-move-assignable (the copy constructor's reason). A slot still holding its mechanism's claim — a step or a hold-to-run mid-flight — is ended first: CANCELLED ("its service was destroyed"), the declared safe state, the claim released. Otherwise the claim would stay registered to a destroyed slot (any later cancel-all would call into it) and the motor would stay at its last volts — the F1 operations' destructor rule (manipulation/mechanism_op.hpp). A slot holding no claim is untouched (another owner's claim is that owner's; a pneumatic's level persists). This is where bind()'s rule matters: the devices, the clock, the latch and the sink must outlive the service. Nothing escapes: a device that throws is left where it is, its claim is STILL released (no claimant may outlive the slot it points at), and the other slots are still ended.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2097`](../../include/shulib/mechanism/service.hpp#L2097).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2103`](../../include/shulib/mechanism/service.hpp#L2103).*
 
 <a id="mechanismservice-bind"></a>
 
@@ -1201,7 +1201,7 @@ void bind(std::span<const MechanismSpec> specs, std::span<const Devices> devices
 
 BOOT: one slot per spec, over its devices — `devices[i]` is `specs[i]`'s, as robot::MechanismParts built them (the SAME devices the guard's span lists, landmine 20). A mechanism that was not built is a slot that answers ABSENT. Nothing is commanded — but a STATED current cap is WRITTEN into its motors here (a limit, not a command), and every motor kind's limits are read (the header's CURRENT CAP section). The specs, the devices' objects, the clock, the latch and the sink must outlive the service. PRECONDITIONS, each checked before anything is stored: bound ONCE; one Devices per spec, at most 8; each spec valid (specRefusal) and its name unique; a built mechanism's Devices carries the actuator of its kind, with the declared number of motors or lines, and an ABSENT one none; a built position or speed mechanism carries its ANGLE sensor exactly when it declares one, and a built position mechanism its HOME switch exactly when its homing is by switch (a refused angle sensor or home switch makes the mechanism ABSENT — robot::MechanismParts); a power or pneumatic one neither; a piece sensor only as declared, of the declared kind; a current limit only for a built motor mechanism's own motors (MECH-S-A). Homing that needs no motion happens here (PositionSlot): each such home is logged.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2129`](../../include/shulib/mechanism/service.hpp#L2129).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2135`](../../include/shulib/mechanism/service.hpp#L2135).*
 
 <a id="mechanismservice-bind-2"></a>
 
@@ -1213,7 +1213,7 @@ void bind(const MechanismTable& robot, std::span<const Devices> devices, hal::IC
 
 BOOT from the ROBOT'S LIST (wiring.hpp's mechanisms(...)): the same, and each slot also knows its wiring (a missing sensor's line names its port). `robot` must outlive the service.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2135`](../../include/shulib/mechanism/service.hpp#L2135).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2141`](../../include/shulib/mechanism/service.hpp#L2141).*
 
 <a id="mechanismservice-bound"></a>
 
@@ -1225,7 +1225,7 @@ BOOT from the ROBOT'S LIST (wiring.hpp's mechanisms(...)): the same, and each sl
 
 True once bind() has run.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2140`](../../include/shulib/mechanism/service.hpp#L2140).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2146`](../../include/shulib/mechanism/service.hpp#L2146).*
 
 <a id="mechanismservice-pace"></a>
 
@@ -1237,7 +1237,7 @@ void pace() override
 
 THE PACER SEAM (autons): tick every mechanism once, then advance the world. A pace() right after tickFromDriverLoop() does NOT tick again (exactly once per tick). Unbound: forwards only.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2145`](../../include/shulib/mechanism/service.hpp#L2145).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2151`](../../include/shulib/mechanism/service.hpp#L2151).*
 
 <a id="mechanismservice-tickfromdriverloop"></a>
 
@@ -1249,7 +1249,7 @@ void tickFromDriverLoop()
 
 THE DRIVER LOOP'S STATED PLACE (after the driver's inputs, before perTick): tick every mechanism once; the next pace() then only advances the world.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2154`](../../include/shulib/mechanism/service.hpp#L2154).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2160`](../../include/shulib/mechanism/service.hpp#L2160).*
 
 <a id="mechanismservice-enterdrivercontrol"></a>
 
@@ -1261,7 +1261,7 @@ void enterDriverControl()
 
 DRIVER CONTROL BEGINS: every slot drops its autonomous-era behaviour. A claim this service holds is released with the behaviour; a claim ANOTHER owner left (an operation on a task PROS deleted) is released WITHOUT calling its cancel() — it may have lived on the deleted task's stack — counted, and said (the team lead's ruling of 2026-09-26, T3 Part 2). A running step ends CANCELLED. Motor mechanisms are put in their declared safe state; a pneumatic one is sent its START position on the FIRST entry only (T4's ruling: the claw starts closed — whatever autonomous left it at — and afterwards keeps what it holds). Clears a re-entrancy flag a deleted task left.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2168`](../../include/shulib/mechanism/service.hpp#L2168).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2174`](../../include/shulib/mechanism/service.hpp#L2174).*
 
 <a id="mechanismservice-enterautonomous"></a>
 
@@ -1273,7 +1273,7 @@ int enterAutonomous()
 
 AUTONOMOUS BEGINS (the brief's D1): PROS deletes the driver-control task on a mode change (HA-161), so driver control's own exit may never run — a driver's intake left at 12 V then ran through the whole auton. The auton runner (competition::runAuton's mechanism-service overload, MECH-A4) calls this before the guard's run: the re-entrancy flag cleared; a claim ANOTHER owner left released WITHOUT its cancel(), counted, said; every motor mechanism's behaviour stopped (its safe state); a pneumatic KEEPS its level; a running step CANCELLED. Returns how many leftover claims this call released.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2196`](../../include/shulib/mechanism/service.hpp#L2196).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2202`](../../include/shulib/mechanism/service.hpp#L2202).*
 
 <a id="mechanismservice-leavedrivercontrol"></a>
 
@@ -1285,7 +1285,7 @@ void leaveDriverControl()
 
 DRIVER CONTROL ENDS (a disable): every MOTOR mechanism's behaviour stops — inert, its declared safe state, this service's claim released; a PNEUMATIC one keeps its level (a claw must not drop what it holds — HA-157); a running step ends CANCELLED. A claim another owner took is left to that owner.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2216`](../../include/shulib/mechanism/service.hpp#L2216).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2222`](../../include/shulib/mechanism/service.hpp#L2222).*
 
 <a id="mechanismservice-size"></a>
 
@@ -1297,7 +1297,7 @@ DRIVER CONTROL ENDS (a disable): every MOTOR mechanism's behaviour stops — ine
 
 How many mechanisms are bound.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2231`](../../include/shulib/mechanism/service.hpp#L2231).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2237`](../../include/shulib/mechanism/service.hpp#L2237).*
 
 <a id="mechanismservice-slot"></a>
 
@@ -1309,7 +1309,7 @@ How many mechanisms are bound.
 
 The slot at `i`. PRECONDITION: `i` below size().
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2233`](../../include/shulib/mechanism/service.hpp#L2233).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2239`](../../include/shulib/mechanism/service.hpp#L2239).*
 
 <a id="mechanismservice-slotptr"></a>
 
@@ -1321,7 +1321,7 @@ The slot at `i`. PRECONDITION: `i` below size().
 
 The slot at `i`, or nullptr past the robot's mechanisms.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2238`](../../include/shulib/mechanism/service.hpp#L2238).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2244`](../../include/shulib/mechanism/service.hpp#L2244).*
 
 <a id="mechanismservice-power"></a>
 
@@ -1333,7 +1333,7 @@ The slot at `i`, or nullptr past the robot's mechanisms.
 
 The POWER slot at `i`. PRECONDITION: `i` is a power mechanism.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2242`](../../include/shulib/mechanism/service.hpp#L2242).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2248`](../../include/shulib/mechanism/service.hpp#L2248).*
 
 <a id="mechanismservice-position"></a>
 
@@ -1345,7 +1345,7 @@ The POWER slot at `i`. PRECONDITION: `i` is a power mechanism.
 
 The POSITION slot at `i` (an Arm or a Lift). PRECONDITION: `i` is a position mechanism.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2248`](../../include/shulib/mechanism/service.hpp#L2248).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2254`](../../include/shulib/mechanism/service.hpp#L2254).*
 
 <a id="mechanismservice-speed"></a>
 
@@ -1357,7 +1357,7 @@ The POSITION slot at `i` (an Arm or a Lift). PRECONDITION: `i` is a position mec
 
 The SPEED slot at `i` (a Flywheel). PRECONDITION: `i` is a speed mechanism.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2254`](../../include/shulib/mechanism/service.hpp#L2254).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2260`](../../include/shulib/mechanism/service.hpp#L2260).*
 
 <a id="mechanismservice-pneumatic"></a>
 
@@ -1369,7 +1369,7 @@ The SPEED slot at `i` (a Flywheel). PRECONDITION: `i` is a speed mechanism.
 
 The PNEUMATIC slot at `i`. PRECONDITION: `i` is a pneumatic mechanism.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2260`](../../include/shulib/mechanism/service.hpp#L2260).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2266`](../../include/shulib/mechanism/service.hpp#L2266).*
 
 <a id="mechanismservice-find"></a>
 
@@ -1381,7 +1381,7 @@ The PNEUMATIC slot at `i`. PRECONDITION: `i` is a pneumatic mechanism.
 
 A DECLARATION's slot (Q18 (a): the declaration is the handle), found by its KIND (the overload — it cannot mismatch) and its NAME (unique on a robot: the build refuses two). nullptr when this robot's list does not have it — a step on it then ends ABSENT, said. By name, never by address: a declaration written without `inline` has one copy per translation unit (the brief's P12), and an address lookup would end a step in another file ABSENT, silently. (So a robot two auton compiled into another robot's build commands a same-named mechanism of the same kind there — autons are per robot, landmine 6.)
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2272`](../../include/shulib/mechanism/service.hpp#L2272).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2278`](../../include/shulib/mechanism/service.hpp#L2278).*
 
 <a id="mechanismservice-find-2"></a>
 
@@ -1393,7 +1393,7 @@ A DECLARATION's slot (Q18 (a): the declaration is the handle), found by its KIND
 
 An ARM declaration's slot (find(const Power&)'s rule) — a position mechanism in DEGREES (a same-named LIFT, in inches, is not an arm: nullptr).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2275`](../../include/shulib/mechanism/service.hpp#L2275).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2281`](../../include/shulib/mechanism/service.hpp#L2281).*
 
 <a id="mechanismservice-find-3"></a>
 
@@ -1405,7 +1405,7 @@ An ARM declaration's slot (find(const Power&)'s rule) — a position mechanism i
 
 A LIFT declaration's slot — a position mechanism in INCHES.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2277`](../../include/shulib/mechanism/service.hpp#L2277).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2283`](../../include/shulib/mechanism/service.hpp#L2283).*
 
 <a id="mechanismservice-find-4"></a>
 
@@ -1417,7 +1417,7 @@ A LIFT declaration's slot — a position mechanism in INCHES.
 
 A FLYWHEEL declaration's slot.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2279`](../../include/shulib/mechanism/service.hpp#L2279).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2285`](../../include/shulib/mechanism/service.hpp#L2285).*
 
 <a id="mechanismservice-find-5"></a>
 
@@ -1429,7 +1429,7 @@ A FLYWHEEL declaration's slot.
 
 A pneumatic declaration's slot (find(const Power&)'s rule).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2281`](../../include/shulib/mechanism/service.hpp#L2281).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2287`](../../include/shulib/mechanism/service.hpp#L2287).*
 
 <a id="mechanismservice-find-6"></a>
 
@@ -1441,7 +1441,7 @@ A pneumatic declaration's slot (find(const Power&)'s rule).
 
 A position GOAL's slot (`arm["score"]`, `lift.to(18_in)`): this robot's position mechanism of that name and of the goal's UNITS (an Arm's goal never finds a same-named lift) — and, for a named preset, only when it has that preset at that value (a goal of another robot's same-named mechanism must not move this one to a stranger's value).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2288`](../../include/shulib/mechanism/service.hpp#L2288).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2294`](../../include/shulib/mechanism/service.hpp#L2294).*
 
 <a id="mechanismservice-find-7"></a>
 
@@ -1453,7 +1453,7 @@ A position GOAL's slot (`arm["score"]`, `lift.to(18_in)`): this robot's position
 
 A speed GOAL's slot (`flywheel["shoot"]`): this robot's flywheel of that name — and, for a named preset, only when it has that preset at that speed (find(const PositionGoal&)'s rule).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2299`](../../include/shulib/mechanism/service.hpp#L2299).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2305`](../../include/shulib/mechanism/service.hpp#L2305).*
 
 <a id="mechanismservice-find-8"></a>
 
@@ -1465,7 +1465,7 @@ A speed GOAL's slot (`flywheel["shoot"]`): this robot's flywheel of that name �
 
 A pneumatic GOAL's slot (`claw["closed"]`): also checks the POSITION — returned only when this robot's mechanism of that name has that position's name at that index.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2309`](../../include/shulib/mechanism/service.hpp#L2309).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2315`](../../include/shulib/mechanism/service.hpp#L2315).*
 
 <a id="mechanismservice-slotfor"></a>
 
@@ -1477,7 +1477,7 @@ A pneumatic GOAL's slot (`claw["closed"]`): also checks the POSITION — returne
 
 The slot of ANY kind with this NAME (another mechanism's piece sensor, the driver's inputs), or nullptr.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2323`](../../include/shulib/mechanism/service.hpp#L2323).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2329`](../../include/shulib/mechanism/service.hpp#L2329).*
 
 <a id="mechanismservice-mechanisms"></a>
 
@@ -1489,7 +1489,7 @@ The slot of ANY kind with this NAME (another mechanism's piece sensor, the drive
 
 Every BUILT mechanism, in the list's order — the RunGuard's span (the guard reaches each one's slot through the claim it registers).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2337`](../../include/shulib/mechanism/service.hpp#L2337).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2343`](../../include/shulib/mechanism/service.hpp#L2343).*
 
 <a id="mechanismservice-ticks"></a>
 
@@ -1501,7 +1501,7 @@ Every BUILT mechanism, in the list's order — the RunGuard's span (the guard re
 
 How many ticks have run (an unbound pace() and a re-entered one are not ticks) — a program's boot proves its pacer chain with it (MECH-A5).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2342`](../../include/shulib/mechanism/service.hpp#L2342).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2348`](../../include/shulib/mechanism/service.hpp#L2348).*
 
 <a id="mechanismservice-leftoverclaimsreleased"></a>
 
@@ -1513,7 +1513,7 @@ How many ticks have run (an unbound pace() and a re-entered one are not ticks) �
 
 How many leftover claims of another owner the mode changes have released, in total.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2344`](../../include/shulib/mechanism/service.hpp#L2344).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2350`](../../include/shulib/mechanism/service.hpp#L2350).*
 
 <a id="mechanismservice-clock"></a>
 
@@ -1525,7 +1525,7 @@ How many leftover claims of another owner the mode changes have released, in tot
 
 The clock it was bound with. PRECONDITION: bound.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2346`](../../include/shulib/mechanism/service.hpp#L2346).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2352`](../../include/shulib/mechanism/service.hpp#L2352).*
 
 <a id="mechanismservice-faults"></a>
 
@@ -1537,7 +1537,7 @@ The clock it was bound with. PRECONDITION: bound.
 
 The fault latch it was bound with. PRECONDITION: bound.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2351`](../../include/shulib/mechanism/service.hpp#L2351).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2357`](../../include/shulib/mechanism/service.hpp#L2357).*
 
 <a id="mechanismservice-telemetry"></a>
 
@@ -1549,7 +1549,7 @@ The fault latch it was bound with. PRECONDITION: bound.
 
 The telemetry sink it was bound with. PRECONDITION: bound.
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2356`](../../include/shulib/mechanism/service.hpp#L2356).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2362`](../../include/shulib/mechanism/service.hpp#L2362).*
 
 <a id="mechanismservice-rederive"></a>
 
@@ -1561,7 +1561,7 @@ The telemetry sink it was bound with. PRECONDITION: bound.
 
 RE-READ mechanism `index`'s spec after live tuning changed it IN PLACE (mechanism/live_tuning.hpp owns the table this service is bound over, so the slot's spec already IS the new one; what it copied at bind is stale until this runs — the brief's landmine 10). The slot re-derives every copy (Slot::rederiveSlot(): the PIDs' gains bumpless, the stall detectors, the limits in degrees, the soft stop's acceleration, the cap re-written when it changed) and ONE Info line says it: 'lift': retuned live -- kP 0.25 -> 0.3125 (`what`: the change in words, printed as given — live tuning gives each number in its shortest form; nullptr says "its numbers re-read"). REFUSED — false, nothing re-derived, nothing said — while a tick runs (from a predicate, a sink, anything a tick calls), while that slot's STEP runs (a change is applied only BETWEEN steps: the brief's D8), and — a position mechanism — when the spec's travel limits leave out the target it HOLDS, change while a held button moves it, or (holding nothing) leave WHERE IT IS further outside them (PositionSlot::takesRange(), read ONCE here, before anything is re-derived: a hold is never moved — the brief's re-check #7). A hold, a spin, a held button go on through it and pick the new numbers up at the next tick. Live tuning checks the same conditions BEFORE it writes the spec (for its sentence) and puts the old one back if this still refuses — a reading that moved between the two can make it refuse here. A caller that wrote the spec itself must put the old one back on false: the slot runs the table it was bound over. PRECONDITIONS: bound; `index` below size(); the slot's spec passes the build's check (specRefusal) — live tuning's own rules are stricter still (mechanism::tuningRefusal).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2382`](../../include/shulib/mechanism/service.hpp#L2382).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2388`](../../include/shulib/mechanism/service.hpp#L2388).*
 
 <a id="mechanismservice-canrederive"></a>
 
@@ -1573,7 +1573,7 @@ RE-READ mechanism `index`'s spec after live tuning changed it IN PLACE (mechanis
 
 Whether rederive(`index`) would run NOW: bound, `index` one of its mechanisms, no tick running, and no step running on that slot (TUNE1-A).
 
-*function, declared at [`include/shulib/mechanism/service.hpp:2402`](../../include/shulib/mechanism/service.hpp#L2402).*
+*function, declared at [`include/shulib/mechanism/service.hpp:2408`](../../include/shulib/mechanism/service.hpp#L2408).*
 
 ## Design commentary, from the header
 

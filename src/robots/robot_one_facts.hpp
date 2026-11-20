@@ -648,8 +648,9 @@ inline constexpr auto kCascadeMaxDownVolts =
 ROBOT_ONE_CHECK(kCascadeMaxDownVolts, "the cascade's most volts DOWN");
 // The cascade's soft top: the range's top this far UNDER its top row, so a held R1 brakes before the top stop.
 inline constexpr auto kCascadeTopMargin =
-    typed(0.0_in, 1.0_in, Stage::B, "the cascade's soft top, under its top row",
-          "chosen, not measured -- the team lead, 2026-11-20: 'on the bottom and the top it doesnt auto stop' (1 in)");
+    typed(0.0_in, 0.0_in, Stage::B, "the cascade's soft top, under its top row",
+          "chosen, not measured -- the team lead, 2026-11-20 (later): 'stopping it just before it was a bit unnesseary "
+          "because right now we are stopping it mechanically' -- none: same as the placeholder, checked");
 ROBOT_ONE_CHECK(kCascadeTopMargin, "the cascade's soft top, under its top row");
 
 // ── RECORDED — gating no build (D12, [R9]) ──────────────────────────────────────────────────

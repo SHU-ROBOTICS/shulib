@@ -93,6 +93,8 @@ constexpr Arm kAbsoluteWraps{.name = "arm", .motors = {Forward}, .cartridge = Gr
 constexpr Arm kInside{.name = "arm", .motors = {Forward}, .cartridge = Green, .gearing = gears(12, 60), .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.5_s}, .range = {20, 140}, .gravity = cosine(1.6_volt, 45), .home = restsAtStop(20)};
 // the lifts
 constexpr Lift kLift{.name = "lift", .motors = {Forward, Reversed}, .cartridge = Red, .gearing = direct, .shape = spool(1.5_in), .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.5_s}, .range = {0_in, 24_in}, .gravity = constantGravity(1.0_volt), .home = restsAtStop(0_in), .presets = {{"floor", 0_in}, {"low", 8_in}, {"high", 22_in}}};
+// kLift homed by STALL onto its bottom stop, as robot one's cascade is (2026-11-20)
+constexpr Lift kLiftStallHomed{.name = "lift", .motors = {Forward, Reversed}, .cartridge = Red, .gearing = direct, .shape = spool(1.5_in), .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.5_s}, .range = {0_in, 24_in}, .gravity = constantGravity(1.0_volt), .home = homeByStall(0_in, -3_volt, Stall{.amps = 0.45, .belowMotorRpm = 3, .lasting = 0.1_s})};
 // kLift going DOWN at most 60 % (API 2.10; the team lead, 2026-11-20: the cascade "needs to go down to 60")
 constexpr Lift kLiftDown60{.name = "lift", .motors = {Forward, Reversed}, .cartridge = Red, .gearing = direct, .shape = spool(1.5_in), .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.5_s}, .range = {0_in, 24_in}, .gravity = constantGravity(1.0_volt), .home = restsAtStop(0_in), .presets = {{"floor", 0_in}, {"low", 8_in}, {"high", 22_in}}, .maxDownVolts = 7.2_volt};
 constexpr HeightAt kPairs[] = {{0_in, 0}, {6_in, 30}, {14_in, 70}, {20_in, 120}};
@@ -592,12 +594,17 @@ TEST_CASE("2026-11-20 position: at the stop it homes onto, a held push and a hol
     // BUG CAUGHT (the team lead, 2026-11-20, robot one: "on the bottom ... it doesnt auto stop so it stalls"; "when i
     // put it all the way down it starts studdering"): a string cascade's bottom stop gives a little, so a target ON
     // it is never quite reached -- the hold (and a held R2) pushed on into it until the stall signature cut it, again
-    // and again. Modelled here by a bottom limit 0.1 in under the stop the lift rests on (the stop at -1 deg).
-    mech::MechanismSpec spec = kLift.spec();  // rests at its stop at 0 in: the bottom is its stop end
+    // and again. Modelled here by a bottom limit 0.1 in under the stop its homing pushed onto (as robot one's cascade
+    // homes, by stall). A mechanism only said to REST at a stop at start, or homed by a switch above its stop, keeps
+    // its hold (the arms below: their real stop may sit under that; with nothing holding them they would fall past).
+    mech::MechanismSpec spec = kLiftStallHomed.spec();
     spec.position.minPosition = -0.1;
     for (const bool released : {false, true}) {
         CAPTURE(released);
-        ArmRig r{spec, spoolPlant(1.0, 1.0)};
+        ArmRig r{spec, spoolPlant(1.0, 1.0, 2.0 * 360.0 / (kPi * 1.5))};  // powered up 2 in above its stop
+        r.slot().home(units::Time{3.0});
+        r.runStep(400);
+        REQUIRE(r.slot().lastStep().outcome == MechanismOutcome::Succeeded);  // homed: 0 is the stop (true -1 deg)
         r.slot().moveTo(12.0, units::Time{6.0}, false);
         r.runStep();
         REQUIRE(r.slot().lastStep().outcome == MechanismOutcome::Succeeded);
@@ -618,7 +625,8 @@ TEST_CASE("2026-11-20 position: at the stop it homes onto, a held push and a hol
         }
         MESSAGE(std::string{released ? "held at the bottom" : "R2 held at the bottom"} << ": the most it pushed down " << most << " V");
         CHECK(most <= 1e-9);                                     // never down into its stop
-        CHECK(std::abs(r.slot().position() - (-1.0 / 360.0 * kPi * 1.5)) <= 0.02);  // resting on it
+        CHECK(std::abs(r.volts()) <= 1e-9);  // ON its bottom stop: nothing at all (a slack spool only oscillates under a hold)
+        CHECK(std::abs(r.slot().position()) <= 0.02);  // resting on it (its homed 0)
         CHECK(r.stallFaults() == 0);
     }
 }

@@ -1633,11 +1633,12 @@ private:
         }
         return 0.0;
     }
-    /// -1 when the travel's BOTTOM is the hard stop it homes onto (a stall, a switch, or resting there at start), +1
-    /// the top, 0 neither (2026-11-20). A hold or a held push that has ARRIVED there rests on that stop (restOnStop).
+    /// -1 when the travel's BOTTOM is the hard stop its homing STALLED on (the one stop a homing proves: a switch may
+    /// sit above its stop, a rest-at-start may be a claim), +1 the top, 0 neither (2026-11-20). A hold or a held push
+    /// that has ARRIVED there rests on that stop (restOnStop).
     [[nodiscard]] int stopEnd() const noexcept {
         const PositionSpec& p = spec_->position;
-        if (p.home != HomeMethod::Stall && p.home != HomeMethod::Switch && p.home != HomeMethod::RestsAtStop) {
+        if (p.home != HomeMethod::Stall) {
             return 0;
         }
         return std::abs(p.homePosition - p.minPosition) <= p.tolerance ? -1
@@ -1656,10 +1657,15 @@ private:
         const double edge = e < 0 ? p.minPosition : p.maxPosition;
         return e * (target - edge) >= -p.tolerance && e * (angleDegToPosition(p, jd) - edge) >= -p.tolerance;
     }
-    /// `u` resting on the stop end: never toward it beyond holding its own weight there (a bottom stop carries the
-    /// weight: nothing down at all, gravity seats it); away from it, untouched.
+    /// `u` resting on the stop end. On a BOTTOM stop: nothing at all -- the stop carries the weight, and a string
+    /// lift's slack spool, free of its load there, only oscillates under a hold tuned for the load (robot one's log,
+    /// 2026-11-20: its motors flipping every 50-100 ms on the bottom). On a top stop: never toward it beyond holding
+    /// its own weight; away from it, untouched.
     [[nodiscard]] double restOnStop(double u, double jd) const noexcept {
         const int e = stopEnd();
+        if (e < 0) {
+            return 0.0;
+        }
         const double most = std::max(0.0, e * gravityVolts(jd));  // toward the stop: at most what holds its weight
         return e * u > most ? e * most : u;
     }

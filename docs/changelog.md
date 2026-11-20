@@ -26,12 +26,12 @@
 - **Robot one's cascade ran backwards** — homing went UP, R1 drove it DOWN, R2 UP — because its two motors'
   directions were typed from the builder's answers and never driven. Both are reversed now (port 10 reversed, port
   1 forward). Robot two takes robot one's value (the same build); its station 13 quick pass checks it.
-- **At the stop a mechanism homes onto** (a stall, a switch, or resting there at start), a hold or a held button
-  that has arrived RESTS on it: nothing pushes into the stop beyond holding the mechanism's own weight (a bottom
-  stop carries the weight: nothing down at all). Before, the hold pushed on into a string cascade's bottom until
-  its stall signature cut it, again and again — the stutter at the bottom.
-- **The cascade's top is 1 in under its measured top row** (`kCascadeTopMargin`, both robots), so a held R1 brakes
-  before the real top.
+- **At the stop a mechanism homes onto** (by a stall: the one stop a homing proves), a hold or a held
+  button that has arrived RESTS on it. On a bottom stop the motors are OFF: the stop carries the weight. Robot one's
+  log showed why: on its bottom a string cascade's slack spool turns almost freely, and the hold, tuned for the load,
+  flipped the motors every 50–100 ms (the stutter), or pushed on into the stop until the stall signature cut it.
+- **The top stays the mechanical stop** (the team lead: "stopping it just before it was a bit unnesseary because
+  right now we are stopping it mechanically"; a soft top just under it made it bounce). `kCascadeTopMargin` is 0.
 
 **What you must do:** upload every program again (they all drive the cascade).
 
