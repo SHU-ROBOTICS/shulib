@@ -72,7 +72,9 @@ export function thinPath(samples, step = 0.25) {
 }
 
 const DID_NOT_RUN = new Set(['skipped', 'jumped', 'notReached']);
-const STARTS = new Set([...MECHANISM_KINDS].filter((k) => k !== 'waitUntilDone'));  // the page steps that begin one
+// a height move reaches the record as moveTo / startMoveTo (route_lines.mjs): a mechanism step too (RMP1-J found it lost)
+const MECH_DO = new Set([...MECHANISM_KINDS, 'moveTo', 'startMoveTo']);
+const STARTS = new Set([...MECH_DO].filter((k) => k !== 'waitUntilDone'));  // the page steps that begin one
 
 /**
  * Which page step each step seen from below belongs to (-1: none). A page step that took time owns what begins in
@@ -101,7 +103,7 @@ export function ownersOf(rec, names = []) {
             return zero[0];
         }
         return ps.findIndex((p, k) => ran(p) && p.first !== p.last && s.s0 >= p.first && s.s0 < p.last
-            && (!mech || (MECHANISM_KINDS.has(p.do) && names[k] === s.what)));
+            && (!mech || (MECH_DO.has(p.do) && names[k] === s.what)));
     });
 }
 
@@ -149,9 +151,25 @@ export function noteWords(f) {
 
 const AFTER_THROUGH = 'After the THROUGH: the robot would not get here';
 
+const START_DO = new Set(['startMove', 'startMoveTo', 'startHome', 'startRun']);
+
+/** RMP1-J D4: how long page step `p` took — the library's own time for the last step it owns (a drive turned first:
+ *  its drive), a wait's span — {s, ok, ranOut, verdict}, or null when it did not run or its time is not known (a start
+ *  returns at once: without a library step of its own, its span is not its time). */
+export function tookOf(p, mine, t) {
+    const last = mine.filter((s) => !s.endAction).pop();
+    if (p.first === null || DID_NOT_RUN.has(p.verdict) || (!last && START_DO.has(p.do))) {
+        return null;
+    }
+    if (p.do === 'waitUntilDone' || !last) {
+        return { s: t(p.last) - t(p.first), ok: p.verdict === 'ok', ranOut: false, verdict: p.verdict };
+    }
+    return { s: last.t1 - last.t0, ok: last.mark === 'ok' && p.verdict === 'ok', ranOut: last.verdict === 'TIMED_OUT', verdict: last.verdict };
+}
+
 /** One robot's run: its samples, its thinned path, its page steps with times, verdicts and words, its field notes —
  *  RPV1's, and (RMP1-H) the page's THROUGH a solid structure (`field`: {obstacles, size}) when it comes first. */
-function runOf(id, rec, names, field) {
+function runOf(id, rec, names = [], field = null) {
     const t = (i) => (i === null || i === undefined ? null : rec.samples[i][0]);
     const owner = ownersOf(rec, names);
     const ps = rec.pageSteps || [];
@@ -165,14 +183,15 @@ function runOf(id, rec, names, field) {
     const steps = ps.map((p, i) => {
         const v = VERDICTS[p.verdict] || VERDICTS.notReached;
         const mine = rec.steps.filter((s, k) => owner[k] === i);
-        const ph = mine.find((s) => s.placeholder);
+        // a wait owns no library step: its time is its mechanism's (RMP1-J), so is its PLACEHOLDER mark
+        const ph = mine.find((s) => s.placeholder) || (p.do === 'waitUntilDone' && (rec.mechanisms || []).find((m) => m.name === names[i] && m.placeholder));
         const step = { n: p.n, do: p.do, verdict: p.verdict, state: v.state, words: v.words, t0: t(p.first), t1: t(p.last),
-                       library: libraryLines(rec, p, mine), placeholder: ph ? ph.placeholder : '' };
+                       library: libraryLines(rec, p, mine), placeholder: ph ? ph.placeholder : '', took: tookOf(p, mine, t) };
         if (!hit || hit.at < 0 || i < hit.at || step.t0 === null) {
             return step;
         }
-        return i === hit.at ? { ...step, state: 'failed', words: `Went THROUGH the ${hit.element}`, library: [noteWords(hit), ...step.library] }
-            : { ...step, state: 'skipped', words: AFTER_THROUGH };
+        return i === hit.at ? { ...step, state: 'failed', words: `Went THROUGH the ${hit.element}`, library: [noteWords(hit), ...step.library], took: null }
+            : { ...step, state: 'skipped', words: AFTER_THROUGH, took: null };  // the robot would not do this: no time to suggest
     });
     return { id, record: rec, samples: rec.samples, path: thinPath(rec.samples), steps, notes, through: hit,
              headline: headlineOf(rec, steps, hit) };

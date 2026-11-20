@@ -35,6 +35,7 @@ import { bakedRobots, routeRobots } from '../host/robots.mjs';
 import { capabilities, capabilityWords } from '../host/capabilities.mjs';
 import { makeEngine } from '../host/engine.mjs';
 import { createPreview } from './preview.mjs';
+import { openMechMenu } from './mech_menu.mjs';
 import { newProject, loadProject, saveProject, PROJECT_FILE, addRoute, renameRouteAt, duplicateRoute, deleteRoute } from '../model/project.mjs';
 import { addStep, updateStep, removeStep, moveStep, duplicateStep, setStart, plannedPoses, normalizeRoute, startPose } from '../model/route.mjs';
 import { checkRoute, applyFix, TURN_FIRST_EDGE_DEG, LEVELS_FROM, noLevels } from '../model/checks.mjs';
@@ -506,37 +507,18 @@ async function main() {
         ui.tool = id;
         render();
     }
+    /** RMP1-J D1: M's menu in two steps (mech_menu.mjs); the step it adds is selected, its details on the right. */
     function openMechanismMenu() {
         if (!route().start) {
             toast('Place robot one\'s start first: click the field where it starts.');
             return;
         }
-        const mechs = robot().mechanisms || [];
-        const items = [];
-        for (const m of mechs) {
-            // D8: each mechanism under its own name, plainly; the kind secondary
-            items.push(h('h3', { class: 'mech-head' }, `${m.name[0].toUpperCase()}${m.name.slice(1)}`, h('small', {}, KIND_LABEL[m.kind] || m.kind)));
-            const acts = mechanismActions(m, !noLevels(m));
-            if (!acts.length) {
-                items.push(h('button', { class: 'menu-item', disabled: true }, 'Flywheel steps come later', h('small', {}, '')));
-            }
-            for (const a of acts) {
-                items.push(h('button', { class: 'menu-item', 'data-act': a.words, onclick: () => {
-                    const at = insertAt();
-                    const step = { ...a.step };
-                    if (step.do === 'move' && targetKind(step) === null && (m.presets || []).length === 1) {
-                        const p = m.presets[0];
-                        step.preset = p.ledger !== undefined ? p.ledger : p.name;
-                    }
-                    edit(addStep(route(), step, at), at);
-                    toast(step.do === 'set' ? `Added: ${a.words}.` : 'Added: type its numbers on the right.');
-                } }, icon(a.icon), a.words));
-            }
-        }
-        if (!mechs.length) {
-            items.push(h('p', { class: 'hint', style: 'padding:8px' }, `${robot().name} declares no mechanism yet.`));
-        }
-        openMenu(toolBtns.mechanism, items, 'Mechanisms');
+        const at = insertAt();
+        openMechMenu(toolBtns.mechanism, robot(), route(), at, (step, words) => {
+            edit(addStep(route(), step, at), at);
+            toast(step.do === 'set' ? `Added: ${words}.` : step.do === 'move' ? 'Added: pick its height on the right.'
+                : step.do === 'run' ? 'Added: type its volts and how long, on the right.' : 'Added: type its time limit on the right.');
+        });
     }
 
     /** A save went through: remember it (the folder's base, and what "saved" means for the draft). */

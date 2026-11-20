@@ -341,32 +341,38 @@ test.describe('RMP1-C in a browser', { skip }, () => {
         await page.getByRole('button', { name: 'Got it' }).click();
         await startAt(page, -36, -55.7, 0);
         await page.locator('.pane.right [data-together="false"]').click();
-        const add = async (words) => {
+        // RMP1-J: M -> the mechanism -> what it does; one height (D2); the home card (D6)
+        const add = async (mech, words) => {
             await page.locator('.field-svg').focus();
             await page.keyboard.press('m');
-            await page.locator('.popover .menu-item', { hasText: words }).click();
+            await page.locator(`.mech-menu [data-mech="${mech}"]`).click();
+            await page.locator(`.mech-menu [data-act="${words}"]`).click();
         };
-        await add('Go up _ in');
-        assert.ok((await errorsOf(page)).some((x) => x.code === 'RC25'), 'up from an unknown height: home it first');
-        await page.locator('.pane.right .issue.error').getByRole('button', { name: 'Home it first' }).click();
+        await add('cascade', 'Move the cascade');
+        assert.ok((await errorsOf(page)).some((x) => x.code === 'RC25'), 'a move with no home: home it first');
+        await page.locator('.pane.right .home-card').getByRole('button', { name: 'Home it at the start' }).click();
         await typeIn(page, 'boundS', 3);
         await page.locator('.step[data-step="1"]').click();
-        await typeIn(page, 'up', 6);
+        await typeIn(page, 'boundS', 3);
+        await page.locator('.step[data-step="2"]').click();
+        await typeIn(page, 'height', 6);
         await typeIn(page, 'boundS', 2);
-        assert.match(await page.locator('.pane.right [data-heights]').textContent(), /from 0 in to 6 in \(its travel: 0 to \d+(\.\d+)? in\)/);
-        await add('Back to the bottom');
+        assert.equal(await page.locator('.pane.right [data-heights]').textContent(), '0 in → 6 in');
+        await add('cascade', 'Move the cascade');
+        await page.locator('.pane.right [data-level="bottom"]').click();
         await typeIn(page, 'boundS', 2);
-        await add('Close claw');
+        await add('claw', 'Close claw');
         let r = await route(page);
-        assert.deepEqual(r.steps.map((s) => [s.do, s.up ?? s.bottom ?? s.position ?? null]), [['home', null], ['move', 6], ['move', true], ['set', 'closed']]);
+        assert.deepEqual(r.steps.map((s) => [s.do, s.to ?? s.bottom ?? s.position ?? null]),
+                         [['startHome', null], ['waitUntilDone', null], ['move', 6], ['move', true], ['set', 'closed']]);
         assert.deepEqual(await errorsOf(page), []);
-        assert.match(await page.locator('.step[data-step="3"]').textContent(), /Close claw/);
+        assert.match(await page.locator('.step[data-step="4"]').textContent(), /Close claw/);
         // small moves: F adds "drive forward", typed; Backwards turns it into "back up"
         await page.locator('.field-svg').focus();
         await page.keyboard.press('f');
         await typeIn(page, 'inches', 1);
         r = await route(page);
-        assert.deepEqual(r.steps[4], { do: 'forward', inches: 1 });
+        assert.deepEqual(r.steps[5], { do: 'forward', inches: 1 });
         assert.match(await page.locator('.pane.right').textContent(), /to \(-35, -55\.7\)/);
         // the nudge: the start selected, Right 1 in, Shift+Up 0.25 in; one undo each; arrows in a box are the box's
         await page.locator('.start-card').click();
@@ -387,7 +393,7 @@ test.describe('RMP1-C in a browser', { skip }, () => {
         await page.locator('.field-svg').focus();
         await page.keyboard.press('Escape');
         await page.keyboard.press('ArrowDown');
-        assert.deepEqual([(await route(page)).steps[5].x, (await route(page)).steps[5].y], [-12, -49]);
+        assert.deepEqual([(await route(page)).steps[6].x, (await route(page)).steps[6].y], [-12, -49]);
         // a second point 1 in from it, placed by a click once zoomed in there (the wheel): two handles that do not touch
         // (each at most 8 px across the pointer's 1 in), the click a new point, not a grab of the first
         const near = await page.evaluate(() => {
@@ -403,7 +409,7 @@ test.describe('RMP1-C in a browser', { skip }, () => {
         await page.locator('.field-svg').focus();
         await page.keyboard.press('d');
         await clickField(page, -12, -48);
-        assert.equal((await route(page)).steps.length, 7, 'a new drive, not the first one\'s handle grabbed');
+        assert.equal((await route(page)).steps.length, 8, 'a new drive, not the first one\'s handle grabbed');
         await typeIn(page, 'x', -12);
         await typeIn(page, 'y', -48);
         await page.locator('.field-svg').focus();
@@ -430,7 +436,7 @@ test.describe('RMP1-C in a browser', { skip }, () => {
             await page.keyboard.press('m');
             await page.locator('.popover').waitFor();
             await shot(page, `rmp1c-mechanism-menu-${v.tag}`);
-            await page.keyboard.press('Escape');
+            await page.keyboard.press('Escape');  // RMP1-J: Esc on the list closes it
             await page.locator('#route-switch').click();
             await menu(page).waitFor();
             await shot(page, `rmp1c-routes-menu-${v.tag}`);
