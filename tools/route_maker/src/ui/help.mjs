@@ -10,7 +10,7 @@ export const SHORTCUTS = [
     ['T', 'Turn: click the point the robot turns to face'],
     ['C', 'Curve: click points; Enter or double-click finishes'],
     ['F', 'Straight: drive forward (or back up) a number of inches'],
-    ['M', 'Mechanism: one of the robot\'s mechanisms'],
+    ['M', 'Mechanism: pick one, then what it does (Esc goes back)'],
     ['P', 'Wait (pause)'],
     ['H', 'Hide the selected step on the field (again: show it); it still runs'],
     ['L', 'Lock the selected step: no drag, no nudge, clicks pass through it'],

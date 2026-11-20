@@ -313,7 +313,7 @@ test('D7: a relative step from an UNKNOWN height is refused with "Home it first"
     const homeless = { ...X, mechanisms: X.mechanisms.map((m) => (m.ident === 'lift' ? { ...m, homing: 'none', homeAt: undefined } : m)) };
     const none = at(checkRoute(route([{ do: 'move', mechanism: 'lift', down: 1, boundS: 2 }]), [homeless], FIELD), 'RCL1');
     assert.equal(none.length, 1);
-    assert.match(none[0].words, /Down 1 in from where\? .*Make this step a "Move to"/);
+    assert.match(none[0].words, /Down 1 in from where\? .*Pick a height instead: click its bar\./);
     for (const [step, words, fixed] of [
         [{ do: 'move', mechanism: 'lift', up: 30, boundS: 2 }, /to 30 in, past the top of its travel \(0 to 24 in\)/, { up: 24 }],
         [{ do: 'move', mechanism: 'lift', down: 0.5, boundS: 2 }, /to -0\.5 in, below the bottom/, { down: undefined, bottom: undefined }],

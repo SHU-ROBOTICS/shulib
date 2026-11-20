@@ -224,15 +224,15 @@ test('RC18: an arm or lift with NO levels (robot one\'s cascade since ROB1-C2) -
         assert.deepEqual(rc18.map((x) => [x.level, x.stepIndex, x.field, x.words]), [['error', 1, 'preset', words]], JSON.stringify(step));
         assert.equal(rc18[0].library, libraryWords('noPreset'), 'a level named anyway: the library refuses it too');
     }
-    // RMP1-C D7: a move that says nowhere asks up / down / to -- never a level the cascade does not have
+    // RMP1-C D7: a move that says nowhere asks for its height (RMP1-J: the bar) -- never a level the cascade does not have
     const nowhere = at(checkRoute(route([{ do: 'home', mechanism: 'cascade', boundS: 3 }, { do: 'move', mechanism: 'cascade', boundS: 2 }]), [none], FIELD), 'RC18');
-    assert.deepEqual(nowhere.map((x) => x.words), ['Say where the cascade goes: up, down, to a height.']);
+    assert.deepEqual(nowhere.map((x) => x.words), ['Pick the cascade\'s height: click its bar, or type it.']);
     // its home and a wait on it are not refused; with ONE level the move is the old rule again (choose it)
     const home = route([{ do: 'startHome', mechanism: 'cascade', boundS: 3 }, { do: 'waitUntilDone', mechanism: 'cascade', boundS: 1 }]);
     assert.deepEqual(at(checkRoute(home, [none], FIELD), 'RC18'), []);
     const oneLevel = { ...none, mechanisms: [{ ...lift, presets: [lift.presets[0]] }] };
     const choose = at(checkRoute(route([{ do: 'home', mechanism: 'cascade', boundS: 3 }, { do: 'move', mechanism: 'cascade', boundS: 2 }]), [oneLevel], FIELD), 'RC18');
-    assert.deepEqual(choose.map((x) => x.words), ['Say where the cascade goes: up, down, to a height, or to a level.']);
+    assert.deepEqual(choose.map((x) => x.words), ['Pick the cascade\'s height: click its bar or a level, or type it.']);
 });
 
 test('RC19: the motion options -- 0 or more (0 is the robot\'s own), a heading tolerance under 180, only on a step that drives', () => {

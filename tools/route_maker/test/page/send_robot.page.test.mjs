@@ -196,8 +196,9 @@ test.describe('RMP1-I: Send to robot', { skip }, () => {
             assert.ok(!order.includes(-1) && order.every((x, k) => k === 0 || x > order[k - 1]), `in order: ${JSON.stringify(seen)}`);
             assert.equal(await page.locator('#send').textContent(), 'Send to robot one');
             assert.ok(!(await page.locator('#export').isDisabled()), 'Export again once it has ended');
-            assert.deepEqual(calls().split(/\r?\n/),  // Windows writes CRLF
-                ['make ROBOT=one PROGRAM=autontest', 'pros lsusb', `pros upload --slot ${TESTER.slot} --name shulib Auton Tester . /dev/ttyACM0`]);
+            // make on every core (`make -jN`, N this computer's: tools/upload_auton.py's JOBS, 2026-11-20)
+            assert.deepEqual(calls().split(/\r?\n/).map((c) => c.replace(/^make -j\d+ /, 'make -jN ')),  // Windows writes CRLF
+                ['make -jN ROBOT=one PROGRAM=autontest', 'pros lsusb', `pros upload --slot ${TESTER.slot} --name shulib Auton Tester . /dev/ttyACM0`]);
             await shot(page, `send-ok-${v.tag}`);
             assert.deepEqual(await p.done(), []);
         });
@@ -253,7 +254,7 @@ test.describe('RMP1-I: Send to robot', { skip }, () => {
         await drawer(p.page).locator('[data-send="two"]').click();  // robot two: sent, and robot one's ✗ stays on screen
         await p.page.locator('.send-panel [data-result="ok"]').waitFor({ timeout: 30000 });
         assert.equal(await drawer(p.page).locator('.xr-build li.bad', { hasText: 'Robot one will not list the routes' }).count(), 1);
-        assert.match(calls(), /^make ROBOT=tank PROGRAM=autontest/);
+        assert.match(calls(), /^make -j\d+ ROBOT=tank PROGRAM=autontest/);
         assert.deepEqual(await p.done(), []);
         teamFiles('ok');  // the line there when the drawer opened, gone by the time Send is pressed: read again, not sent
         p = await opened(VARIANTS[0]);

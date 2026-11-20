@@ -13,6 +13,7 @@ import { makeEngine } from '../host/engine.mjs';
 import { routeKey, playbackOf, poseAt, sampleIndexAt, stepAt, stepTime, mechanismsAt } from '../model/playback.mjs';
 import { plannedHeights } from '../model/lift.mjs';
 import { ROBOT_TWO_ONLY } from '../model/checks.mjs';
+import { measureEmptyLimits } from '../model/mech_steps.mjs';
 
 const PHASES = {
     starting: 'Starting the preview engine…',
@@ -27,6 +28,7 @@ export function createPreview(app, els, engine, baked, toast) {
     const st = { phase: 'idle', play: null, key: '', t: 0, playing: false, speed: 1, stale: false, words: '', progress: '',
                  details: false, pairWords: '', stepIndex: -1, scrubbing: false, mechs: [] };
     const cache = new Map();
+    let latest = null;  // RMP1-J D4: the last run opened (its route and play), for the time limits' suggestions
     let raf = 0;
     let last = 0;
     const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -127,6 +129,7 @@ export function createPreview(app, els, engine, baked, toast) {
         }
     }
     function open(run) {
+        latest = run;
         Object.assign(st, { phase: 'open', play: run.play, key: run.key, pairWords: run.pairWords, t: 0, stale: false,
                             words: '', stepIndex: -2, details: false, mechs: run.mechs });
         dock.render();
@@ -153,8 +156,9 @@ export function createPreview(app, els, engine, baked, toast) {
             return;
         }
         const r = app.route();
-        // RMP1-C: robot two's errors (together? too close? skills mirrored?) are the export's -- robot one runs the same route
-        const err = app.issues().find((x) => x.level === 'error' && !ROBOT_TWO_ONLY.has(x.code));
+        // RMP1-C: robot two's errors (together? too close? skills mirrored?) are the export's -- robot one runs the same route;
+        // RMP1-J D4: an EMPTY mechanism time limit runs with none (the cut), so PREVIEW measures it -- Export still asks
+        const err = app.issues().find((x) => x.level === 'error' && !ROBOT_TWO_ONLY.has(x.code) && !(x.field === 'boundS' && x.empty));
         const notReady = !r.start ? 'Place robot one\'s start first: click the field where it starts.'
             : !r.steps.length ? 'Add a step first: PREVIEW plays the route\'s steps.'
                 : err ? `PREVIEW runs a route the robot would run: fix ${err.stepIndex >= 0 ? `step ${err.stepIndex + 1}` : 'the start'} first. ${err.words}` : '';
@@ -178,9 +182,10 @@ export function createPreview(app, els, engine, baked, toast) {
         renderButton();
         dock.render();
         app.refresh();
+        const measured = measureEmptyLimits(r);
         let out;
         try {
-            out = await engine.preview(r, robots, (ph) => {
+            out = await engine.preview(measured.route, robots, (ph) => {
                 st.progress = PHASES[ph] || st.progress;
                 dock.render();
             });
@@ -217,7 +222,8 @@ export function createPreview(app, els, engine, baked, toast) {
         const planned = plannedHeights(r, one);  // the route that RAN: an edit made during the run never reaches its strip
         const mechs = r.steps.map((x, i) => (x.mechanism ? { name: mechName(one, x.mechanism), target: planned[i].after[x.mechanism] ?? null } : null));
         const solid = { obstacles: (one.field || {}).obstacles || [], size: (one.drive || {}).footprintIn || 15 };  // RMP1-H
-        const runRec = { key, play: playbackOf(res, { one: names(one), two: two ? names(two) : [] }, solid), pairWords, mechs };
+        const { filled } = measured;
+        const runRec = { key, play: playbackOf(res, { one: names(one), two: two ? names(two) : [] }, solid), pairWords, mechs, route: r, filled };
         if (r.together === false && runRec.play.pair) {  // RMP1-C D6: one robot at a time -- robot two's run shown, no gap verdict
             runRec.play.pair = null;
             runRec.pairWords = 'One robot at a time (this route\'s answer): robot two\'s mirrored run is shown, the too-close check is not.';
@@ -227,6 +233,10 @@ export function createPreview(app, els, engine, baked, toast) {
             cache.delete(cache.keys().next().value);
         }
         open(runRec);
+        if (filled) {
+            toast(`PREVIEW ran ${filled === 1 ? 'a step' : `${filled} steps`} with no time limit yet, to time ${filled === 1 ? 'it' : 'them'}: `
+                + 'select one to use its suggestion.');
+        }
     }
 
     // ── the keys (only on the Route tab, never while typing or in a dialog) ──
@@ -327,6 +337,8 @@ export function createPreview(app, els, engine, baked, toast) {
         stepInfo(i) {
             return showing() ? st.play.one.steps[i] || null : null;
         },
+        /** RMP1-J D4: the last run opened, even put away ({route, play}), or null. */
+        lastRun: () => latest,
         /** For the page tests (as useMemoryFolder): another engine, and the state. */
         testHooks(rebake) {
             return {
