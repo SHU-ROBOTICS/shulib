@@ -68,6 +68,8 @@ Every path starts with the token, `/<token>/…` (no cookie: a cookie would go t
 | `POST /<token>/api/send?robot=one\|two` | runs `tools/upload_auton.py` (its own process group), streaming `{"line"}` … `{"done", "code"}` |
 | `GET /<token>/api/log` | `build/upload_auton.log` ("Show everything") |
 | `GET /<token>/api/ping` | this checkout's folder (a second start finds the running one) |
+| `POST /<token>/api/watch` | RMP1-K: the brain's USER port (from `pros lsusb`), `pros terminal <port> --no-banner` on a pseudo-terminal, streamed as `{"saved"}`, `{"open"}`, `{"line"}`, `{"paused"}` (a send has the port), `{"error"}`, with a `{}` ping each second; saved to `build/robot_runs/<time>.log`; one at a time (409) |
+| `POST /<token>/api/robot?robot=one\|two` | RMP1-K: each slot against the wanted table, as JSON — ONE `pros user-script tools/brain_slots.py` (pros-cli's own V5Device lists the files and reads each `slot_N.ini`, its values as written — a `%` in another tool's description is text; pros-cli 3.5.6's `v5 read-file` cannot run), a slot it could not read said so, the others still shown; read-only; never while a send runs, and no send while it reads (409) |
 
 A POST also needs the token in the `X-Shulib-Token` header (only the page's own script sets it); every request needs
 the `Host` `127.0.0.1:<port>` or `localhost:<port>`, and an `Origin`, if any, of the page itself — else 403. A path is
@@ -76,6 +78,26 @@ owned by the helper to its end even when the tab closes; Ctrl+C, SIGTERM or a cl
 process group. Its tests: `python3 tools/route_builder.py
 self-test` (a stand-in checkout in `build/route_builder_selftest/`, upload_auton's fake make and pros; every OS row
 in CI), `test/files_local.test.mjs`, and `test/page/send_robot.page.test.mjs` (the helper against `stand-in`).
+
+**RMP1-K — see the mechanisms work.** The route menu's **On the robot** (`src/ui/run_view.mjs`): **Check the
+mechanisms** writes a CHECK route (`src/model/check_route.mjs`: the route's mechanism steps and waits, each start form
+as its blocking form and no waitUntilDone, each carrying on past a failure, a home first where a switch- or stall-homed
+mechanism's first step is a move; `"<route> mechs"`) beside the team's routes through the ordinary export, sends, then
+writes the file back without it (the project never holds it). **Watch the robot** (after a send that uploads, or from
+the menu) reads the helper's stream into `src/model/run_log.mjs`, which knows only the library's and the Auton Tester's
+own line formats, and marks the step list (one call in `step_list.mjs`): green done (API 2.11's per-step line, live),
+red stopped, amber failed and carried on, grey skipped, a started step until its mechanism's `[MECH]` outcome line
+says how it ended; one summary line coloured by the robot's own verdict (`run R: 'x' WORD`, then the summary's word),
+the END estimate on the field when LIVE; an older program's run (no per-step line) is marked at its end from its "k of N
+steps done", only when that count adds up; run numbers restart at each boot (a later line goes to the LAST run of its
+number); a run of another version of the route, or of the route as it was before an edit, is said, never painted. **What
+is on robot one** (also `python3 tools/route_builder.py robot one` — through the running helper when there is one —
+and VS Code's **What is on robot one**) shows the slot table.
+Tests: `test/check_route.test.mjs`, `test/run_log.test.mjs` (the real 11-19 lines in `test/fixtures/robot_log/`, and
+`d4_lines.log` there, the library's own per-step lines, which `test/routine_step_line_test.cpp` checks it prints), the
+helper's self-test (the fake pros's `terminal` and `user-script` commands in `tools/upload_auton.py`'s FAKE — its
+`user-script` prints pros's own `Loading` and `Downloading slot_N.ini` lines, its `v5 read-file` fails as 3.5.6's does), and
+`test/page/run_view.page.test.mjs`.
 
 ## The preview engine (RMP1-A2e)
 

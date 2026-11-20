@@ -232,13 +232,16 @@ inline RoutineResult curveThenDrive(comp::AutonContext& ctx) {
     r.moveTo(Pose2d{20_in, -24_in, 0_deg});
     return r.result();
 }
-/// A loop of steps that SUCCEED and log nothing: only a bound from outside ends it (the launcher's).
+/// A step that never ENDS and logs nothing: only a bound from outside ends it (the launcher's). (Until API 2.11 a loop
+/// of steps that succeed was this fixture; since RMP1-K D4 each logs its "done in" line, so the no-pace stop ends it.)
 inline RoutineResult loopsSilently(comp::AutonContext& ctx) {
     Routine r{ctx, "silent"};
     r.moveTo(Pose2d{-38_in, -48_in, 0_deg});
-    for (;;) {
-        r.then([] { return true; }, "nothing");
-    }
+    r.then([] {
+        for (volatile bool spin = true; spin;) {
+        }
+    }, "nothing");
+    return r.result();
 }
 /// A drive the deadline CUTS (a 1 s park), then the auton's own code throws once it sees the cut: the
 /// throw comes AFTER step 1 ended, not inside it.

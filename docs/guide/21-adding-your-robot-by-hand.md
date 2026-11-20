@@ -130,7 +130,7 @@ the block reads them as `facts::…` (that is how the side toggles and the three
 | shulib Auton Tester | `make ROBOT=one PROGRAM=autontest` | 6 | Stage A and B |
 | shulib Tune | `make ROBOT=one PROGRAM=tune` | 7 | Stage A and B |
 
-Each is uploaded like robot two's (`pros upload --slot 3 --name "Bench Tests"`, and so on —
+Each is uploaded like robot two's (`pros upload --slot 3 --name "Bench Tests" --description "$(git describe --always --dirty)"`, and so on —
 [Chapter 7](07-getting-set-up.md)). Robot two's six are the same programs with `ROBOT=tank` (robot two kept
 its name). **shulib Tune** tunes the cascade's
 numbers live on the brain screen ([Chapter 18](18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen)); it

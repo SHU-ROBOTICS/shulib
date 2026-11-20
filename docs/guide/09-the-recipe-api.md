@@ -199,15 +199,18 @@ CHECK(res.completed == 1);
 CHECK(res.skipped == 1);                  // the turn never ran
 ```
 
-When this happens the routine layer adds two kinds of line to the transcript (subsystem
-`RTN`; captured from this exact run):
+The routine layer writes one line per step to the transcript (subsystem `RTN`; captured from
+this exact run):
 
 ```text
+routine 'starved': step 1 (moveTo) done in 1.30 s
 routine 'starved' STOPPED at step 2 (moveTo): motion TIMEOUT — skipping the rest; drive safed
 routine 'starved': step 3 (turnTo) skipped — stopped at step 2
 ```
 
-— one `Warn` for the stop, one `Info` per skipped step, so a run that stopped early is
+— an `Info` as each step ends well (since API 2.11: its seconds, and a mechanism step's end, like
+`at 18.0 in`; the route builder's **Watch the robot** ticks steps from it), one `Warn` for the stop,
+one `Info` per skipped step, so a run that stopped early is
 legible at a glance in the same terminal you learned to read in
 [Chapter 11](11-reading-the-diagnostics.md). The
 layers below behave exactly as [chapter 8](08-your-first-routine.md) showed — the result line still reads `✗TIMEOUT`, the

@@ -202,9 +202,10 @@ TEST_CASE("robot one tables (D5): the cascade is a two-motor Lift on a MEASURED 
         named += facts::lv(i).name != nullptr ? std::size_t{1} : std::size_t{0};
     }
     CHECK(s.position.presetCount == named);
-    // The range is the bottom and top rows; homing is DOWN to the bottom row under its own signature.
+    // The range is the bottom row to the top row less the soft top's margin (2026-11-20); homing is DOWN to the
+    // bottom row under its own signature.
     CHECK(s.position.minPosition == rows[0].height.value());
-    CHECK(s.position.maxPosition == rows[facts::kCascadeRowCount - 1].height.value());
+    CHECK(s.position.maxPosition == doctest::Approx(rows[facts::kCascadeRowCount - 1].height.value() - facts::kCascadeTopMargin.value().value()));
     CHECK(s.position.homePosition == rows[0].height.value());
     CHECK(facts::kCascadeHomingPushVolts.value() < 0.0);  // DOWN (the builder's ruling)
     CHECK(s.safeMode == shulib::config::SafeBrakeMode::Hold);
@@ -221,6 +222,16 @@ TEST_CASE("robot one tables (API 2.10): BOTH robots' cascades go down at most th
     CHECK(sb::robot_two::cascade.spec().position.maxDownVolts == sb::robot_two_facts::kCascadeMaxDownVolts.value());
     CHECK(sb::robot_two_facts::kCascadeMaxDownVolts.value() == facts::kCascadeMaxDownVolts.value());
     CHECK(mech::specRefusal(cascadeSpec()) == mech::Refusal::None);  // its homing push (down) is within it
+}
+
+TEST_CASE("robot one tables (2026-11-20): the cascade's range tops out kCascadeTopMargin under its top row -- none: the top is its mechanical stop -- on both robots") {
+    // BUG CAUGHT: a soft top the team lead turned down ("stopping it just before it was a bit unnesseary because right
+    // now we are stopping it mechanically") coming back, or the margin applied to the bottom (homing puts it ON its stop).
+    CHECK(facts::kCascadeTopMargin.typed);
+    CHECK(facts::kCascadeTopMargin.value().value() == 0.0);
+    CHECK(cascadeSpec().position.maxPosition == doctest::Approx(facts::cascadeTop().value()));
+    CHECK(cascadeSpec().position.minPosition == facts::cascadeBottom().value());
+    CHECK(sb::robot_two::cascade.spec().position.maxPosition == doctest::Approx(sb::robot_two_facts::cascadeSoftTop().value()));
 }
 
 TEST_CASE("robot one tables (T8): on the host test plant the cascade HOMES DOWN under its cap onto its bottom row, then reaches and holds every level; the cap is on BOTH motors") {

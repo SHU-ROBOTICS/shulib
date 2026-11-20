@@ -491,6 +491,15 @@ TEST_CASE("guide-09b: when a step fails, the chain stops — and says so") {
         }
     }
     CHECK(sawStop);
+    std::string rtn;  // guide 09 quotes the routine layer's lines "captured from this exact run": these, word for word
+    for (int i = 0; i < log.size(); ++i) {
+        if (log.at(i).subsystem == "RTN") {
+            rtn += log.at(i).message + "\n";
+        }
+    }
+    CHECK(rtn == "routine 'starved': step 1 (moveTo) done in 1.30 s\n"
+                 "routine 'starved' STOPPED at step 2 (moveTo): motion TIMEOUT — skipping the rest; drive safed\n"
+                 "routine 'starved': step 3 (turnTo) skipped — stopped at step 2\n");
 }
 
 // ═══ guide-09c: tank recipes and the no-cliff rule ═════════════════════════════════

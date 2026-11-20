@@ -31,6 +31,7 @@ import { folderHost } from '../host/files_fsaccess.mjs';
 import { downloadHost } from '../host/files_download.mjs';
 import { localPage, localHost, sendToRobot, sendLog } from '../host/files_local.mjs';
 import { createSendPanel } from './send_panel.mjs';
+import { createRunView } from './run_view.mjs';
 import { bakedRobots, routeRobots } from '../host/robots.mjs';
 import { capabilities, capabilityWords } from '../host/capabilities.mjs';
 import { makeEngine } from '../host/engine.mjs';
@@ -783,7 +784,15 @@ async function main() {
             if (end && !app.sendPanel.element.isConnected) {  // the drawer was closed mid-send: say how it ended
                 toast(`${end.kind === 'uploaded' ? '✓' : '✗'} ${end.words}${end.then ? `: ${end.then}` : ''}`, end.kind === 'uploaded' ? '' : 'error');
             }
+            if (end && end.kind === 'uploaded' && app.runView) {  // RMP1-K D2: sent, so watch the run
+                app.runView.watch();
+            }
         } }) : null;
+    // RMP1-K: Check the mechanisms, Watch the robot, What is on robot one (run_view.mjs; the route menu opens them)
+    app.runView = local ? createRunView(app, { local, fieldSvg: () => els.fieldView.element }) : null;
+    if (app.runView) {
+        els.fieldPane.append(app.runView.element);
+    }
 
     /** RMP1-I: a send is running — nothing is written (Save, Export) until it ends: what it builds is what it started with. */
     const sending = () => !!(app.sendPanel && app.sendPanel.busy());

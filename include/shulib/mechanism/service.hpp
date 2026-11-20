@@ -1449,7 +1449,11 @@ private:
             holdPid_.reset();  // the profile is over: a FRESH hold loop (with its integral) takes over
             holdLoop_ = true;
         }
-        command(feedforward(vel, acc, jd) + (holdLoop_ ? holdPid_.update(set, jd) : movePid_.update(set, jd)));
+        double u = feedforward(vel, acc, jd) + (holdLoop_ ? holdPid_.update(set, jd) : movePid_.update(set, jd));
+        if (holdLoop_ && !profiling && atStopEnd(jd, angleDegToPosition(p, set))) {
+            u = restOnStop(u, jd);  // the team lead, 2026-11-20: robot one's cascade stuttered on its bottom stop
+        }
+        command(u);
         if (mode_ != Mode::Move || !running()) {
             return;
         }
@@ -1520,6 +1524,9 @@ private:
         double u = gravityVolts(jd) + (holdLoop_ ? holdPid_.update(toDeg_, jd) : movePid_.update(toDeg_, jd));
         if (limitDir_ * u > std::abs(jogVolts_)) {
             u = limitDir_ * std::abs(jogVolts_);  // never toward the limit harder than the push itself
+        }
+        if (holdLoop_ && limitDir_ == static_cast<double>(stopEnd()) && atStopEnd(jd, targetPos_)) {
+            u = restOnStop(u, jd);  // the team lead, 2026-11-20: "on the bottom ... it doesnt auto stop so it stalls"
         }
         command(u);
     }
@@ -1625,6 +1632,42 @@ private:
                 return 0.0;
         }
         return 0.0;
+    }
+    /// -1 when the travel's BOTTOM is the hard stop its homing STALLED on (the one stop a homing proves: a switch may
+    /// sit above its stop, a rest-at-start may be a claim), +1 the top, 0 neither (2026-11-20). A hold or a held push
+    /// that has ARRIVED there rests on that stop (restOnStop).
+    [[nodiscard]] int stopEnd() const noexcept {
+        const PositionSpec& p = spec_->position;
+        if (p.home != HomeMethod::Stall) {
+            return 0;
+        }
+        return std::abs(p.homePosition - p.minPosition) <= p.tolerance ? -1
+             : std::abs(p.homePosition - p.maxPosition) <= p.tolerance ? 1 : 0;
+    }
+    /// True when it sits AT its stop end (within the tolerance, or past it), held toward `target` there: on a string
+    /// lift the stop gives a little, so a target ON the stop is never quite reached -- the team lead, 2026-11-20:
+    /// robot one's cascade "stalls rather than stops" at the bottom, its hold pushing on into the stop until its stall
+    /// signature cut it, again and again. (Moving or not: braking away from the stop is never limited.)
+    [[nodiscard]] bool atStopEnd(double jd, double target) const noexcept {
+        const int e = stopEnd();
+        if (e == 0) {
+            return false;
+        }
+        const PositionSpec& p = spec_->position;
+        const double edge = e < 0 ? p.minPosition : p.maxPosition;
+        return e * (target - edge) >= -p.tolerance && e * (angleDegToPosition(p, jd) - edge) >= -p.tolerance;
+    }
+    /// `u` resting on the stop end. On a BOTTOM stop: nothing at all -- the stop carries the weight, and a string
+    /// lift's slack spool, free of its load there, only oscillates under a hold tuned for the load (robot one's log,
+    /// 2026-11-20: its motors flipping every 50-100 ms on the bottom). On a top stop: never toward it beyond holding
+    /// its own weight; away from it, untouched.
+    [[nodiscard]] double restOnStop(double u, double jd) const noexcept {
+        const int e = stopEnd();
+        if (e < 0) {
+            return 0.0;
+        }
+        const double most = std::max(0.0, e * gravityVolts(jd));  // toward the stop: at most what holds its weight
+        return e * u > most ? e * most : u;
     }
     /// EVERY command it sends: the motor's 12 V either way, and DOWN (negative) at most the declaration's
     /// maxDownVolts (API 2.10) — a held button, a move, a preset and the hold alike.

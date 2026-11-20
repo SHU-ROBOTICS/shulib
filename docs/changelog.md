@@ -14,7 +14,71 @@
 > after the fact from those comments and the project records; everything above it was
 > written when the change landed.
 
+## API 2.11
+
+### 2026-11-20 — See the mechanisms work: each step says when it is done
+
+> Written when it was built. **A library change, by the team lead's second freeze exception the day before the
+> competition ("Yes, live ticks") — additive (API 2.11):** a log line, nothing else.
+
+**What you can now do (additive):**
+
+- **Every step that ends well says so**, in the brain's log (Info, tag `RTN`): `routine 'skills': step 3 (cascade)
+  done in 1.42 s, at 18.0 in` — its number, its verb or mechanism, its seconds, and where a mechanism ended (`at
+  'closed'`; `started in 0.00 s` for a START form still running). A failed, stopped or skipped step keeps its own
+  line. Nothing a robot does changed: every run of the host test plant is the same, bit for bit, but for these lines.
+- **The route builder on the team laptop** (`python3 tools/route_builder.py`), in the route's menu:
+  **Check the mechanisms** sends a check of the route's mechanism steps alone (the robot stays where it is; each step
+  runs to its end; on the brain it is `<route> mechs`, and `src/team/skills_route.cpp` is written back without it when
+  the upload ends); **Watch the robot** reads the brain's USB and ticks each step as the robot finishes it (green done,
+  red stopped in the robot's words, amber failed and carried on, grey skipped), with one summary line in the colour of
+  the robot's own verdict and its END estimate on the field when it is LIVE; **What is on robot one** (or two) shows
+  each slot against what should be there. In VS Code: Terminal → Run Task → **What is on robot one**. These three have
+  run against stand-ins for `pros` only: not yet against a real brain.
+- `tools/upload_auton.py` uploads every program with `--description "<build>"` (Competition and the Auton Tester:
+  `"<build> | <the routes>"`), and the docs' upload commands with `--description "$(git describe --always --dirty)"`,
+  so the check of the brain can say which build each slot holds.
+
+**What changed:** the team's old code is in **slot 8** (robot one's brain, checked 2026-11-20), not slot 5 as the docs
+said: never upload over slot 8. Slot 5 is the PROS button's build (API 2.10). The check of the brain lists slots 1–8
+and judges neither 5 nor 8.
+
+**What you must do:** nothing. A program that counted the routine's `Info` lines counts one more per finished step.
+
 ## API 2.10
+
+### 2026-11-20 — One task uploads everything
+
+> Written when it was built (the team lead: "how do you upload to competition? im very confused i want to make
+> things easier"). **No library change.**
+
+**What you can now do (additive):** VS Code **Terminal → Run Task → Upload everything to robot one** (or two) builds
+and uploads all six programs, each to its slot, with a ✓ or ✗ line for each at the end (`python3
+tools/upload_auton.py one all`). **Upload a program to a robot** now also offers Bench Tests, Calibrate and Tune.
+
+**What changed:** the PROS extension's own Upload button now puts its build (the bench bot's test program, the
+Makefile's default) in slot 5, named "PROS button (bench bot)" — it used to write over Drive in slot 1.
+
+**What you must do:** use the VS Code tasks to upload; `git pull` first to get them.
+
+### 2026-11-20 — Robot one's cascade: the right way round, and resting on its stops
+
+> Written when it was fixed, on robot one (the team lead, 2026-11-20). **A library behaviour change (no API
+> change)** and two robot facts.
+
+**What changed:**
+
+- **Robot one's cascade ran backwards** — homing went UP, R1 drove it DOWN, R2 UP — because its two motors'
+  directions were typed from the builder's answers and never driven. Both are reversed now (port 10 reversed, port
+  1 forward). Robot two takes robot one's value (the same build); its station 13 quick pass checks it.
+- **At the stop a mechanism homes onto** (by a stall: the one stop a homing proves), a hold or a held
+  button that has arrived RESTS on it. On a bottom stop the motors are OFF: the stop carries the weight. Robot one's
+  log showed why: on its bottom a string cascade's slack spool turns almost freely, and the hold, tuned for the load,
+  flipped the motors every 50–100 ms (the stutter), or pushed on into the stop until the stall signature cut it.
+- **The top stays the mechanical stop** (the team lead: "stopping it just before it was a bit unnesseary because
+  right now we are stopping it mechanically"; a soft top just under it made it bounce). `kCascadeTopMargin` is 0.
+
+**What you must do:** upload every program again (they all drive the cascade).
 
 ### 2026-11-20 — The route builder's mechanism steps, made simple
 

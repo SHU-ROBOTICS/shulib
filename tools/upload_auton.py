@@ -4,11 +4,15 @@
     python3 tools/upload_auton.py one              robot one's Auton Tester (make ROBOT=one PROGRAM=autontest), slot 6
     python3 tools/upload_auton.py one drive        robot one's Drive (PROGRAM=drive), slot 1 -- the driver controls
     python3 tools/upload_auton.py one competition  robot one's Competition (PROGRAM=competition), slot 2
-    python3 tools/upload_auton.py two ...          robot two (ROBOT=tank), the same three
+    python3 tools/upload_auton.py one bench        Bench Tests (PROGRAM=tester), slot 3; `calibrate` slot 4, `tune` slot 7
+    python3 tools/upload_auton.py one all          ALL SIX, one after another (Drive, Competition, the Auton Tester,
+                                                   Bench Tests, Calibrate, Tune), and a line for each at the end
+    python3 tools/upload_auton.py two ...          robot two (ROBOT=tank), the same
     python3 tools/upload_auton.py self-test
 
-Then `pros upload --slot <its slot> --name "<its name>" . <the brain's port>` (pros-cli takes the port as an argument
-after the project folder; the port from `pros lsusb`'s "V5 System Ports", without a controller). Prints ✓ BUILT and
+Then `pros upload --slot <its slot> --name "<its name>" --description "<git describe>[ | <the routes>]" . <the brain's
+port>` (pros-cli takes the port as an argument after the project folder; the port from `pros lsusb`'s "V5 System Ports",
+without a controller; the description is what `route_builder.py robot one` reads back, RMP1-K D5). Prints ✓ BUILT and
 ✓ UPLOADED, or ✗ and the first real error in plain words. Windows and Linux: Python 3 (`python` on Windows), `make` and
 `pros` from PATH (the PROS terminal), else from the PROS toolchain's folder (PROS_TOOLCHAIN, else the one the PROS
 extension installed, which it names only in its own PROS Terminal -- a VS Code task has neither: its bin/make, as
@@ -26,7 +30,9 @@ from pathlib import Path
 # Each program: its PROGRAM= word, its slot and its name on the brain (the team lead, 2026-11-20: Drive 1, Competition 2;
 # the Auton Tester 6). The tester is the default, as the route builder's Send and the first tasks call it.
 PROGRAMS = {"tester": ("autontest", 6, "shulib Auton Tester"), "drive": ("drive", 1, "shulib Drive"),
-            "competition": ("competition", 2, "shulib Competition")}
+            "competition": ("competition", 2, "shulib Competition"), "bench": ("tester", 3, "Bench Tests"),
+            "calibrate": ("calibrate", 4, "shulib Calibrate"), "tune": ("tune", 7, "shulib Tune")}
+ALL = ("drive", "competition", "tester", "bench", "calibrate", "tune")  # `all`: in slot order of use
 SLOT, NAME = PROGRAMS["tester"][1], PROGRAMS["tester"][2]
 JOBS = os.cpu_count() or 1  # make's parallel jobs (the team lead, 2026-11-20: "i want to easily be able to iterate")
 ROBOTS = {"one": "one", "two": "tank"}
@@ -149,19 +155,20 @@ def build_error(text, root):
     return [last[-1] if last else "make printed nothing.", "Ask the coordinator with these words."]
 
 
-def brain_port(text):
-    """The brain's port from `pros lsusb`, sorted as pros sorts it: its "V5 System Ports" (a controller is listed there
-    too, by name). (port, None); (None, why) when that is not exactly one brain; (None, None) when the list is not in
-    pros's shape (then pros picks)."""
+def brain_port(text, kind="system"):
+    """The brain's port from `pros lsusb`, sorted as pros sorts it: its "V5 System Ports" (`kind` "user": its "V5 User
+    Ports", where the program's output comes -- RMP1-K D3; a controller is listed in both, by name). (port, None);
+    (None, why) when that is not exactly one brain; (None, None) when the list is not in pros's shape (then pros picks)."""
     section, seen, system = None, False, []
     for raw in text.splitlines():
         m = PORT.match(raw)
         if m:
-            if section == "system":
+            if section == kind:
                 system.append((m.group(1), m.group(2)))
         elif raw.strip():
-            section = "system" if "system port" in raw.lower() else "other"
-            seen = seen or section == "system"
+            low = raw.lower()
+            section = "system" if "system port" in low else "user" if "user port" in low else "other"
+            seen = seen or section == kind
     if not seen:
         return None, None
     brains = sorted({p for p, d in system if "Controller" not in d})
@@ -176,15 +183,30 @@ def brain_port(text):
                   "the controller's), then run this again.")
 
 
-def upload_error(text, slot=SLOT, name=NAME):
-    """Why pros upload failed, in plain words."""
+def description(root, names):
+    """`pros upload --description`: this checkout's build (`git describe`), and for a program that carries routes (the
+    Auton Tester, Competition) the routes, so a check of the brain can say what each slot carries (RMP1-K D5). `names`
+    None: the build alone. ASCII (pros reads the brain's slot file as ASCII), at most 60 characters."""
+    try:
+        got = subprocess.run(["git", "-C", str(root), "describe", "--always", "--dirty"], stdin=subprocess.DEVNULL,
+                             capture_output=True, text=True, timeout=30)
+        build = got.stdout.strip() if got.returncode == 0 and got.stdout.strip() else "no git"
+    except (OSError, subprocess.SubprocessError):
+        build = "no git"
+    text = build if names is None else f"{build} | {', '.join(names) if names else 'no routes'}"
+    return "".join(c for c in text if " " <= c <= "~")[:60]
+
+
+def upload_error(text, slot=SLOT, name=NAME, desc=""):
+    """Why pros upload failed, in plain words (`desc`: the --description this script passed, for the command it prints)."""
     low = text.lower()
     if "no v5" in low or "no device" in low or "no ports" in low or "no port provided" in low:
         return NO_BRAIN
     if "permission denied" in low:
         return "This computer may not use the brain's port. On Linux: sudo usermod -aG dialout $USER, then log out and in."
     if "aborted" in low:  # a question this script cannot answer (which brain; too many files on the brain; ...)
-        return f'pros stopped to ask a question. Run the upload yourself to answer it: pros upload --slot {slot} --name "{name}"'
+        return (f'pros stopped to ask a question. Run the upload yourself to answer it: pros upload --slot {slot} --name "{name}"'
+                + (f' --description "{desc}"' if desc else ""))
     last = [x.strip() for x in text.splitlines() if x.strip()]
     return (last[-1] if last else "pros printed nothing.") + " (Ask the coordinator with these words.)"
 
@@ -232,14 +254,27 @@ def main(argv):
     while len(argv) >= 2 and argv[0] in ("--root", "--wait"):  # the self-test's stand-in repository and short waits
         root, wait = (Path(argv[1]), wait) if argv[0] == "--root" else (root, float(argv[1]))
         argv = argv[2:]
-    if not 1 <= len(argv) <= 2 or argv[0] not in ROBOTS or (len(argv) == 2 and argv[1] not in PROGRAMS):
+    if not 1 <= len(argv) <= 2 or argv[0] not in ROBOTS or (len(argv) == 2 and argv[1] not in (*PROGRAMS, "all")):
         print("Say which robot, and which program if not the Auton Tester: python3 tools/upload_auton.py one   "
-              "(or two; then drive, competition or tester)")
+              "(or two; then drive, competition, tester, bench, calibrate, tune or all)")
         return 2
+    if len(argv) == 2 and argv[1] == "all":  # each in turn, as if asked one by one; then one line each
+        ok, bad, _to = marks()
+        done = []
+        for name in ALL:
+            print(f"\n== {PROGRAMS[name][2]} (slot {PROGRAMS[name][1]}) ==", flush=True)
+            code = main([*(["--root", str(root)] if root != Path(__file__).resolve().parent.parent else []),
+                         *(["--wait", str(wait)] if wait != 1.0 else []), argv[0], name])
+            done.append((name, code))
+            if code != 0 and name in ("drive", "competition"):
+                pass  # keep going: the other programs may still go up (each says its own ✗)
+        print("\n" + "\n".join(f"{ok if c == 0 else bad} slot {PROGRAMS[n][1]} {PROGRAMS[n][2]}" for n, c in done))
+        return 0 if all(c == 0 for _n, c in done) else 1
     ok, bad, to = marks()
     which = argv[0]
     program, slot, name = PROGRAMS[argv[1] if len(argv) == 2 else "tester"]
-    words = {"autontest": "Auton Tester", "drive": "Drive", "competition": "Competition"}[program]
+    words = {"autontest": "Auton Tester", "drive": "Drive", "competition": "Competition", "tester": "Bench Tests",
+             "calibrate": "Calibrate", "tune": "Tune"}[program]
     make, pros, env = find_tools()
     if not make or not pros:
         missing = " and ".join(n for n, p in (("make", make), ("pros", pros)) if not p)
@@ -267,22 +302,24 @@ def main(argv):
     if why:
         print(f"{bad} NOT UPLOADED: {why}")
         return 1
-    cmd = [pros, "upload", "--slot", str(slot), "--name", name] + ([".", port] if port else [])  # [PATH] [PORT]
+    r = region(root)
+    names = r[2] if r and r[2] else []
+    desc = description(root, names if program in ("autontest", "competition") else None)
+    cmd = [pros, "upload", "--slot", str(slot), "--name", name, "--description", desc] + ([".", port] if port else [])
     print(f"Uploading to slot {slot}{' on ' + port if port else ''}...", flush=True)
     code, text = run(cmd, root, log, timeout=300 * wait)
     if code != 0 or "finished uploading" not in text.lower():
         said = ("pros did not say it finished uploading." if code == 0 else
-                no_answer(300 * wait) if code is None else upload_error(text, slot, name))
+                no_answer(300 * wait) if code is None else upload_error(text, slot, name, desc))
         print(f"{bad} NOT UPLOADED: {said}")
         print(f"  (everything pros printed: {log})")
         return 1
     if program != "autontest":
-        print(f"{ok} UPLOADED to slot {slot}. On the brain: {name}" + (" (the driver controls are in it)" if program == "drive"
-              else f" {to} pick the auton on its screen (its driver control is the driver file)"))
+        said = {"drive": " (the driver controls are in it)",
+                "competition": f" {to} pick the auton on its screen (its driver control is the driver file)"}.get(program, "")
+        print(f"{ok} UPLOADED to slot {slot}. On the brain: {name}{said}")
         return 0
-    r = region(root)
-    names = r[2] if r and r[2] else ["your route"]
-    print(f"{ok} UPLOADED to slot {slot}. On the brain: {name} {to} {' or '.join(names)} {to} RUN")
+    print(f"{ok} UPLOADED to slot {slot}. On the brain: {name} {to} {' or '.join(names or ['your route'])} {to} RUN")
     return 0
 
 
@@ -354,6 +391,57 @@ if args[:1] == ["lsusb"]:
     }.get(case, (["/dev/ttyACM0 - " + brain + "Communications Port"], ["/dev/ttyACM1 - " + brain + "User Port"]))
     for header, ports in (("VEX EDR V5 System Ports", system), ("VEX EDR V5 User Ports", user), ("VEX EDR Cortex Microcontroller Ports", [])):
         print(header + ":\n" + "\n".join(ports) if ports else "There are no connected " + header)
+    sys.exit(1 if case == "lsusbbad" else 0)  # lsusbbad: a whole list, then a failure (RMP1-K: never trusted)
+if args[:1] == ["terminal"]:  # RMP1-K: `terminal PORT --no-banner` (cli/terminal.py); its POSIX console reads a TTY
+    if os.name != "nt" and not os.isatty(0):
+        stop("termios.error: (25, 'Inappropriate ioctl for device')", code=1)
+    import signal
+    signal.signal(signal.SIGINT, lambda *a: sys.exit(0))  # pros's own handler stops the terminal quietly
+    port = args[1]
+    print("Established terminal connection", flush=True)
+    replay = os.environ.get("FAKE_TERMINAL", "")
+    gone = lambda: os.path.exists(os.environ.get("FAKE_UNPLUG", os.devnull + "x"))
+    for line in (open(replay, encoding="utf-8", errors="replace").read().split("\n") if os.path.exists(replay) else []):
+        if gone():
+            break
+        print(line, flush=True)
+        time.sleep(float(os.environ.get("FAKE_TERMINAL_EVERY", "0")))
+    while not gone():  # an open terminal waits for more; Ctrl+C ends it
+        time.sleep(0.05)
+    stop("WARNING - pros.serial.terminal.terminal:reader - Connection to " + port + " broken - pros-cli version:3.5.6",
+         "WARNING - pros.serial.terminal.terminal:stop - Stopping terminal - pros-cli version:3.5.6", code=0)
+if args[:2] == ["v5", "read-file"]:  # pros-cli 3.5.6 cannot run it (cli/v5_utils.py: an `outfile` its function never takes)
+    stop("Traceback (most recent call last):", "TypeError: read_file() got an unexpected keyword argument 'outfile'", code=1)
+if args[:1] == ["user-script"]:  # RMP1-K D5 (cli/user_script.py): pros's own Python runs the script, with pros importable.
+    import configparser, importlib.util, json, types  # FAKE_SLOTS, a JSON {slot: [name, description, date] | "unread"};
+    slots = json.loads(os.environ.get("FAKE_SLOTS", "{}"))  # FAKE_CASE "slotsfail": the brain does not answer
+    class V5Device:  # only what reading needs: anything else (a write, an erase) is an AttributeError, so the script fails
+        def __init__(self, port):
+            if case == "slotsfail":
+                raise OSError("could not open port " + port.port + ": the brain did not answer")
+            self.files = ["slot_%s.%s" % (n, k) for n in sorted(slots, key=int) for k in ("bin", "ini")]
+        def get_dir_count(self, vid=1, options=0):
+            return len(self.files)
+        def get_file_metadata_by_idx(self, i, options=0):
+            return {"idx": i, "size": 1024, "type": self.files[i][-3:], "filename": self.files[i]}
+        def read_ini(self, remote_name):
+            print("Downloading " + remote_name, flush=True)  # pros's progress bar label, on stdout when piped
+            got = slots[remote_name[len("slot_"):-len(".ini")]]
+            if got == "unread":
+                return None  # V5Device.read_ini: a VEXCommError reads as None
+            ini = configparser.ConfigParser()
+            ini.read_string("[project]\nversion = 3.5.6\n[program]\nname = %s\ndescription = %s\ndate = %s\n" % tuple(got))
+            return ini
+    class DirectPort:
+        def __init__(self, port):
+            self.port = port
+    for name in ("pros", "pros.serial", "pros.serial.devices", "pros.serial.devices.vex", "pros.serial.ports"):
+        sys.modules[name] = types.ModuleType(name)
+    sys.modules["pros.serial.devices.vex"].V5Device, sys.modules["pros.serial.ports"].DirectPort = V5Device, DirectPort
+    path = os.path.abspath(args[1])
+    print("Loading " + os.path.dirname(args[1]) + " from " + path, flush=True)
+    spec = importlib.util.spec_from_file_location(os.path.dirname(args[1]), path)
+    spec.loader.exec_module(importlib.util.module_from_spec(spec))
     sys.exit(0)
 if args[:1] != ["upload"]:
     stop("Error: No such command " + " ".join(args[:1]))
@@ -443,7 +531,7 @@ def self_test():
         home = str(ext[0] if ext else work / "nohome")
         env = dict(os.environ, FAKE_CASE=name, FAKE_CALLS=str(work / "calls.txt"), PYTHONIOENCODING=enc,
                    PATH=str(work / "bin") if path is True else str(work / "empty") if path is False else str(path),
-                   APPDATA=home, XDG_CONFIG_HOME=home, HOME=home, USERPROFILE=home)
+                   APPDATA=home, XDG_CONFIG_HOME=home, HOME=home, USERPROFILE=home, GIT_CEILING_DIRECTORIES=str(work))
         env.pop("PROS_TOOLCHAIN", None)
         env.pop("FAKE_TC", None)
         if tc:
@@ -468,7 +556,7 @@ def self_test():
             failures.append(f"{name}: ran {made}, wanted {calls}")
 
     make1, lsusb = f"make -j{JOBS} ROBOT=one PROGRAM=autontest", "pros lsusb"
-    upload = f"pros upload --slot 6 --name {NAME}"
+    upload = f"pros upload --slot 6 --name {NAME} --description no git | skills, left 1"  # no repository above the stand-in
     case("ok", "one", 0, ["✓ BUILT", "✓ UPLOADED to slot 6. On the brain: shulib Auton Tester → skills or left 1 → RUN"],
          calls=[make1, lsusb, upload + " . /dev/ttyACM0"])
     case("ok", "two", 0, ["✓ UPLOADED to slot 6"], calls=[f"make -j{JOBS} ROBOT=tank PROGRAM=autontest", lsusb, upload + " . /dev/ttyACM0"])
@@ -503,7 +591,7 @@ def self_test():
     case("uploadfail", "one", 1, ["✗ NOT UPLOADED: This computer may not use the brain's port"])
     case("nodevice", "one", 1, ["✗ NOT UPLOADED: No brain found."])
     case("question", "one", 1, ['✗ NOT UPLOADED: pros stopped to ask a question. Run the upload yourself to answer it: '
-                                'pros upload --slot 6 --name "shulib Auton Tester"'])
+                                'pros upload --slot 6 --name "shulib Auton Tester" --description "no git | skills, left 1"'])
     case("ok", "one", 0, ["✓ UPLOADED to slot 6. On the brain: shulib Auton Tester → your route → RUN"],
          skills=SKILLS_STANDIN.replace("// ═══ ROUTE MAKER", "// was ROUTE MAKER"))  # no markers: no names, no crash
     case("ok", "one", 0, ["→ your route → RUN"], skills=SKILLS_STANDIN + SKILLS_STANDIN)  # two pairs: no names
@@ -525,24 +613,36 @@ def self_test():
     case("ok", "one drive", 0, ["Building robot one's Drive: make ROBOT=one PROGRAM=drive", "✓ BUILT",
                                 "✓ UPLOADED to slot 1. On the brain: shulib Drive (the driver controls are in it)"],
          unwanted=["Auton Tester", "RUN"],
-         calls=[f"make -j{JOBS} ROBOT=one PROGRAM=drive", lsusb, "pros upload --slot 1 --name shulib Drive . /dev/ttyACM0"])
+         calls=[f"make -j{JOBS} ROBOT=one PROGRAM=drive", lsusb, "pros upload --slot 1 --name shulib Drive --description no git . /dev/ttyACM0"])
     case("ok", "two competition", 0, ["Building robot two's Competition: make ROBOT=tank PROGRAM=competition",
                                       "✓ UPLOADED to slot 2. On the brain: shulib Competition → pick the auton on its screen"],
          unwanted=["Auton Tester"],
          calls=[f"make -j{JOBS} ROBOT=tank PROGRAM=competition", lsusb,
-                "pros upload --slot 2 --name shulib Competition . /dev/ttyACM0"])
+                "pros upload --slot 2 --name shulib Competition --description no git | skills, left 1 . /dev/ttyACM0"])
     case("ok", "one tester", 0, ["✓ UPLOADED to slot 6. On the brain: shulib Auton Tester"],
          calls=[make1, lsusb, upload + " . /dev/ttyACM0"])  # the default, said
-    case("question", "one drive", 1, ['pros upload --slot 1 --name "shulib Drive"'])  # its own slot in the hand command
+    case("question", "one drive", 1, ['pros upload --slot 1 --name "shulib Drive" --description "no git"'])  # its own slot in the hand command
     case("ok", "one autontest", 2, ["Say which robot, and which program"], calls=[])  # the words are drive/competition/tester
     case("ok", "one drive extra", 2, ["Say which robot"], calls=[])
+    case("ok", "one bench", 0, ["Building robot one's Bench Tests: make ROBOT=one PROGRAM=tester", "✓ UPLOADED to slot 3. On the brain: Bench Tests"],
+         calls=[f"make -j{JOBS} ROBOT=one PROGRAM=tester", lsusb, "pros upload --slot 3 --name Bench Tests --description no git . /dev/ttyACM0"])
+    case("ok", "two tune", 0, ["✓ UPLOADED to slot 7. On the brain: shulib Tune"],
+         calls=[f"make -j{JOBS} ROBOT=tank PROGRAM=tune", lsusb, "pros upload --slot 7 --name shulib Tune --description no git . /dev/ttyACM0"])
+    every = [(n, PROGRAMS[n]) for n in ALL]
+    case("ok", "one all", 0, ["✓ slot 1 shulib Drive\n✓ slot 2 shulib Competition\n✓ slot 6 shulib Auton Tester\n"
+                              "✓ slot 3 Bench Tests\n✓ slot 4 shulib Calibrate\n✓ slot 7 shulib Tune"],
+         calls=[c for _n, (prog, slot, name) in every for c in (f"make -j{JOBS} ROBOT=one PROGRAM={prog}", lsusb,
+                                                                 f"pros upload --slot {slot} --name {name} --description no git"
+                                                                 + (" | skills, left 1" if prog in ("autontest", "competition") else "")
+                                                                 + " . /dev/ttyACM0")])
+    case("owed", "one all", 1, ["✗ slot 1 shulib Drive", "✗ slot 7 shulib Tune"])  # each fails on its own; the summary says so
     # RMP1-I review: a VS Code task has no PROS_TOOLCHAIN; the extension's own install folder (globalStorage) is found
     gs = work / "gs"
     tcx = gs / ("Library/Application Support" if sys.platform == "darwin" else "") / "Code/User/globalStorage/sigbots.pros/install"
     tcx = tcx / ("pros-toolchain-windows/usr" if os.name == "nt" else "pros-toolchain-linux")
     stand_in(tcx / "bin", "make", says="tcmake")
     stand_in(tcx.parent.parent / "pros-cli-windows" if os.name == "nt" else tcx.parent / "pros-cli-linux", "pros")
-    ran = ["pros lsusb", f"pros upload --slot {SLOT} --name {NAME} . /dev/ttyACM0"]
+    ran = ["pros lsusb", upload + " . /dev/ttyACM0"]
     case("ok", "one", 0, ["(make from the PROS toolchain: ", "✓ BUILT", "✓ UPLOADED"], path=False, ext=(gs, tcx),
          calls=[f"tcmake -j{JOBS} ROBOT=one PROGRAM=autontest"] + ran)
     case("ok", "one", 0, ["✓ UPLOADED"], unwanted=["from the PROS toolchain"], ext=(gs, tcx),
@@ -566,6 +666,32 @@ def self_test():
         if p.returncode != 130 or "✗ STOPPED (Ctrl+C)" not in out or "Traceback" in out or not live or \
                 "Compiled src/team/autons.cpp [OK]" not in said or "(stopped: Ctrl+C)" not in said:
             failures.append(f"ctrl-c: exit {p.returncode}, the log {'live' if live else 'not written as make printed'}\n{out}\nthe log:\n{said}")
+    # RMP1-K D3: the USER port (where the program's output comes), found as the system port is; D5: the description
+    lsusb = ("VEX EDR V5 System Ports:\n/dev/ttyACM0 - VEX Robotics V5 Brain - 1CA1 - VEX Robotics Communications Port\n"
+             "/dev/ttyACM2 - VEX Robotics V5 Controller - 0F1 - VEX Robotics Communications Port\n"
+             "VEX EDR V5 User Ports:\n/dev/ttyACM1 - VEX Robotics V5 Brain - 1CA1 - VEX Robotics User Port\n"
+             "/dev/ttyACM3 - VEX Robotics V5 Controller - 0F1 - VEX Robotics User Port\n")
+    for name, text, kind, want in (
+            ("the user port, a controller beside it", lsusb, "user", ("/dev/ttyACM1", None)),
+            ("the system port unchanged", lsusb, "system", ("/dev/ttyACM0", None)),
+            ("a controller only: said", lsusb.replace("/dev/ttyACM1 - VEX Robotics V5 Brain", "x"), "user", (None, "Only the controller")),
+            ("Windows: the user COM port", "VEX EDR V5 System Ports:\nCOM3 - VEX Robotics Communications Port (COM3)\n"
+             "VEX EDR V5 User Ports:\nCOM4 - VEX Robotics User Port (COM4)\n", "user", ("COM4", None)),
+            ("no user port listed: no brain", "VEX EDR V5 System Ports:\n/dev/ttyACM0 - VEX Robotics V5 Brain - 1 - Port\n"
+             "There are no connected VEX EDR V5 User Ports\n", "user", (None, "No brain found"))):
+        count[0] += 1
+        got = brain_port(text, kind)
+        if got[0] != want[0] or (want[1] is None) != (got[1] is None) or (want[1] and want[1] not in got[1]):
+            failures.append(f"brain_port: {name}: {got}")
+    count[0] += 1
+    git = work / "git"
+    (git / "src").mkdir(parents=True)
+    run = lambda *a: subprocess.run(["git", "-C", str(git), "-c", "user.name=t", "-c", "user.email=t@t", *a], capture_output=True, text=True)  # noqa: E731
+    if run("init", "-q").returncode == 0 and not run("commit", "-q", "--allow-empty", "-m", "x").returncode:
+        head = run("rev-parse", "--short", "HEAD").stdout.strip()
+        got = description(git, ["skills", "left 1", "\u00e9t\u00e9", "x" * 80])
+        if not got.startswith(f"{head} | skills, left 1, t, xxx") or len(got) != 60 or not got.isascii():
+            failures.append(f"description: {got!r} (the commit {head})")
     source = here.read_text(encoding="utf-8").split("# ── self-test")[0]
     failures.extend(f"a POSIX-only call in the script: {w}" for w in POSIX_ONLY if w in source)
     shutil.rmtree(work, ignore_errors=True)

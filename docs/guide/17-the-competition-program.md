@@ -21,13 +21,14 @@ programs — robot two's build below; robot one's is `make ROBOT=one PROGRAM=com
 
 ```sh
 rm -rf bin .d && make ROBOT=tank PROGRAM=competition
-pros upload --slot 2 --name "shulib Competition"
+pros upload --slot 2 --name "shulib Competition" --description "$(git describe --always --dirty)"
 ```
 
 The `rm -rf bin .d` is harmless, for the reason [Chapter 16](16-testing-an-auton-on-the-bench.md)
 gives: `make` notices a changed `ROBOT=` or `PROGRAM=` word and starts fresh by itself (until it did,
-it would link the last program you built under this name). **Slot 6.** Slot 5 is held for the team's own old code, as a fallback: never upload
-a shulib program over it.
+it would link the last program you built under this name). **Slot 2.** Slot 8 holds the team's own old code, as a
+fallback: never upload a shulib program over it. In VS Code, **Upload a program to a robot** → Competition does both
+steps and says plainly whether it worked.
 
 What happens in a match, in one paragraph: the robot boots from its calibration record; before the
 match you choose an auton on the brain's screen (**NONE**, the default, runs nothing); when the field

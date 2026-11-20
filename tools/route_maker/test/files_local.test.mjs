@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { localPage, localHost, sendToRobot, sendLog, GONE } from '../src/host/files_local.mjs';
+import { localPage, localHost, sendToRobot, sendLog, watchRobot, robotSlots, GONE } from '../src/host/files_local.mjs';
 import { makeFiles } from '../src/host/files.mjs';
 import { sendStage } from '../src/model/to_robot.mjs';
 import { newProject } from '../src/model/project.mjs';
@@ -184,4 +184,39 @@ test('sendStage: tools/upload_auton.py\'s own lines, said plainly', () => {
     assert.deepEqual(sendStage('  (make from the PROS toolchain: C:\\pros\\bin\\make.exe)'), { kind: 'detail', words: '(make from the PROS toolchain: C:\\pros\\bin\\make.exe)' });
     assert.equal(sendStage(''), null);
     assert.equal(sendStage('   \r'), null);
+});
+
+test('RMP1-K watchRobot: each message as it comes, the pings left out; Stop (abort) ends it quietly; a refusal in words', async () => {
+    const s = streamed([`${JSON.stringify({ saved: 'build/robot_runs/x.log' })}\n{}\n${JSON.stringify({ open: '/dev/ttyACM1' })}\n`,
+                        `${JSON.stringify({ line: '[t=   1.00] [RTN] routine' })}\n{}\n`], { cut: true });  // still open
+    let call;
+    const got = [];
+    const ctrl = new AbortController();
+    const w = watchRobot(PAGE, (m) => got.push(m), { signal: ctrl.signal, fetch: async (url, init) => { call = { url, ...init }; return s.res; } });
+    s.next();
+    s.next();
+    await new Promise((r) => setTimeout(r, 10));
+    assert.deepEqual(got, [{ saved: 'build/robot_runs/x.log' }, { open: '/dev/ttyACM1' }, { line: '[t=   1.00] [RTN] routine' }]);
+    assert.equal(call.url, 'api/watch');
+    assert.equal(call.method, 'POST');
+    assert.equal(call.signal, ctrl.signal);
+    ctrl.abort();
+    s.fail();
+    await w;  // aborted: no error
+    await assert.rejects(watchRobot(PAGE, () => {}, { fetch: async () => reply('The robot\'s log is already open in another tab.', 409) }), /already open/);
+    const cut = streamed([`${JSON.stringify({ open: 'COM4' })}\n`], { cut: true });
+    const c = watchRobot(PAGE, () => {}, { fetch: async () => cut.res });
+    cut.next();
+    cut.fail();
+    await assert.rejects(c, (e) => e.message === GONE, 'the helper stopped mid-watch: said so');
+});
+
+test('RMP1-K robotSlots: the request and the answer as the helper gives it', async () => {
+    let call;
+    const body = { robot: 'two', rows: [{ slot: 1, ok: true }], why: null };
+    const got = await robotSlots(PAGE, 'two', { fetch: async (url, init) => { call = { url, ...init }; return { ...reply(''), json: async () => body }; } });
+    assert.deepEqual(got, body);
+    assert.equal(call.url, 'api/robot?robot=two');
+    assert.equal(call.method, 'POST');
+    await assert.rejects(robotSlots(PAGE, 'one', { fetch: async () => reply('The brain is busy (a send, or another check).', 409) }), /busy/);
 });

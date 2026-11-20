@@ -476,6 +476,16 @@ TEST_CASE("route preview RP6: a timed-out step is red with the library's own sen
     }
     CHECK(stops == 1);
     CHECK(skips == 2);
+    // RMP1-K D4 (API 2.11): steps 1 and 2 each logged their "done in" line -- listed, verbatim, green (the robot's log says
+    // the same). Bug caught: a step that ended well listed grey, or not at all.
+    int dones = 0;
+    for (const rp::LogLine& l : m.routineLines) {
+        if (l.text.rfind("routine 'times-out': step ", 0) == 0 && l.text.find(") done in ") != std::string::npos) {
+            ++dones;
+            CHECK(l.mark == rp::Mark::Ok);
+        }
+    }
+    CHECK(dones == 2);
     // Nothing on the path after step 3 but the park's brake.
     for (const rp::Step& s : m.steps) {
         CHECK((s.number <= 3 || s.endAction));
@@ -483,6 +493,9 @@ TEST_CASE("route preview RP6: a timed-out step is red with the library's own sen
     }
     const std::string page = rp::renderHtml(m);
     CHECK(page.find("[RTN] routine &#39;times-out&#39; STOPPED at step 3 (moveTo): ") != std::string::npos);
+    const std::size_t done1 = page.find("[RTN] routine &#39;times-out&#39;: step 1 (");
+    REQUIRE(done1 != std::string::npos);
+    CHECK(page.rfind("<li class=\"ok\">T+", done1) == page.rfind("<li", done1));
 }
 
 // RP8 — a refused start. (a) A skills auton whose stop is 61 s and (b) one with no start are REFUSED by

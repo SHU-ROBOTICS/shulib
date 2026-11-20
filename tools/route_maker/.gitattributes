@@ -5,3 +5,5 @@
 * text=auto eol=lf
 *.webp binary
 *.png binary
+# RMP1-K: the brain's own lines, as pros printed them (\r and all): never converted
+test/fixtures/robot_log/*.log -text

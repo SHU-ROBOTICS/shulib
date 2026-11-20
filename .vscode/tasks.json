@@ -2,9 +2,11 @@
     // The team's buttons: Terminal -> Run Task -> one of these. "Open the route builder" opens this folder's route
     // builder in the browser, where Send to robot is one button (tools/route_builder.py; the terminal keeps it running,
     // Ctrl+C stops it). The two "Upload routes" build the Auton Tester for that robot, upload it to slot 6 and say plainly
-    // whether it worked (tools/upload_auton.py). "Upload a program to a robot" asks which robot and which program
-    // (Drive, slot 1, has the driver controls; Competition, slot 2; the Auton Tester, slot 6). Plug the BRAIN in by USB.
-    // (The PROS extension's own Build & Upload builds the default program, not the Auton Tester.)
+    // whether it worked (tools/upload_auton.py). "Upload everything" puts all six programs on that robot, each in its
+    // slot. "Upload a program to a robot" asks which robot and which program. "What is on robot one" (or two) lists what
+    // is in each of the brain's slots against what should be there, read-only (tools/route_builder.py robot one).
+    // Plug the BRAIN in by USB. (Not the PROS extension's own Upload button: it builds the bench bot's test program
+    // into slot 5, not robot one's.)
     "version": "2.0.0",
     "tasks": [
         {
@@ -38,12 +40,50 @@
             "problemMatcher": []
         },
         {
+            "label": "Upload everything to robot one",
+            "type": "shell",
+            "command": "python3",
+            "windows": { "command": "python" },
+            "args": ["tools/upload_auton.py", "one", "all"],
+            "group": "build",
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "Upload everything to robot two",
+            "type": "shell",
+            "command": "python3",
+            "windows": { "command": "python" },
+            "args": ["tools/upload_auton.py", "two", "all"],
+            "group": "build",
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+            "problemMatcher": []
+        },
+        {
             "label": "Upload a program to a robot",
             "type": "shell",
             "command": "python3",
             "windows": { "command": "python" },
             "args": ["tools/upload_auton.py", "${input:robot}", "${input:program}"],
             "group": "build",
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "What is on robot one",
+            "type": "shell",
+            "command": "python3",
+            "windows": { "command": "python" },
+            "args": ["tools/route_builder.py", "robot", "one"],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "What is on robot two",
+            "type": "shell",
+            "command": "python3",
+            "windows": { "command": "python" },
+            "args": ["tools/route_builder.py", "robot", "two"],
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
             "problemMatcher": []
         }
@@ -53,7 +93,16 @@
             "id": "robot",
             "type": "pickString",
             "description": "Which robot is plugged in?",
-            "options": [{ "label": "Robot one", "value": "one" }, { "label": "Robot two", "value": "two" }],
+            "options": [
+                {
+                    "label": "Robot one",
+                    "value": "one"
+                },
+                {
+                    "label": "Robot two",
+                    "value": "two"
+                }
+            ],
             "default": "one"
         },
         {
@@ -61,9 +110,34 @@
             "type": "pickString",
             "description": "Which program?",
             "options": [
-                { "label": "Drive (slot 1) — the driver controls", "value": "drive" },
-                { "label": "Competition (slot 2) — the match program", "value": "competition" },
-                { "label": "Auton Tester (slot 6) — test a route", "value": "tester" }
+                {
+                    "label": "Drive (slot 1) — the driver controls",
+                    "value": "drive"
+                },
+                {
+                    "label": "Competition (slot 2) — the match program",
+                    "value": "competition"
+                },
+                {
+                    "label": "Auton Tester (slot 6) — test a route",
+                    "value": "tester"
+                },
+                {
+                    "label": "Bench Tests (slot 3)",
+                    "value": "bench"
+                },
+                {
+                    "label": "Calibrate (slot 4)",
+                    "value": "calibrate"
+                },
+                {
+                    "label": "Tune (slot 7)",
+                    "value": "tune"
+                },
+                {
+                    "label": "ALL SIX",
+                    "value": "all"
+                }
             ],
             "default": "drive"
         }
