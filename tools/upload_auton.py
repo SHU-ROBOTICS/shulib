@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""upload_auton.py -- build the Auton Tester, upload it, and say plainly whether it worked (RMP1-F D5).
+"""upload_auton.py -- build a program, upload it to its slot, and say plainly whether it worked (RMP1-F D5).
 
-    python3 tools/upload_auton.py one    robot one: make ROBOT=one PROGRAM=autontest
-    python3 tools/upload_auton.py two    robot two: make ROBOT=tank PROGRAM=autontest
+    python3 tools/upload_auton.py one              robot one's Auton Tester (make ROBOT=one PROGRAM=autontest), slot 6
+    python3 tools/upload_auton.py one drive        robot one's Drive (PROGRAM=drive), slot 1 -- the driver controls
+    python3 tools/upload_auton.py one competition  robot one's Competition (PROGRAM=competition), slot 2
+    python3 tools/upload_auton.py two ...          robot two (ROBOT=tank), the same three
     python3 tools/upload_auton.py self-test
 
-Then `pros upload --slot 6 --name "shulib Auton Tester" . <the brain's port>` (pros-cli takes the port as an argument
+Then `pros upload --slot <its slot> --name "<its name>" . <the brain's port>` (pros-cli takes the port as an argument
 after the project folder; the port from `pros lsusb`'s "V5 System Ports", without a controller). Prints ✓ BUILT and
 ✓ UPLOADED, or ✗ and the first real error in plain words. Windows and Linux: Python 3 (`python` on Windows), `make` and
 `pros` from PATH (the PROS terminal), else from the PROS toolchain's folder (PROS_TOOLCHAIN, else the one the PROS
@@ -21,9 +23,12 @@ import sys
 import threading
 from pathlib import Path
 
-SLOT = 6
+# Each program: its PROGRAM= word, its slot and its name on the brain (the team lead, 2026-11-20: Drive 1, Competition 2;
+# the Auton Tester 6). The tester is the default, as the route builder's Send and the first tasks call it.
+PROGRAMS = {"tester": ("autontest", 6, "shulib Auton Tester"), "drive": ("drive", 1, "shulib Drive"),
+            "competition": ("competition", 2, "shulib Competition")}
+SLOT, NAME = PROGRAMS["tester"][1], PROGRAMS["tester"][2]
 JOBS = os.cpu_count() or 1  # make's parallel jobs (the team lead, 2026-11-20: "i want to easily be able to iterate")
-NAME = "shulib Auton Tester"
 ROBOTS = {"one": "one", "two": "tank"}
 SKILLS = "src/team/skills_route.cpp"
 PROS_HELP = "https://pros.cs.purdue.edu/v5/getting-started/"
@@ -171,7 +176,7 @@ def brain_port(text):
                   "the controller's), then run this again.")
 
 
-def upload_error(text):
+def upload_error(text, slot=SLOT, name=NAME):
     """Why pros upload failed, in plain words."""
     low = text.lower()
     if "no v5" in low or "no device" in low or "no ports" in low or "no port provided" in low:
@@ -179,7 +184,7 @@ def upload_error(text):
     if "permission denied" in low:
         return "This computer may not use the brain's port. On Linux: sudo usermod -aG dialout $USER, then log out and in."
     if "aborted" in low:  # a question this script cannot answer (which brain; too many files on the brain; ...)
-        return f'pros stopped to ask a question. Run the upload yourself to answer it: pros upload --slot {SLOT} --name "{NAME}"'
+        return f'pros stopped to ask a question. Run the upload yourself to answer it: pros upload --slot {slot} --name "{name}"'
     last = [x.strip() for x in text.splitlines() if x.strip()]
     return (last[-1] if last else "pros printed nothing.") + " (Ask the coordinator with these words.)"
 
@@ -227,11 +232,14 @@ def main(argv):
     while len(argv) >= 2 and argv[0] in ("--root", "--wait"):  # the self-test's stand-in repository and short waits
         root, wait = (Path(argv[1]), wait) if argv[0] == "--root" else (root, float(argv[1]))
         argv = argv[2:]
-    if len(argv) != 1 or argv[0] not in ROBOTS:
-        print("Say which robot: python3 tools/upload_auton.py one   (or two)")
+    if not 1 <= len(argv) <= 2 or argv[0] not in ROBOTS or (len(argv) == 2 and argv[1] not in PROGRAMS):
+        print("Say which robot, and which program if not the Auton Tester: python3 tools/upload_auton.py one   "
+              "(or two; then drive, competition or tester)")
         return 2
     ok, bad, to = marks()
     which = argv[0]
+    program, slot, name = PROGRAMS[argv[1] if len(argv) == 2 else "tester"]
+    words = {"autontest": "Auton Tester", "drive": "Drive", "competition": "Competition"}[program]
     make, pros, env = find_tools()
     if not make or not pros:
         missing = " and ".join(n for n, p in (("make", make), ("pros", pros)) if not p)
@@ -240,8 +248,8 @@ def main(argv):
     log = root / "build" / "upload_auton.log"
     log.parent.mkdir(parents=True, exist_ok=True)
     log.write_text("", encoding="utf-8")
-    cmd = [make, f"-j{JOBS}", f"ROBOT={ROBOTS[which]}", "PROGRAM=autontest"]  # every core: a full build ~3x faster
-    print(f"Building robot {which}'s Auton Tester: make ROBOT={ROBOTS[which]} PROGRAM=autontest (a few minutes the "
+    cmd = [make, f"-j{JOBS}", f"ROBOT={ROBOTS[which]}", f"PROGRAM={program}"]  # every core: a full build ~3x faster
+    print(f"Building robot {which}'s {words}: make ROBOT={ROBOTS[which]} PROGRAM={program} (a few minutes the "
           "first time; Ctrl+C stops it)...", flush=True)
     if env and Path(make).parent == Path(env.get("PROS_TOOLCHAIN", "")) / "bin":
         print(f"  (make from the PROS toolchain: {make})", flush=True)
@@ -259,18 +267,22 @@ def main(argv):
     if why:
         print(f"{bad} NOT UPLOADED: {why}")
         return 1
-    cmd = [pros, "upload", "--slot", str(SLOT), "--name", NAME] + ([".", port] if port else [])  # [PATH] [PORT]
-    print(f"Uploading to slot {SLOT}{' on ' + port if port else ''}...", flush=True)
+    cmd = [pros, "upload", "--slot", str(slot), "--name", name] + ([".", port] if port else [])  # [PATH] [PORT]
+    print(f"Uploading to slot {slot}{' on ' + port if port else ''}...", flush=True)
     code, text = run(cmd, root, log, timeout=300 * wait)
     if code != 0 or "finished uploading" not in text.lower():
         said = ("pros did not say it finished uploading." if code == 0 else
-                no_answer(300 * wait) if code is None else upload_error(text))
+                no_answer(300 * wait) if code is None else upload_error(text, slot, name))
         print(f"{bad} NOT UPLOADED: {said}")
         print(f"  (everything pros printed: {log})")
         return 1
+    if program != "autontest":
+        print(f"{ok} UPLOADED to slot {slot}. On the brain: {name}" + (" (the driver controls are in it)" if program == "drive"
+              else f" {to} pick the auton on its screen (its driver control is the driver file)"))
+        return 0
     r = region(root)
     names = r[2] if r and r[2] else ["your route"]
-    print(f"{ok} UPLOADED to slot {SLOT}. On the brain: {NAME} {to} {' or '.join(names)} {to} RUN")
+    print(f"{ok} UPLOADED to slot {slot}. On the brain: {name} {to} {' or '.join(names)} {to} RUN")
     return 0
 
 
@@ -365,8 +377,8 @@ if case == "quiet":
     sys.exit(0)
 if case == "uploadfail":
     stop("Error: [Errno 13] could not open port " + port + ": Permission denied", code=1)
-print('Uploading program "shulib Auton Tester" (hot.package.bin) to V5 slot ' + args[args.index('--slot') + 1] + ' on ' + port + " (compressed)")
-done = 'Finished uploading "shulib Auton Tester" (hot.package.bin) to V5'
+print('Uploading program "' + args[args.index('--name') + 1] + '" (hot.package.bin) to V5 slot ' + args[args.index('--slot') + 1] + ' on ' + port + " (compressed)")
+done = 'Finished uploading "' + args[args.index('--name') + 1] + '" (hot.package.bin) to V5'
 if case == "late":  # pros has ended with its last line still on the way (its own child prints it): read to the end
     import subprocess
     sys.stdout.flush()
@@ -444,7 +456,7 @@ def self_test():
              tc=None, ext=None):
         count[0] += 1
         (work / "repo" / SKILLS).write_text(skills, encoding="utf-8")
-        p = subprocess.run([sys.executable, str(here), "--root", str(work / "repo"), *extra, robot], env=env_for(name, path, enc, tc, ext),
+        p = subprocess.run([sys.executable, str(here), "--root", str(work / "repo"), *extra, *robot.split()], env=env_for(name, path, enc, tc, ext),
                            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=120)
         out = p.stdout.decode("utf-8", errors="replace")
         made = (work / "calls.txt").read_text(encoding="utf-8").splitlines()
@@ -509,6 +521,21 @@ def self_test():
     case("ok", "one", 1, ["✗ pros not found."], calls=[], path=work / "makeonly", tc=work / "bare" / "pros-toolchain-test")
 
     case("ok", "three", 2, ["Say which robot"], calls=[])
+    # the team lead, 2026-11-20 ("how easy is it to export the driver controls"): Drive and Competition, each to its slot
+    case("ok", "one drive", 0, ["Building robot one's Drive: make ROBOT=one PROGRAM=drive", "✓ BUILT",
+                                "✓ UPLOADED to slot 1. On the brain: shulib Drive (the driver controls are in it)"],
+         unwanted=["Auton Tester", "RUN"],
+         calls=[f"make -j{JOBS} ROBOT=one PROGRAM=drive", lsusb, "pros upload --slot 1 --name shulib Drive . /dev/ttyACM0"])
+    case("ok", "two competition", 0, ["Building robot two's Competition: make ROBOT=tank PROGRAM=competition",
+                                      "✓ UPLOADED to slot 2. On the brain: shulib Competition → pick the auton on its screen"],
+         unwanted=["Auton Tester"],
+         calls=[f"make -j{JOBS} ROBOT=tank PROGRAM=competition", lsusb,
+                "pros upload --slot 2 --name shulib Competition . /dev/ttyACM0"])
+    case("ok", "one tester", 0, ["✓ UPLOADED to slot 6. On the brain: shulib Auton Tester"],
+         calls=[make1, lsusb, upload + " . /dev/ttyACM0"])  # the default, said
+    case("question", "one drive", 1, ['pros upload --slot 1 --name "shulib Drive"'])  # its own slot in the hand command
+    case("ok", "one autontest", 2, ["Say which robot, and which program"], calls=[])  # the words are drive/competition/tester
+    case("ok", "one drive extra", 2, ["Say which robot"], calls=[])
     # RMP1-I review: a VS Code task has no PROS_TOOLCHAIN; the extension's own install folder (globalStorage) is found
     gs = work / "gs"
     tcx = gs / ("Library/Application Support" if sys.platform == "darwin" else "") / "Code/User/globalStorage/sigbots.pros/install"

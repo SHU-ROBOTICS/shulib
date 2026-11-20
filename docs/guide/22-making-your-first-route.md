@@ -359,7 +359,8 @@ project that uses them: download it again.
 2. Click a button; a free (dashed) one: pick its mechanism, then its job.
 3. **2 · Driving feel**: set the dead zone and the curve.
 4. **Export** (**Ctrl+E**) → **Write into src/team/robot_one_driver.hpp**.
-5. Pick robot **two**, do the same, then build and upload.
+5. Put it on the robot: VS Code **Terminal → Run Task → Upload a program to a robot** → **Robot one** → **Drive**,
+   then again with **Competition** (both run the driver file). Robot two: pick **two** in steps 1–5.
 
 <video controls preload="metadata" poster="../../assets/video/controls-tab.jpg" src="../../assets/video/controls-tab.mp4" style="max-width:100%"></video>
 
@@ -468,7 +469,11 @@ robot shown.
 
 ![The Controls tab's export: the three parts, each with Copy](../assets/route-builder/controls-export.png)
 
-Then build as usual: the build is the final judge of every line.
+Then put it on the robot. The driver file runs in **shulib Drive** (slot 1) and in **shulib Competition**'s driver
+control (slot 2), so upload both: VS Code **Terminal → Run Task → Upload a program to a robot**, pick the robot,
+then **Drive**; run it again for **Competition**. Without VS Code: `python3 tools/upload_auton.py one drive`, then
+`python3 tools/upload_auton.py one competition` (`two` for robot two; `python` on Windows). Each says **✓ UPLOADED**
+or **✗** with the first real error; the build is the final judge of every line.
 
 ## The reference
 

@@ -33,6 +33,10 @@ has run against stand-ins for `make` and `pros` only: not yet against the real `
 
 **What you must do:** nothing. The website's route builder works as before; its Next card names the easier way.
 
+`tools/upload_auton.py one drive` and `… one competition` upload **Drive** (slot 1) and **Competition** (slot 2) the
+same way (`tester`, the default, is the Auton Tester), and VS Code's **Upload a program to a robot** task asks
+which robot and which program — the way to put the Controls tab's export on the robot.
+
 Send and `tools/upload_auton.py` build on every core of the laptop (`make -jN`): a first build, or one after a
 `git pull`, is about three times faster; a route-only change rebuilds in about a second.
 
