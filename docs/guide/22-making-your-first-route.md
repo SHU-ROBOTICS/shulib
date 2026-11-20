@@ -260,34 +260,39 @@ autons, and those two take 2: at most 14 routes.
 Music: "Wallpaper" by Kevin MacLeod ([incompetech.com](https://incompetech.com)), licensed under [Creative Commons: By Attribution 4.0](https://creativecommons.org/licenses/by/4.0/). Voice: Kokoro.
 
 The **Controls** tab (top bar, beside **Route**) sets what each button does in driver control and how the sticks
-feel. It edits robot one's driver file, `src/team/robot_one_driver.hpp` (or robot two's — pick **one** or **two**
-above the list on the left). It opens with the driver file as it was when this page was published (the date is on
-the right); with your shulib folder connected (Edge or Chrome) it reads today's file. Once you change a robot's
+feel, in two steps — **1 · Buttons** and **2 · Driving feel** — one on the screen at a time. It edits robot one's
+driver file, `src/team/robot_one_driver.hpp` (or robot two's — pick **one** or **two** at the right of the steps). It
+opens with the driver file as it was when this page was published (with nothing clicked, the panel beside the
+controller gives the date); with your shulib folder connected (Edge or Chrome) it reads today's file. Once you change a robot's
 controls, your project file keeps them, and the tab opens with those. It changes only what you change. Connecting
 the folder or opening a project keeps a change made here: when this page had no route yet and the folder's project
 has no controls for that robot, your change stays; otherwise **Ctrl+Z** on this tab brings it back. The one
 exception is a project whose controls for that robot this page cannot read (a newer route builder's): the tab then
 shows the driver file, read only, and your change there is gone. The page says which.
 
-![The Controls tab: robot one's controller with each button's job beside it (a free button dashed), its mechanisms on the left, the driving feel below](../assets/route-builder/controls.png)
+![Step 1, Buttons: robot one's controller drawn large, each button's job on its label (a free button dashed), and the panel beside it listing the mechanisms](../assets/route-builder/controls.png)
 
-### What each button does
+### Step 1 · Buttons
 
-The picture is the V5 controller. Each button's job is written beside it; a **dashed** button is free, and Y is the
-drive's re-zero button. On the left, each mechanism lists its controls.
+The picture is the V5 controller. Each button's label says its job; a **dashed** button is free, and Y is the
+drive's re-zero button. Click a button (or its label) and the panel beside the controller (under it, in a narrow
+window) shows that one job — its button (both, for a pair) is the only one highlighted on the controller (a button
+with a problem stays red). **Esc** or **×** closes it. With nothing clicked, the panel lists your mechanisms and their
+buttons, and says in a sentence any job that needs no button ("The cascade homes by itself when driver control
+starts").
 
-- **Give a free button a job:** click it. A short menu lists what each mechanism can do with it, each item saying
-  exactly what it picks (**Move while held: Up up, Down down**; **Go to "open" on one press**); pick one, then finish it
-  on the right — the volts of a hold (12 is full power), the level and its time limit, or the second button of a pair
-  when its partner is taken.
-- **Change a job:** click the button (or the control on the left). On the right: the mechanism, what it does, its
-  button, its volts or time limit, and **Remove this control**.
-- **A job with no button:** **Add** under a mechanism — "home it when driver control starts", or "autons only".
+- **Give a free button a job:** click it, pick the mechanism, then pick the job. Each job says exactly what it picks
+  (**Move while held: Up up, Down down**; **Go to "open" on one press**). Then finish it in the panel — the volts of a
+  hold (12 is full power), the level and its time limit, or the second button of a pair when its partner is taken.
+- **Change a job:** click the button. The panel shows the mechanism, what it does, its button, its volts or time
+  limit, and **Make X free** (both buttons of a pair: **Make R1 and R2 free**).
+- **A job with no button:** click the mechanism in the panel's list — "home it when driver control starts", or
+  "autons only".
 - **The words:** the comment on its line and its row in the button map at the top of the file are yours to
-  reword (right, under "Its words in the file"). Change what a control does and both become the page's words again
-  (**Ctrl+Z** brings yours back); move it to another button and yours are kept.
+  reword (in the panel, under **Its words in the file**). Change what a control does and both become the page's words
+  again (**Ctrl+Z** brings yours back); move it to another button and yours are kept.
 
-![A free button clicked: the menu of what each mechanism can do with it](../assets/route-builder/controls-menu.png)
+![Up clicked, then the claw: the claw's three jobs, each a large button](../assets/route-builder/controls-menu.png)
 
 | Mechanism | What a button can do |
 |---|---|
@@ -304,28 +309,34 @@ meant), a control on the re-zero button, more than 24 controls, and an arm or li
 home it in driver control. It also asks for what is not finished yet — a button, a level, or the second button
 of a pair it does not choose for you. Export lists them, each with **Go there**. The button map at the top of the
 file is written from the same choices: each control's rows sit where its buttons are, in the code's order. Its
-words are yours, so the page also stops on words it can tell are wrong now — a map line calling the d-pad FREE once
-you give Up a job (**Remove that line**), or words naming a button whose job changed after they were written — the
-file's or yours (**Use the page's words** replaces only that comment or row) — and asks you to check a note in the
-file that speaks of a mechanism or button you changed. Words it
-cannot judge are yours to keep true.
+words are yours. Give a free button a job and a map line calling it free (the d-pad FREE line, once Up has a job)
+goes in the same click — the page says so, and one **Ctrl+Z** brings both back. The page stops on words it can tell
+are wrong now — a line like that already in the file (**Remove that line**), or words naming a button whose job
+changed after they were written — the file's or yours (**Use the page's words** replaces only that comment or row) —
+and asks you to check a note in the file that speaks of a mechanism or button you changed. Words it cannot judge are
+yours to keep true.
 
-![B given to the claw while the flipper has it: B turns red, the reason in plain words, and the build's name beside it](../assets/route-builder/controls-refused.png)
+![B given to the claw while the flipper has it: B and its label turn red, the reason in plain words, and the build's name beside it](../assets/route-builder/controls-refused.png)
 
-### The driving feel
+### Step 2 · Driving feel
 
 "Move the stick a little and the robot goes slowly, but still moves; push it all the way and it goes fast" — that
-is the **curve**. Under the controller:
+is the **curve**. Click **2 · Driving feel** (or a stick on the controller). First, the essentials:
 
-- **The drive mode** — **Arcade** (the left stick drives, the right stick turns), **Tank** (each stick drives its
+- **The style** — **Arcade** (the left stick drives, the right stick turns), **Tank** (each stick drives its
   own side) or **Field arcade** (push the stick the way to go on the field, whichever way the robot faces).
-- For each stick direction — **Forward and back**, **Turning** (and **Sideways** on a robot that can strafe):
-  - **Dead zone** — a stick moved less than this does nothing (the library's default is 0.05).
-  - **Curve** — 0 is straight: half a push asks for half speed. Higher gives finer control near the middle and still
-    full speed at the end.
+- **Dead zone** — a stick moved less than this does nothing (the library's default is 0.05).
+- **Curve** — 0 is straight: half a push asks for half speed. Higher gives finer control near the middle and still
+  full speed at the end.
+
+The rest waits under **More settings** (closed at first):
+
+- **Which stick direction** the dead zone and curve shape — **Forward and back**, **Turning** (and **Sideways** on a
+  robot that can strafe). The heading above them says which.
 - **Ramp** — how quickly the request may change: at 4 per second, "full speed from rest in 0.25 s" — and a stop from
   full speed takes as long, so with a ramp the robot does not stop the instant the sticks are let go. 0 is no ramp.
-- **When the sticks are let go** — the drive coasts, brakes or holds; and **the re-zero button**.
+- **When the sticks are let go** — the drive coasts, brakes or holds; **the re-zero button**; and **Use the library's
+  defaults**.
 
 ![The driving feel at a curve of 0.6: a 30 % push asks for 12 %, a full push still 100 %](../assets/route-builder/feel.png)
 

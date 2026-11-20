@@ -3317,3 +3317,272 @@ Makefile` empty. `api_doc_tool` self-test, check-coverage, check-fresh (exit 0),
 lines, all verbatim`), check-removability: OK. `doc_staleness_audit.py` self-test OK (16), run clean (37 live docs).
 src gate `check`: `PASS (all 14 builds link or, robot one's and robot two's, refuse naming exactly their owed facts
 ...)` (its self-test not needed: no src/ or Makefile change). No browser process of this round left. Nothing committed.
+
+## RMP1-D — the Controls tab, one thing at a time (layout and words only)
+
+- **Started 2026-11-19** by an executor (Opus 5.5) in the `rmp1-d` worktree, base main `8b2d99e`. Brief:
+  `RMP1-D-controls-tab-layout.md` (the coordinator's, uncommitted, lands with this run). The team lead: "THAT IS AN
+  INFORMATION OVERLOAD" / "the formatting of the controls tab needs to be worked on". Scratch:
+  `.claude/coordinator/scratch/rmp1-d/`. Host and browser only; no pros, no /dev/ttyACM*.
+- **Added to the run by the coordinator (2026-11-19), found while recording the Controls tab's tutorial on the built
+  site** — each to be fixed with a page test seen RED first: (1) the feel graph's dot stops dragging after the first
+  drag (the graph's text gets selected; the browser starts its own drag); (2) changing a feel number (Curve 0.6 +
+  Enter) scrolls the column back to the top, losing the graph; (3) giving a free button a job (robot one, Up) raises
+  the "stale map" error and asks for "Remove that line" — it must succeed in one action, the export byte-for-byte the
+  same for the same controls.
+- **Baseline (base 8b2d99e, before any edit):** host build OK; node 156/156; Firefox `controls.page.test.mjs` 15/15.
+- **Built:** `controls_tab.mjs` — the tab is a two-step switch (`1 · Buttons` / `2 · Driving feel`, role tablist, arrow
+  keys) with the robot switch beside it; only one step is drawn. Step 1: the controller re-drawn on a 1000 × 462 viewBox
+  (one label slot per button, two-line labels "R1 · cascade / up (hold)", 17/16 user units, pills measured by `getBBox`,
+  leaders under the buttons; the selected button and its label the only accent) and ONE editor beside it: nothing
+  chosen → "Give a button a job" with the mechanisms as a compact list, the no-button jobs as plain sentences, the
+  ready banner and the source words; a free button → its mechanisms as large buttons, then that mechanism's jobs (the
+  old popover's items, same words and accessible names); a used button → its keycaps, the mechanism, the job's words,
+  the existing form ("Its words in the file" folded), "Make R1 and R2 free"; Esc / Close closes, the keyboard back on
+  the button. `feel_tab.mjs` — the style as three cards, the axis's Dead zone and Curve beside the graph, everything
+  else under "More settings" (closed). CSS in ONE block `/* ── Controls tab (RMP1-D) ── */ … /* ── end Controls tab ── */`;
+  RMP1-B's old Controls layout rules (three-column grid, the mechanism cards, the popover groups, `.seg.wide`, the
+  ≤1100 px drawers) removed from its block. `help.mjs` :47 one phrase ("is below it" → "is its step 2").
+- **Found by Chromium (and fixed):** "More settings" closed itself when a typed number re-drew the feel right after
+  it was opened — the open state was recorded on the `toggle` event, which comes a task later. Now recorded on the
+  summary's click (a deterministic test re-draws inside the same task).
+- **After:** node 156/156 (unchanged: no model or export file touched); Firefox controls page 21/21; Chromium 20 + 1 skipped
+  (the download way is Firefox's).
+- **Tests added (`test/page/controls.page.test.mjs`, Firefox + Chromium):** (1) two steps, ONE drawn at a time — click,
+  arrow keys, a stick opens step 2, `aria-labelledby` follows; (2–4) at 1280 × 800, 1366 × 768 and 1440 × 900: all 14
+  labels drawn at ≥ 13 px ON SCREEN (computed size × the drawing's scale), each label's words inside its pill and its
+  pill inside the drawing, no two labels overlapping, and NOTHING CUT OFF (no element clipping its content or scrolling
+  sideways, the tab ending above the status bar) with nothing chosen, the cascade's form, its words open, the feel, More
+  open; the feel's essentials fit with no scroll; the last setting scrolls into view; (5) a click (or a label) opens ONE
+  editor with the job now; the selected button and its label the ONLY accent-painted shapes; Make X free → give X the
+  claw → drawn at once → two Ctrl+Z bring "ramp: toggle" back; Enter on a free button puts the keyboard on its first
+  choice, Esc closes and returns it; (6) "More settings" closed at first, every setting under it hidden then reachable
+  and enabled, the axis picked there titles the essentials, and a re-draw in the same task keeps it open. The old
+  tests re-pointed (the popover → the editor's two-stage choices; `.pane.right` → `.ctl-editor`; feel settings via
+  step 2). Screenshots: light/dark × 1440/1280 (`scratch/rmp1-d/shots/`); guide 22's five Controls pictures re-taken
+  from the Firefox light-1440 ones (`controls-menu.png` is now the claw's three choices; the popover is gone).
+- **Mutations — 15, every one CAUGHT on a FRESH site build, observed red for its own reason, restored with its
+  timestamp bumped (`scratch/rmp1-d/mutate.py`, logs `mutlogs/`, `mutations.json`):** M1 a label's job line 12 units
+  (10.06 px at 1280); M2 Right's label slot onto Left's (overlap); M3 the viewBox 1300 wide (10.31 px); M4 used buttons
+  accent-filled ("no accent" fails); M5 the controller mounted under the feel (one step); M6 More open at first; M7 Esc
+  does nothing; M8 an export byte (`_volt` → `_volts` in `controls.mjs`) — the node goldens red, 5 tests ("…is stale");
+  M9 the editor `overflow: hidden` (clips at 1366); M10 a chosen job not committed; M11 the graph column 600 px (the
+  essentials 737 > 603 at 1366 × 768); M12 More's state only on `toggle` (closes on a same-task re-draw); M13 the label
+  not marked selected; M14 the pills measured 44 units short (words outside the pill); M15 Enter leaves the keyboard on
+  the button.
+- **The export is unchanged:** no model, export or driver-file module touched (`git diff -- tools/route_maker/src/model
+  src/ include/` empty); the node goldens 156/156; M8 proves they see one byte.
+- **Docs:** guide 22 — the Controls part's opening (two steps; the robot pick "at the right of the steps"; the date in
+  the panel), "Step 1 · Buttons" (was "What each button does"), "Step 2 · Driving feel" (essentials, then More
+  settings); the changelog — one bullet under the 2026-11-16 Controls entry; `tools/route_maker/README.md` row 13;
+  `help.mjs` :47. NOT touched: `docs/route-builder.md` :16 (still true), guide 18 / 21 / cookbook 06 (no layout words),
+  `docs/api/` (no `///` changed), `mkdocs.yml`.
+- **PROSE REVIEW (rule 4), run 18:19, BEFORE this line:** `grep -rn -i -E "controls_tab|feel_tab|popover|Remove this
+  control|With no button|short menu|menu lists|above the list on the left|the control on the left|under a mechanism|below
+  the controller|Under the controller|the date is on the right|feel is below" docs README.md tools/route_maker/README.md
+  test/README.md --include=*.md` (internal and api aside) → guide 22 :74 (the Route tab's Mechanism menu: true), :213
+  and :231 (this run's / true), the README :13 (this run's). Also read: `docs/route-builder.md` :16, the changelog :59–77,
+  cookbook 06 :282, `test/README.md` :102, `RMP1-A1-manual-checks.md` (no Controls step) — all true.
+- **FINAL TESTS AND GATES (18:00–, on the final tree; `scratch/rmp1-d/gates.sh`, logs `gates/`):** the site re-built
+  from the restored sources; Firefox Controls page **21/21**, Chromium **20 + 1 skipped** (the download way is
+  Firefox's), A1's `page.test.mjs` (Firefox) **18/18**, node **156/156**. Gates: the suite binary unlinked, configure,
+  briefing generated, host build **0 warnings** (no C++ changed), briefing generated again — **no tracked change**; suite
+  green **3,856 cases / 3,886,386 assertions** (`suite_run.py green`, 4 GiB cap); briefing check and self-test;
+  api_doc_tool self-test / coverage (6,485 entities, 215 headers) / fresh / examples / removability; staleness
+  self-test and audit; doc_readability check-nav / check-tone / self-test; the PROS-free and sim-free greps clean; the
+  ARM header gate exit 0 (260 lines: 259 headers + main).
+  The src gate self-test **OK (398 detector cases)** and check **PASS (14 builds)** (`timeout -s INT 7000`, `nice`);
+  after both, `git diff -- Makefile src/ include/` EMPTY and no untracked file under `src include test`. No browser,
+  driver or test process left.
+- **Deltas from the brief:** (1) a free button's choices come in TWO short steps — its mechanism, then that
+  mechanism's jobs (each a large button; "Another mechanism" goes back) — not one list of ~16; one idea at a time.
+  (2) A used button's editor offers "Make R1 free" as its large-button choice; changing to another job stays the
+  existing Mechanism / What it does fields (no second list repeating them). (3) The axis picker sits INSIDE More
+  settings ("The dead zone and curve above shape"), and the essentials' heading names the axis shown. (4) "Its words in
+  the file" folded too (open by itself when a word there is stale). (5) Extra docs: one changelog bullet, the route
+  builder README row, `help.mjs` :47. (6) RMP1-B's old Controls rules REMOVED from its block (not left dead beside the
+  new block): `.controls`/`.controls-mid` grid, `.seg.wide`, the controller (SVG) group, `.mechs`/`.mech-card`/`.mech-head`,
+  `.menu-group*`/`.mech-chip`, the ≤1100 px `.controls .pane` drawers — the new rules are all in the RMP1-D block.
+- **For the coordinator's merge:** `help.mjs` and `style.css` are RMP1-C's files too — one phrase in `help.mjs` :47;
+  in `style.css` the RMP1-B block lost the rules above (hunks around old :385–435 and the last `@media`) and the new
+  block is appended at the end. `app.mjs` NOT touched. The tutorial video (`tools/docs_video/controls_tab/`) was
+  recorded on the old layout: the Controls tab's role/name and every controller button's accessible name are
+  unchanged, but the popover, the left Mechanisms column and the right Control pane are gone — it needs re-recording.
+  **Amended in the fix round:** `.mech-head` and `.seg.wide` stay (RMP1-C uses both). RMP1-C's tree still has RMP1-B's
+  OLD controller rules (rmp1-c `style.css` :415–430: `.callout { pointer-events: none }`, `.callout text {
+  text-anchor: middle }`, `.callout.used rect` accent, `.cbtn*`, `.pad*`, the `.controls` grid): after the merge NONE
+  may survive outside the RMP1-D block — kept, they stop label clicks, pull the words out of their pills and accent
+  every used label. Re-run `controls.page.test.mjs` (Firefox and Chromium) on the merged site.
+
+### RMP1-D review findings and their disposition (the fix round, started 2026-11-19 19:50, the builder again, Opus 5.5)
+
+- Three reviewers (correctness, tests, docs) returned 19 findings; overlaps merged below (A–P). Each re-checked on this
+  tree before its fix. **Interrupted once:** this round's first pass (19:50–19:57: the code and test edits, a copy of
+  the reviewed `controls_tab.mjs` / `feel_tab.mjs` / `style.css` / page test in `scratch/rmp1-d/prefix/`, byte-equal
+  to the 18:19 mutation backups) stopped with no log line and no process left; it RESUMED 20:02, kept those edits,
+  re-checked each and wrote everything below.
+- **How each was proven (`scratch/rmp1-d/mutate_fix.py`, logs `fixlogs/`, verdicts `fixmut*.json`):** every entry
+  applies its edits, rebuilds the site, checks the mutant is LIVE in the built site, runs the WHOLE Controls page file
+  (Firefox under `ulimit -v` 4 GiB + timeout; Chromium in a 6 GiB cgroup), and restores in `finally` / on
+  SIGTERM-SIGHUP with the timestamp bumped. **RED first:** `PREFIX` puts the reviewed tree's three sources back under
+  the NEW tests — Chromium 9 fail, Firefox 11–13 fail (both Firefox runs then lost the browser: each failed test
+  leaves its page open, and the 4 GiB cap ends Firefox; so `PREFIX2` re-ran the four RMP1-D editor/feel tests alone:
+  21, 23, 24 RED, 22 green as expected — its fix was already in the reviewed tree, R11 proves its test).
+- **A — the three items the coordinator added (correctness 1, tests 8, docs 15).**
+  (3) **Giving a free button a job raised the stale-map error — FIXED.** `controls_tab.mjs` `edit()`: a "free" map
+  line that THIS edit makes lie is removed in the same edit (one undo entry), and the toast says so ("The button map's
+  "d-pad" line said free, so it went too (Ctrl+Z undoes both)."). Only lines this edit makes stale: a line already
+  stale in a file or saved project keeps its error and **Remove that line**. No model change (it calls the model's
+  `checkMap` and `removeFreeLine`, as **Remove that line** does), so D5 holds. The export is byte-for-byte the two-step
+  result: the export test now builds that result with the model (`addControl`, then `removeFreeLine`) and compares the
+  three written parts with it. Tests: test 2 re-pointed (0 errors, `banner.free` empty, the toast, ONE Ctrl+Z brings
+  the job and the line back, redo), the export test, and the saved-project test (another edit leaves a loaded stale
+  line). RED on the reviewed tree (test 2: `[mapStale]`; test 4: "one action"). Mutants X1 (nothing removed) and X1b
+  (EVERY stale line removed, not only this edit's) CAUGHT.
+  (1) **The graph's dot stopped after its words were selected — FIXED** by `.graph { user-select: none }` (RMP1-D
+  block) and a `pointercancel` that lets the dot go. Test: four drags, each ends at its target ± 1 %, nothing
+  selected; a cancelled drag leaves the dot. RED on the reviewed tree in both browsers (Chromium: "-100 -100 -50 …"
+  selected, Firefox: " % (pushed back ← → pushed forw"). Playwright's mouse never made the dot itself stop (the
+  reviewers saw the same); the selection — the cause the coordinator named — is what turns red. The first pass also
+  added `preventDefault()` on pointerdown: X9a / X9b showed each alone passes, so it was REMOVED (one mechanism; the
+  CSS keeps a click focusing the dot). X9 / X9c (the rule gone) CAUGHT in both browsers; X12 (no `pointercancel`)
+  CAUGHT.
+  (2) **A typed feel number scrolled the step to the top — already fixed** by the reviewed tree's mounted-once
+  `#ctl-body`. Test added (More open, scrolled to the end at 1280 × 800, Curve 0.6 + Enter, `scrollTop` unchanged). It
+  cannot be RED on the reviewed tree (fixed there) nor on base `8b2d99e` (no `#ctl-body`, no More settings); X10
+  re-makes the step's scroller on every draw (the old cause) — CAUGHT in both browsers (64 → 0).
+- **B — Export's "Go there" on a stale map line opened "Up is free" (correctness 2) — FIXED.** `selAt()`: a selected
+  button that has a job opens that job's form (its stale-map box and **Remove that line** in it). New test: a saved
+  project with the stale line → Export → Go there → the claw's form, no mechanism offered, Up selected, Remove that
+  line → 0 errors. RED on the reviewed tree ("Up is free"); X2 CAUGHT.
+- **C — Esc after a mouse click on a label, a job or a mechanism (correctness 3) — FIXED.** Esc is heard on the
+  document while step 1 is shown, a button is chosen, no box is typed in and no drawer / dialog / popover is open.
+  Enter on a USED button now puts the keyboard on its first field. Tests: label click + Esc, a job chosen by mouse +
+  Esc, a mechanism row + Esc, Esc over the Export drawer closes only the drawer, Enter on A → its Mechanism field, Esc →
+  back on A. RED on the reviewed tree (21: "ramp" stays; 1: focus not on Mechanism). X3 (back on the tab) CAUGHT in
+  both browsers; X3b (no drawer guard) SURVIVED the first set, so the drawer case was added — then CAUGHT; X4 CAUGHT.
+- **D — a chosen AND refused button lost its red (correctness 4, docs 16) — FIXED.** `.cbtn.sel.bad`,
+  `.callout.sel.bad` (pill and words) and `.leader.sel.bad` keep `--failed`; the fill stays the accent. Test 2 reads
+  B's outline, its pill, its words and its leader as `--failed`. X5, X6, X6b, X6c CAUGHT. Guide 22: the caption is now
+  "B and its label turn red"; :204 now "the only one highlighted on the controller (a button with a problem stays
+  red)"; `controls-refused.png` re-taken (B red-ringed, its label red).
+- **E — labels under 13 px from 1101 to ~1250 px (correctness 5) — FIXED.** The editor stacks under the controller
+  up to 1260 px (the controller then at most 920 px wide; `select()` scrolls the editor into view up to 1260 too), and
+  the button letters are 17 units. Size tests now at 1251 × 800 (stacked) and 1261 × 800 (the narrowest side by side)
+  besides 1280 / 1366 / 1440, and they measure the button letters. RED on the reviewed tree: letters 12.13 px (1251),
+  12.29 (1261), 12.57 (1280). X7 (stack at 1100: 12.89 px) CAUGHT in both browsers; X7b (stack at 1250: a label at
+  12.94 px at 1251) CAUGHT; X8 (letters 15 units: 12.29 px) CAUGHT.
+- **F — merge hazard: RMP1-C's `style.css` still has RMP1-B's old controller rules (correctness 6) — confirmed, a
+  merge note** (not a defect in this tree): the rmp1-c worktree (base `88c8513`) has them at its `style.css` :415–430
+  (`.callout { pointer-events: none }`, `.callout text { text-anchor: middle }`, `.callout.used rect` accent, `.cbtn*`).
+  Added to the merge notes below.
+- **G — guide 22's "Make R1 free" never appears for R1 (correctness 7) — FIXED:** "**Make X free** (both buttons of a
+  pair: **Make R1 and R2 free**)".
+- **H — the one-accent test saw only rects and circles (tests 9) — FIXED.** It now reads EVERY painted element under
+  `svg.pad` against `--accent` and `--accent-strong`: none with nothing chosen; X chosen → X, its label and ONE leader.
+  R2 (every leader accent: 14) and R3 (the stick knobs) now CAUGHT.
+- **I — no check of labels against the controller (tests 10) — FIXED:** each pill must be apart from every button
+  shape, both sticks and the controller's body. R12 (label columns moved in) CAUGHT ("off the controller's body").
+- **J — "free" marking untested (tests 11) — FIXED:** each d-pad button's computed dash is not `none` and its label
+  reads "Up · free". R4, R7 CAUGHT.
+- **K — `fitLabels()` deletable (tests 12) — FIXED:** each pill at most 28 units + 2 px wider than its words. R1
+  CAUGHT ("its pill is 46.7 px wider than its words").
+- **L — the words fold's Chromium fix untested (tests 13) — FIXED:** opened and re-drawn in the same task, it stays
+  open. R6 CAUGHT in Firefox and Chromium.
+- **M — paths never exercised (tests 14) — FIXED:** ArrowRight, a mechanism's "No button: autons only", the re-zero
+  button's "Open Driving feel" (step 2, More open), and Export's Go there on the ramp (More opens, the ramp in view;
+  no `DEFAULT_ONLY` gate). R5, R9, R10, R11 CAUGHT.
+- **N — removing `.mech-head` changes RMP1-C's pages after the merge (docs 17) — FIXED, and wider than reported:**
+  `.seg.wide` too — RMP1-C uses it (`inspector.mjs` :117, :208) as well as `.mech-head` (`app.mjs` :502). Both rules
+  are back in RMP1-B's block exactly as at base (no diff there). Departure (6) above is amended by this line.
+- **O — the second copy is not in the log (docs 18) — recorded here:** from the coordinator's NOTES (11-19 18:16,
+  18:21): its SendMessage started a SECOND copy of this run's builder in this worktree (two writers); the coordinator
+  stopped the copy at ~18:15; the original continued at 18:19, keeping the copy's edits as the tree's state. Which
+  edits were the copy's is not known here (the tree has no record of it). Its message carried the three items of A,
+  which no line of the build recorded until this round.
+- **P — toasts said "on the right" (docs 19) — FIXED:** "in the panel" in all three (the panel can sit under the
+  controller). Test 2 reads the whole toast.
+- **Q — found while re-checking `edit()` (not a reviewer's; pre-existing since RMP1-B) — FIXED:** on a read-only robot
+  (a newer builder's controls), choosing a job or **Make … free** was refused, but the next toast replaced the refusal
+  with "Added: …" / "… is free now". `edit()` now returns `null` when it refuses and those two callers stop. Test (the
+  read-only test): a free button given a job, then a used one made free — the toast says "cannot be read here", the
+  list unchanged. RED first ("Added: Up and Down. Change either, …"); X13 / X13b (either guard gone) CAUGHT.
+- **All mutations, this round (32 mutants besides the three PREFIX runs; every one LIVE in its built site; X9, X9a,
+  X9b ran before `preventDefault` was removed, X9c after):** CAUGHT — R1–R7, R9–R12, X1, X1b, X2,
+  X3 (both), X3b (after its test), X4, X5, X6, X6b, X6c, X7 (both), X7b (after 1251 was added), X8, X9 / X9c (both),
+  X10 (both), X12, X13, X13b. SURVIVED and acted on — X3b and X7b (tests added, then CAUGHT), X9a / X9b (the redundant
+  `preventDefault` removed). None killed by the cap or the timeout.
+- **The export is unchanged:** `git diff -- tools/route_maker/src/model src/ include/ Makefile` empty; node 156/156; the
+  export test's byte comparison above.
+- **Docs:** guide 22 (:202–207 the panel "under it, in a narrow window", one highlight, a problem stays red; :213 Make
+  X free; :236–242 the map line goes in the same click, **Remove that line** only for a line already in the file;
+  :244 the caption), the changelog's RMP1-D bullet (the map line in the same click), five pictures re-taken from the
+  final tree (Firefox light 1440; light / dark × 1440 / 1280 in `scratch/rmp1-d/shots2/`, looked at).
+- **PROSE REVIEW (rule 4), run 20:35 on the final words, BEFORE this line:** `grep -rn -i -E "Remove that line|on the
+  right\b|Make R1 free|Make X free|turns? red|only thing coloured|only one highlighted|d-pad FREE|map line|stale map|Esc\*\*
+  or|controls_tab|feel_tab|1100 px|1260|narrow window" docs README.md tools/route_maker/README.md test/README.md --include=*.md`
+  (internal and api aside) → guide 22 :36 / :38 / :48 / :54 / :75 / :82 / :91 / :106 and `route-builder.md` :14 (the
+  Route tab's panel, still on the right: true), guide 22 :204–205 / :213 / :237 / :239 / :244 (this round's), the changelog :342 (robot
+  one's map: true), guide 02 :202 and `hardware-assumptions.md` :952 (not about this), the README :13 ("the editor
+  beside it": true from 1261 px; kept short). The page's own words: `grep -n -i "on the right|beside|at the right"` in
+  `controls_tab.mjs` / `feel_tab.mjs` / `help.mjs` → code comments only (:2, :324, :332; feel :2).
+- **FINAL TESTS AND GATES (fix round, on the final tree; `scratch/rmp1-d/gates_fix.sh`, logs `gates_fix/`, `fixlogs/`):**
+  Controls page **Firefox 25/25, Chromium 24 + 1 skipped** (the download way is Firefox's); A1's `page.test.mjs`
+  (Firefox) 18/18; node **156/156**. The suite binary unlinked, configure, briefing generated, host build **0
+  warnings**, briefing generated again — no tracked change; suite green **3,856 cases / 3,886,386 assertions** (4 GiB
+  cap); briefing check / self-test; api_doc_tool self-test / coverage / fresh / examples / removability; staleness
+  self-test and audit; doc_readability check-nav / check-tone / self-test (the doc checks re-run after the last doc
+  edit); the PROS-free and sim-free greps clean; the ARM header gate exit 0 (260 lines). The src gate self-test **OK
+  (398 detector cases)** and check **PASS (14 builds)**; after both, `git diff -- Makefile src/ include/` EMPTY and no
+  untracked file under `src include test`. No browser, driver or test process of this run left. Not committed.
+
+### Verification-round findings and their disposition (started 2026-11-19 21:44 EST, `date`, the builder again, Opus 5.5)
+
+- **One finding (minor): four paths the fix round added had no test** — the verifier's mutants N1, N3, N7, N8 each
+  passed the whole Controls page file in Firefox (`scratch/rmp1-d/verify/vmut_all.json`). Re-checked: real (each is a
+  test gap, not a defect in today's behaviour; the verifier's probe and this round's runs agree). **FIXED with tests:**
+  - **N7 (`edit()`'s own toast)** — new test 24: the claw's button moved from A onto Left with its Button field, and
+    the re-zero moved onto Down in Driving feel. Each: 0 errors, `banner.free` empty, the toast is the "d-pad" sentence
+    (read, then removed, so the next check reads a new one), one Ctrl+Z brings back the change AND the line.
+  - **N1 (`.reverse()`)** — the same test, last part: a saved project whose map has three free lines ("Up", "Down",
+    "Left / Right"); the right toggle given Up forward / Down back takes the first two in ONE edit; "Left / Right"
+    stays, no `mapStale`, one Ctrl+Z brings the job and both lines back.
+  - **N3 (Esc while typing)** — test 21: L1, "9" typed in Volts (not entered), Esc: the editor stays ("right
+    toggle") and the box still says 9. Placed before the fold check, so that test's undo count is unchanged.
+  - **N8 (`select()`'s scroll)** — the size tests: after the R1 click the editor's whole box is inside `#ctl-body`'s
+    visible box. At 1251 × 800 the editor (483 px) fits the step (635 px) but starts at 642 px with no scroll —
+    measured first (`scratch/rmp1-d/n8_probe.mjs`: the same at 1100 × 700 and 1024 × 768). Kept, not dropped: on a
+    stacked screen the click would otherwise open a form mostly below the fold.
+- **W — found while writing N1's test (not the verifier's): two lines gone said the sentence twice** ("The button
+  map's "Up" line said free, so it went too (Ctrl+Z undoes both). The button map's "Down" line …") — FIXED in `edit()`:
+  one sentence, `"Up" and "Down" lines … so they went too`. One line reads exactly as before (test 2 unchanged; no doc
+  quotes it).
+- **Mutations (`scratch/rmp1-d/vfix/vfixmut.py`, the verifier's driver with this round's list; logs `vfix/mutlogs/`,
+  verdicts `vfix/vfixmut_all.json`):** each applied, the site re-built, the mutant checked LIVE in the built site, the
+  WHOLE Controls page file run, restored in `finally` / on SIGTERM-SIGHUP-SIGINT with its timestamp bumped (the
+  source byte-equal to a copy taken before, the built site re-built from it). ALL CAUGHT, each for its own reason:
+  N1 (Firefox: `'Down'` left, not `'Left / Right'`), N3 (Firefox and Chromium: "Give a button a job", not "right
+  toggle"), N7 (Firefox: no toast — the locator's 5 s wait), N8 (Firefox and Chromium, 1251 × 800: the editor at y 642,
+  483 tall, the view 131–766), W1 (the old per-line words back: the toast says the sentence twice). None killed by the
+  cap or the run's timeout.
+- **Before the mutations, on the final tree:** Controls page Firefox **26/26**, Chromium **25 + 1 skipped** (the
+  download way is Firefox's).
+- **The export is unchanged:** no model, export or driver-file module touched this round.
+- **Docs:** none changed — guide 22 :238 ("goes in the same click — the page says so, and one **Ctrl+Z** brings both
+  back") is now tested on every path; :205 ("**Esc** or **×** closes it") stays (Esc in a text box is the box's).
+- **PROSE REVIEW (rule 4), run 21:53, BEFORE this line:** `grep -rn -i -E "said free|went too|undoes both|the page says
+  so|Esc\*\* or|Esc or|in view|scrolls? (it|the editor)" docs README.md tools/route_maker/README.md test/README.md
+  --include=*.md` (internal and api aside) → guide 22 :205 and :238 (true, above); guide 16 :478, guide 18 :880, guide
+  22 :129, `hardware-assumptions.md` :1792 ("the page says so": other pages, true); the rest "in view" of sensors and
+  cameras (not this). The page's words: only `controls_tab.mjs` :133.
+- **FINAL TESTS AND GATES (this round, on the final tree, 22:00–23:04; `scratch/rmp1-d/vfix/gates.sh`, logs
+  `vfix/gates/`):** the suite binary unlinked, configure, briefing generated, host build **0 warnings** (no C++
+  changed), briefing generated again — no tracked change; suite green **3,856 cases / 3,886,386 assertions** (4 GiB
+  cap); briefing check / self-test; api_doc_tool self-test / coverage / fresh / examples / removability; staleness
+  self-test and audit; doc_readability check-nav / check-tone / self-test; the PROS-free and sim-free greps clean; the
+  ARM header gate exit 0 (260 lines). The src gate self-test **OK (398 detector cases)** and check **PASS (14
+  builds)**; after both, `git diff -- Makefile src/ include/` EMPTY and no untracked file under `src include test`.
+  Then the site re-built from the fresh describe tool: node **156/156**, A1's `page.test.mjs` (Firefox) **18/18**,
+  Controls page **Firefox 26/26, Chromium 25 + 1 skipped**; `git diff -- tools/route_maker/src/model src/ include/
+  Makefile` empty. After this line was written: the staleness audit, doc_readability check-nav / check-tone and
+  the briefing check re-run, all exit 0. No browser, driver or test process of this run left. Not committed.
