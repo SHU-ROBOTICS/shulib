@@ -1,5 +1,9 @@
 # Everything left — the full list, in order
 
+> **2026-11-20: for what is left after the first competition, read [`AFTER-THE-21ST.md`](AFTER-THE-21ST.md) first** —
+> it is current (compiled from November's notes, briefs and progress logs); this list was last fully updated 2026-10-22
+> and does not carry November's chunks yet.
+
 > **Kept current by the coordinator at every milestone** (the team lead, 2026-09-28: "please keep this list up
 > to date and add more details to it"). The status board (the shulib Status Board artifact) carries an
 > easy-to-read version. The plan of record is [`build-order.md`](build-order.md) and
