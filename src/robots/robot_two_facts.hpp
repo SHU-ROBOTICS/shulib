@@ -233,6 +233,18 @@ inline constexpr auto kCascadeTopMargin =
     typed(one::kCascadeTopMargin.placeholder, one::kCascadeTopMargin.value(), Stage::B, "the cascade's soft top, under its top row",
           "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- none: same as the placeholder, checked");
 ROBOT_TWO_CHECK(kCascadeTopMargin, "the cascade's soft top, under its top row");
+inline constexpr auto kCascadeHoldKp =
+    typed(one::kCascadeHoldKp.placeholder, one::kCascadeHoldKp.value(), Stage::B, "the cascade's hold kP",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- measured on robot one");
+ROBOT_TWO_CHECK(kCascadeHoldKp, "the cascade's hold kP");
+inline constexpr auto kCascadeHoldKi =
+    typed(one::kCascadeHoldKi.placeholder, one::kCascadeHoldKi.value(), Stage::B, "the cascade's hold kI",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- measured on robot one");
+ROBOT_TWO_CHECK(kCascadeHoldKi, "the cascade's hold kI");
+inline constexpr auto kCascadeHoldKd =
+    typed(one::kCascadeHoldKd.placeholder, one::kCascadeHoldKd.value(), Stage::B, "the cascade's hold kD",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- measured on robot one");
+ROBOT_TWO_CHECK(kCascadeHoldKd, "the cascade's hold kD");
 
 // ── RECORDED — gating no build (the camera: VIS1-B reads it) ──
 inline constexpr auto kCameraPort = owed(one::kCameraPort.value(), Stage::Recorded, "the AI Vision camera's port");
@@ -257,7 +269,8 @@ inline constexpr FactSummary kRobotTwoFacts[] = {
     summary(kCascadeHomingStallAmps), summary(kCascadeUnhomedVolts),  summary(kRightToggleDirection),
     summary(kLeftToggleDirection),    summary(kClawOpenLevel),        summary(kFlipperOpenLevel),
     summary(kRampDownLevel),          summary(kClawStrokeTime),       summary(kFlipperStrokeTime),
-    summary(kRampStrokeTime),         summary(kCascadeMaxDownVolts),  summary(kCascadeTopMargin),  summary(kCameraPort),
+    summary(kRampStrokeTime),         summary(kCascadeMaxDownVolts),  summary(kCascadeTopMargin),
+    summary(kCascadeHoldKp),        summary(kCascadeHoldKi),         summary(kCascadeHoldKd),  summary(kCameraPort),
     summary(kCameraMount),
 };
 

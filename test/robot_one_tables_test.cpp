@@ -211,6 +211,18 @@ TEST_CASE("robot one tables (D5): the cascade is a two-motor Lift on a MEASURED 
     CHECK(s.safeMode == shulib::config::SafeBrakeMode::Hold);
 }
 
+TEST_CASE("robot one tables: BOTH robots' cascades hold on the gains tuned on robot one (2026-11-20), not the library's starting ones") {
+    // BUG CAUGHT: the tuning dropped from a declaration -- the hold falls back to the starting 0.25 V/deg and
+    // shivers mid-travel on the direct spool (robot one's [CAS] trace, 2026-11-20); robot two left on the old gains.
+    for (const auto& s : {cascadeSpec(), sb::robot_two::cascade.spec()}) {
+        CHECK(s.position.kP == doctest::Approx(0.08));
+        CHECK(s.position.kI == doctest::Approx(0.1));
+        CHECK(s.position.kD == doctest::Approx(0.001));
+        CHECK(s.position.kP == facts::kCascadeHoldKp.value());
+        CHECK(mech::specRefusal(s) == mech::Refusal::None);
+    }
+}
+
 // ═══ T8 — the cascade on the host test plant ═══════════════════════════════════════════
 
 TEST_CASE("robot one tables (API 2.10): BOTH robots' cascades go down at most the ledger's kCascadeMaxDownVolts -- 7.2 V, 60 % of 12; up is unlimited") {

@@ -16,6 +16,18 @@
 
 ## API 2.11
 
+### 2026-11-20 — Robot one's cascade holds still
+
+> Written when it was fixed, on robot one with the team lead. **No library change:** robot one's mechanism table.
+
+**What changed:** the cascade **shivered** when held partway up: it still ran the library's starting hold gains
+(0.25 V per degree), and on its direct spool a tenth of an inch off was already about 4 V, so it overshot back and
+forth on the string's slack. Both robots' cascades now hold on gains tuned on robot one (`kP 0.08, kI 0.1, kD
+0.001`, `src/robots/mechanism_table.hpp`): held at 8 in, it stayed within 0.03 in at about 0 V. All six programs
+were re-uploaded to robot one with it.
+
+**What you must do:** upload everything to each robot again (VS Code: **Upload everything to robot one**).
+
 ### 2026-11-20 — See the mechanisms work: each step says when it is done
 
 > Written when it was built. **A library change, by the team lead's second freeze exception the day before the
