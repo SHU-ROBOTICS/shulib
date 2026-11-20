@@ -307,14 +307,17 @@ TEST_CASE("robot two driver: on the host -- homes DOWN at the first start; the c
         CHECK(leftOther == doctest::Approx(0.0));
         CHECK(leftReleased == doctest::Approx(0.0));
     }
-    for (int j = 0; j < 3; ++j) CHECK_FALSE(start[j]);  // made at Low: nothing moves at power-up
+    // made at its start: Low (nothing moves at power-up) but the claw, CLOSED from power-up (robot one's rule,
+    // the team lead 2026-11-20) -- its closed level is whichever its open level is not
+    const bool high[3] = {!sb::robot_two_facts::kClawOpenLevel.value(), false, false};
+    for (int j = 0; j < 3; ++j) CHECK(start[j] == high[j]);
     for (int i = 0; i < 3; ++i) {
         if (toggles[i] == nullptr) continue;
         CAPTURE(names[i]);
         for (int j = 0; j < 3; ++j) {
             CAPTURE(names[j]);
-            CHECK(seen[i][0][j] == (i == j));  // the first press: that piston, and only it
-            CHECK_FALSE(seen[i][1][j]);        // the second: back
+            CHECK(seen[i][0][j] == (high[j] != (i == j)));  // the first press: that piston flips, and only it
+            CHECK(seen[i][1][j] == high[j]);                // the second: back to its start
         }
     }
 }

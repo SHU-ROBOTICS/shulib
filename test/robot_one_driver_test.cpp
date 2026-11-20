@@ -341,17 +341,19 @@ TEST_CASE("robot one driver (T11): on the host -- homes DOWN at the first start;
     CHECK(std::abs(signOf(facts::leftTogglePort())) == facts::leftTogglePort());
 }
 
-TEST_CASE("robot one driver (T11): on the host -- every piston's line is MADE at Low (nothing moves at power-up); each piston's toggle button flips ONLY that piston, and back on its second press") {
-    // BUG CAUGHT: a piston that starts in its POWERED position (it would fire at power-up); the claw's button
+TEST_CASE("robot one driver (T11): on the host -- every piston's line is MADE at its start: Low (unpowered) but the claw's, High (CLOSED from power-up, the team lead 2026-11-20); each piston's toggle button flips ONLY that piston, and back on its second press") {
+    // BUG CAUGHT: a piston that starts in its POWERED position (it would fire at power-up) -- but the claw, which
+    // the team lead wants closed from power-up ("it needs to close on start up"); the claw's button
     // firing the ramp; a toggle that does not come back on its second press; one press flipping two pistons.
     OneRig r;
     const char lines[3] = {facts::kClawLine.value(), facts::kFlipperLine.value(), facts::kRampLine.value()};
     const char* const names[3] = {"claw", "flipper", "ramp"};
-    for (const char l : lines) {
-        CAPTURE(l);
-        const auto line = static_cast<std::uint8_t>(l - 'A' + 1);
+    const bool high[3] = {true, false, false};  // the claw starts CLOSED (A high); the flipper and ramp unpowered
+    for (int j = 0; j < 3; ++j) {
+        CAPTURE(lines[j]);
+        const auto line = static_cast<std::uint8_t>(lines[j] - 'A' + 1);
         REQUIRE(r.devices.digitalOutMade(line));
-        CHECK(r.devices.digitalOutInitialState(line) == shulib::mechanism::words::Low);
+        CHECK(r.devices.digitalOutInitialState(line) == high[j]);
     }
     const shulib::mechanism::Control* toggles[3] = {};
     for (int i = 0; i < 3; ++i) {
@@ -378,14 +380,14 @@ TEST_CASE("robot one driver (T11): on the host -- every piston's line is MADE at
                 }
             }
         });
-    for (int j = 0; j < 3; ++j) CHECK_FALSE(start[j]);  // Low: the unpowered position, at the first start too
+    for (int j = 0; j < 3; ++j) CHECK(start[j] == high[j]);  // its start, at the first driver start too
     for (int i = 0; i < 3; ++i) {
         if (toggles[i] == nullptr) continue;
         CAPTURE(names[i]);
         for (int j = 0; j < 3; ++j) {
             CAPTURE(names[j]);
-            CHECK(seen[i][0][j] == (i == j));  // the first press: that piston, and only it
-            CHECK_FALSE(seen[i][1][j]);        // the second: back
+            CHECK(seen[i][0][j] == (high[j] != (i == j)));  // the first press: that piston flips, and only it
+            CHECK(seen[i][1][j] == high[j]);                // the second: back to its start
         }
     }
 }

@@ -16,6 +16,18 @@
 
 ## API 2.11
 
+### 2026-11-20 — Robot one's claw: the right way round, and closed from power-up
+
+> Written when it was fixed, with the team lead. **No library change:** robot one's facts and mechanism table.
+
+**What changed:** the claw's "open" and "closed" were swapped: the route's `claw["closed"]` left it open, and it sat
+open at power-up (its line LOW opens it — typed from the builder's words on 11-15, never watched until now). Now LOW
+opens it, and the claw **starts and is made safe CLOSED** (its line HIGH) in every program, from power-up (the team
+lead: "it needs to close on start up"; a preload in it is optional) — the one piston that does not start unpowered. Robot two's
+claw follows (its level is still owed by its builders).
+
+**What you must do:** upload everything to robot one again. Keep fingers clear of the claw when a program starts.
+
 ### 2026-11-20 — Robot one's cascade holds still
 
 > Written when it was fixed, on robot one with the team lead. **No library change:** robot one's mechanism table.

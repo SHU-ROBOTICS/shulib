@@ -606,10 +606,9 @@ ROBOT_ONE_CHECK(kLeftToggleDirection, "the left side toggle's run direction");
 // solenoid holds UNPOWERED (unpoweredPosition() below), so nothing moves at power-up — a wrong guess
 // here only swaps the two NAMES, which an auton reads (`claw["open"]`).
 inline constexpr auto kClawOpenLevel =
-    typed(mechanism::words::High, mechanism::words::High, Stage::B, "the claw's line level that OPENS it",
-          "same as the placeholder, checked against the builder's words (2026-11-15: right toggle clockwise, left "
-          "counter-clockwise; each piston open / out / down on its button), NOT watched at station 13 -- the team lead, "
-          "2026-11-17: 'go for it' -- confirm in Drive");
+    typed(mechanism::words::High, mechanism::words::Low, Stage::B, "the claw's line level that OPENS it",
+          "watched on robot one -- the team lead, 2026-11-20: the route's 'closed' (A low) left the claw open, and it "
+          "sat open at power-up (A low): A low OPENS it");
 ROBOT_ONE_CHECK(kClawOpenLevel, "the claw's line level that OPENS it");
 inline constexpr auto kFlipperOpenLevel =
     typed(mechanism::words::High, mechanism::words::High, Stage::B, "the front toggle's line level that pushes it OUT (open)",

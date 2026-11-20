@@ -440,8 +440,15 @@ TEST_CASE("robot one tables (ROB1-C2): the side toggles are two POWER mechanisms
         CHECK(std::string_view{s.pneumatic.positions[1].name} == p.active);
         CHECK(s.pneumatic.positions[1].levels[0] == p.activeLevel);
         CHECK(s.pneumatic.positions[0].levels[0] == !p.activeLevel);
-        // start and safe: the position at LOW — the solenoid unpowered — whichever name that is
-        CHECK(s.pneumatic.positions[s.pneumatic.start].levels[0] == shulib::mechanism::words::Low);
+        // start and safe: the position at LOW — the solenoid unpowered — whichever name that is; but the CLAW
+        // starts and is made safe CLOSED, powered (the team lead, 2026-11-20: "it needs to close on start up";
+        // a preload in it is optional)
+        if (std::string_view{p.name} == "claw") {
+            CHECK(std::string_view{s.pneumatic.positions[s.pneumatic.start].name} == "closed");
+            CHECK(s.pneumatic.positions[s.pneumatic.start].levels[0] == shulib::mechanism::words::High);
+        } else {
+            CHECK(s.pneumatic.positions[s.pneumatic.start].levels[0] == shulib::mechanism::words::Low);
+        }
         CHECK(s.pneumatic.start == s.pneumatic.safe);
         CHECK(s.pneumatic.actuationTime == p.stroke);
     }
