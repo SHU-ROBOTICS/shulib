@@ -4653,3 +4653,342 @@ this round touched only `obstacles.mjs`, its node test, guide 22 and the changel
   `view.page.test.mjs` routes cross a goal, so RMP1-H's check turned a step's pill red in focus (D3 RED) — the view
   tests now load without the structures (`noStructures()`, as the PREVIEW tests do).
 - Gates on the merged tree: suite 3,901 green; node 219/219; Firefox page tests 103 pass, 0 fail, 3 engine-skipped.
+
+## RMP1-I — the route builder on the team laptop: Send to robot (one button)
+
+*Executor: Opus 5.5 subagent, 2026-11-20, worktree `.claude/worktrees/rmp1-i` (branch `rmp1-i`, base `ae87076`).
+Brief: [`RMP1-I-send-to-robot.md`](RMP1-I-send-to-robot.md). Scratch: `.claude/coordinator/scratch/rmp1-i/`.*
+
+- Started: log created first; reading the brief, RMP1's A.3.7/A.6, `capabilities.mjs`, `files.mjs`, `export_drawer.mjs`,
+  `to_robot.mjs`, `tools/upload_auton.py`, `tools/route_maker/build.py`.
+- 06:40–07:40: built the host tree (0 warnings) and the site; wrote `tools/route_builder.py` (the helper + its
+  self-test), `src/host/files_local.mjs`, `src/ui/send_panel.mjs`, `sendStage` in `model/to_robot.mjs`, the drawer's
+  Send card and the top bar's Send, one CSS block, the VS Code task, the CI step; node test `files_local.test.mjs`,
+  page test `send_robot.page.test.mjs` (Firefox 10/10 with shots, Chromium 4/4). Found by Chromium: a missing team
+  file answered 404 is a console error there, so the helper answers 204 for "no such file" (the host reads null).
+- Docs moved: guide 22 (steps 1 and 7 local-first, the website path under "On a computer without the shulib folder"),
+  guide 23 step 5, `route-builder.md` (the table's first row, "What it knows"), `where-your-code-goes.md`, the
+  changelog, the route builder README.
+- 07:00–07:15 mutations (driver `scratch/rmp1-i/mutate.py`: each mutant applied exactly once or re-cut, run capped
+  — `ulimit -v 4 GiB` + `timeout`, Firefox under the same cap — restored in a `finally` and on SIGTERM/SIGHUP, its
+  timestamp bumped; `git diff` after each group; verdicts in `scratch/rmp1-i/mut/verdicts.txt`, `p-final.txt`).
+  Python is interpreted and the helper serves the page's modules from disk, so every run is on the mutated code; the
+  site-form mutant (W4) re-built the site first, and the site was re-built after its restore. ALL RED:
+  - **Helper self-test** (all 14 re-run on the final file, 07:13–07:15): P1 no `src/team/` parent check (a read
+    of `src/robots/…` got 200); P2 no `resolve()` (the symlink read OUTSIDE); P3 no Host check; P4 the cookie
+    enough for a POST (a write with only the cookie); P5 no Origin check (a write from another local page); P6 a
+    plain `write_bytes` (the failed replace said 200); P7 a short body accepted ("a write cut off mid-way" 200);
+    P8 no one-at-a-time (the second Send streamed); P9 `p.kill()` only, no process group (the fake make's pid
+    alive, after the stop and after Ctrl+C); P10 `readlines()` (nothing streamed while make ran); P11b the cache
+    written in place (a broken download lost the kept facts; P11, `part = cache` alone, crashed on its own rename:
+    re-cut as P11b); P12 a missing file 404 (the read of a missing file); P13 no meta in the page; P14 no `stop()`
+    at Ctrl+C (make outlived the helper).
+    Two self-test holes the first round showed, fixed before the final round: P8 / P10 / P11 first ended in a
+    CRASH (a `None` child, a 60 s socket timeout, an `rmtree`) — a crash is red but names nothing, so each case now
+    runs inside `run()` (a crash is a named failure and the next case still runs) and the stream read stops at
+    10 s; and P10 then went GREEN, because "streams as they come" checked only that make was still running — it now
+    also needs the Building line to have ARRIVED.
+  - **Node** (`files_local.test.mjs`): N1 the lines handed over only at the end; N2 `decode` without `stream: true`
+    (the ✓ split across reads); N3 a 404 read as "no file"; N4 `sendStage` blind to ✓ BUILT; N5 a fetch that throws
+    not turned into the "stopped" words.
+  - **Page, Firefox** (`send_robot.page.test.mjs`): W1 `app.mjs` ignores the meta (no folder project, no Send:
+    3 tests timed out); W2 the drawer's Next is the site's (no Send card); W3 the panel draws only at the end (the
+    mid-send "Building" row never seen; the toast after a closed drawer never came); W4 (`export_robot`'s D2-D4, on
+    a re-built site) no "Easiest" line.
+- 07:16–07:25 the top bar at 1440 in Chromium: with Send there, the "Robot one" chip and "Saved" were cut (the chips
+  give way first, by design). Fixed in the RMP1-I CSS block: at ≤1600 px a top bar that has Send drops the "Robot one"
+  chip (`.topbar:has(#send)`; a Firefox older than 121 keeps it, cut — nothing else changes). Re-shot: top bars clean
+  in both browsers, light and dark, 1440 and 1280 (`scratch/rmp1-i/shots2/tops.png`). The site's top bar (no Send)
+  is unchanged.
+- Docs pictures (Chromium light 1440 → 1200 × 750, 256 colours, the RMP1-F script copied to `scratch/rmp1-i/to_docs.py`):
+  `send.png` (the top bar with Send), `send-mid.png`, `send-ok.png`, `send-failed.png` (taken BEFORE "Show everything"
+  opens: its log names this laptop's folders; the PNGs' bytes carry no `/home/` or `.claude`).
+
+### Deltas from the brief (each with its reason)
+
+1. **No robots' facts anywhere (first run, offline, no build):** the helper still starts and opens, and the page is
+   ONE plain line (what to do), re-tried at each reload — not the route builder: every check needs a robot's
+   description, and `app.mjs` cannot start without one. The terminal prints the same line.
+2. **A missing team file is 204, not 404:** Chromium logs every 404 of a `fetch` as a console error (the page tests
+   fail on one, and a student's console would show red for the normal "no route_maker.json yet"). The host reads 204
+   as null, exactly as the folder host's `NotFoundError`.
+3. **The top bar's Send is the one highlight on the local page; Export is plain there** (the site keeps Export
+   primary) — the brief's "ONE primary button". Send is on the Route tab only (the Controls tab's export is the
+   driver file, not the Auton Tester).
+4. **Robot two's button** shows beside robot one's (plain, not highlighted) when robot two's build takes the shared
+   route (`sharedRoute.robots` has `two`) — every route is written for robot one and run by robot two too.
+5. **"Will it build?" leaves the result card once a send starts** (the build answers it: one idea at a time).
+6. **Guide 22's website subsection is "From the website"**, not "On a computer without the shulib folder": the
+   website's Export writes INTO a shulib folder (Edge/Chrome) or hands one back, so that heading would contradict its
+   own first line. Step 1 keeps the brief's words for opening the website on another computer.
+7. **The helper's `stand-in` command** (`route_builder.py stand-in <folder> [robots.json]`) makes the self-test's
+   stand-in checkout for the page test too (one fake-tools setup, upload_auton's FAKE reused), with a case file so
+   one helper serves a send that works and one that fails.
+8. **Guide 16** got one line (its upload command section now points at Send), and the changelog's RMP1-F entry's link
+   `#7-export` follows the renamed step (`#7-send-it-to-the-robot`): found by the prose greps.
+9. **upload_auton.py unchanged** — its own lines are the stream's contract (`sendStage` reads only their first word,
+   ✓/✗); the helper's self-test runs the REAL upload_auton, so a change to its words turns that red.
+
+**Prose review (greps 07:05 and 07:26, `scratch/rmp1-i/prose-greps.txt`, `prose-greps-2.txt`, every hit read):**
+`upload_auton`, `Run Task`, `Upload routes to robot`, `Connect your shulib folder`, `folder connected`, `Edge or Chrome`,
+`local helper`, `a later helper`, `helper`, `Send to robot`, `route_builder.py`, `capabilities`, `brainLog`, `Next card`,
+`Next:`, `Download for offline`, `7-export`, `From the website`, `On a computer without`, `route_builder`,
+`files_local`, `send_panel`, `Open the route builder`, `one button`, `127.0.0.1` over `docs/` (less `docs/internal/`,
+`docs/api/`), `README.md`, `test/README.md` and the route builder's README. Fixed from them: guide 22's four "folder
+connected (Edge or Chrome)" lines (now "opened from VS Code, or …"), guide 16's upload section (one line pointing at
+Send), the changelog's RMP1-F link `#7-export`, the README's "a later … local helper", `files.mjs`'s host list. Not
+stale: the changelog's older entries (history), guide 16/23's upload_auton text (the command still exists and is
+what Send runs), `route-builder.md`'s Edge/Firefox rows (the website), the cookbook's "helper"s (unrelated).
+Not touched, with why: `roadmap.md` / `build-order.md` (no RMP1 sub-run is tracked there; the pointers are the
+coordinator's), `robots.mjs`'s "later: a helper's describe" (still later: the helper serves baked facts, it does not
+run describe), `docs/api/` (no `///` changed).
+
+**Gates on the final tree (07:16–07:33 EST):** host build `cmake -S test -B build/test` + `cmake --build build/test -j8`
+(0 warnings; no C++ changed); suite (`tools/suite_run.py green`, capped): **3,901 cases / 3,776,984 assertions — green**;
+briefing regenerated on that binary, `check`: current (its only change: the suite's assertion count, 3,776,982 →
+3,776,984 — the station 13 case's count depends on the source path's length, as 7d24984 says: regenerate in the main
+tree). Node: **225/225**. `route_builder self-test: OK (74 cases)`, `upload_auton self-test: OK (36 cases)`. Pages on
+a site re-built from the final sources, every file: Firefox **110 tests, 107 pass, 3 skipped** (the engine's; +4: this
+run's); Chromium **110, 103 pass, 7 skipped** (the Firefox-only download and old-browser cases, the engine's, the PREVIEW
+pictures without shots; none of `send_robot`'s); `send_robot` 10/10 with the screens in both browsers after the last CSS change. ARM header gate: 259
+headers, CLEAN. PROS-free and sim-free greps hold. `git diff ae87076 -- include/ src/ Makefile test/
+tools/upload_auton.py tools/route_maker/src/model/export.mjs tools/route_maker/src/model/region.mjs`: EMPTY (the
+exported C++ is byte for byte: the RMP1-C goldens unchanged and green). src_build_gate check: **PASS** (14 builds;
+self-test not needed: no src/ or Makefile change). api_doc_tool self-test / check-coverage (6,502) / check-fresh /
+check-examples (988) / check-removability OK; doc_staleness_audit self-test + run clean; doc_readability self-test /
+check-nav (264 pages) / check-tone OK.
+
+**Stopped here: RMP1-I-A complete, uncommitted, for the coordinator.** Open: the one REAL upload (the coordinator's,
+with the team lead's OK: `python3 tools/route_builder.py` on the team laptop → Send to robot one); the VS Code task's
+environment carries `PROS_TOOLCHAIN` as the upload tasks' does (not checked here: no VS Code run); CI's Windows rows
+run the self-test and the page test for the first time.
+
+### RMP1-I review findings and their disposition *(2026-11-20, the same executor, after three reviewers)*
+
+- Started: this section first; 29 findings (12 correctness, 6 tests, 11 docs) read, each re-checked against the code before
+  any fix. Appended as each is done.
+- 08:00–08:45 code: the helper (stable port, the token in the path, no cookie, safe download, writes refused mid-send,
+  the send owned to its end, a guarded stop, a negative length refused, the facts' commit compared), upload_auton
+  (the PROS extension's own toolchain folder), the drawer (no Send for a robot whose line is missing, re-read at the
+  click; local "gone" → Write again; the facts warning), the top bar (Export and Save wait for a send), the node test
+  without `Response`, the page test's 4 new cases. Self-tests: route_builder 105 cases, upload_auton 38; node 225/225
+  under `ulimit -v 4 GiB` (no flag needed now); send page test 8/8 in Firefox and Chromium. Found by the new page case:
+  the click's re-read of the autons files threw when the helper was gone (now caught: the send itself says GONE).
+- Each finding, re-checked, and what was done (C = correctness lens, T = tests, D = docs; the reviewers' own numbers):
+  1. **C: Send claimed ✓ UPLOADED for routes the robot will not list** — REAL (read: `export_drawer.mjs` removed every
+     `.xr-build`, and the top bar's auto-click took any `[data-send]`). Fixed in the page: a robot whose autons file
+     lacks its `addTeamRoutes` line gets a disabled Send and one line naming the file and the line ("tell the
+     coordinator"); the top bar's auto-send skips a disabled button; the click re-reads both autons files first (a
+     line removed after the drawer opened is caught); only a "Will it build?" with no ✗ gives way to the build. Not
+     done: the same check inside `upload_auton.py` (its terminal task could still say ✓ for an unlisted route — an
+     RMP1-F gap, unchanged): integrate has a staged slot-6 change to that file's self-test lines, and the check would
+     need a second implementation of `region.mjs`'s `hasTeamRoutesLine` in Python. **Owed after the slot-6 merge.**
+  2. **C: writes accepted mid-send** — REAL (probe: 200 "written" while the fake make ran). Fixed at the root: the
+     helper answers 409 "not written: a send to the robot is running…" to every POST /api/file while a send runs, the
+     busy check and the write under the same lock a send starts under; the page disables Export and Save (and
+     Ctrl+S / Ctrl+E say so) while it sends. The skills file's hash before/after was not added: no write can land.
+  3. **C: a new port per start loses the browser's draft** — REAL (localStorage is per origin). Fixed: the port is
+     this checkout's own, `47000 + crc32(path) % 1000`, the same every start; another free one only when that is
+     taken (`allow_reuse_address` off on Windows, whose SO_REUSEADDR would share a port another program holds). An
+     old tab after a restart gets 403 (a new token); reloading it from the new link keeps the draft.
+  4. **C: download() kept a cut engine, or crashed the start** — REAL (both shapes reproduced by the new `_Cut`
+     server). Fixed: a short read against Content-Length, an engine that does not start `\0asm`, robots.json without
+     `build.commit`/`build.date` (the page bakes them: a mutant run showed a KeyError crash without it) all fail;
+     every exception is caught (`IncompleteRead` is not an OSError); the swap is inside the try, the old kept as
+     `.old` and put back if the rename fails (and at the next start if a swap was cut).
+  5. **C: the VS Code task has no make or pros** — REAL, confirmed in the PROS extension 0.8.3 on this laptop
+     (`out/one-click/install.js` sets PATH and PROS_TOOLCHAIN in its own `process.env`; `workspace_utils.js` hands
+     that only to the "PROS Terminal"; no `environmentVariableCollection`). Fixed at the root, in `upload_auton.py`'s
+     `find_tools()` (the one place that finds them; the upload tasks gain too): with no PROS_TOOLCHAIN and a tool
+     missing, it takes the extension's own install folder (`<VS Code's globalStorage>/sigbots.pros/install/
+     pros-toolchain-<os>`, Windows `…-windows/usr`, as the extension's `path.js` builds it), puts its bin first on the
+     build's PATH and sets PROS_TOOLCHAIN, as the PROS Terminal has them. The helper prints one line at start when
+     make or pros is still missing. 3 self-test cases (the extension's make and pros; both on PATH: unused; Linux's
+     system make with the compiler only in the extension's bin). Every upload_auton case now runs with an EMPTY
+     globalStorage (APPDATA/XDG_CONFIG_HOME/HOME), so no case can reach this laptop's real pros. A 3-way merge of the
+     file with integrate's staged slot-6 version (`git merge-file`, base ae87076): no conflict.
+  6. **C: the send lock and the child, on an OSError** — REAL as read. Fixed: every terminal line goes through
+     `say()` (a closed terminal never stops or orphans a send); the handler owns the child to its end (a closed tab:
+     `tab = False`, still read) and, if it ever ends early, stops it in its `finally`; busy is `child.poll() is None`;
+     the child is cleared only if it is still the one; `stop()` guards every killpg (and its last wait).
+  7. **C: a negative Content-Length** — REAL. `if not 0 <= n <= MAX_BODY: 413`; case added (answers at once).
+  8. **C: files_local.test.mjs red under `ulimit -v`** — REAL (Node's `Response` loads undici's Wasm). The test now
+     answers with plain objects: 6/6 under `ulimit -v 4 GiB`, no flag.
+  9. **C: the cookie goes to every 127.0.0.1 port** — REAL. Fixed by the reviewer's first option: no cookie; every path
+     is `/<token>/…` (the page's relative imports carry it), and a POST also needs the `X-Shulib-Token` header. The
+     printed link is `http://127.0.0.1:<port>/<token>/`.
+  10. **C / T: Windows cannot fail the orphan checks** — REAL. `alive()` on Windows reads `tasklist /FI "PID eq n"`;
+     `case_process` runs there too (the helper under CREATE_NEW_PROCESS_GROUP, stopped with CTRL_BREAK_EVENT, which
+     the helper's SIGBREAK handler takes as Ctrl+C). NOT RUN here (no Windows): the CI Windows rows run it first.
+  11. **C: the local "gone" card offered Connect** — REAL. On the local page, gone is [Write again], as failed is.
+  12. **C: the published facts never compared with the checkout** — REAL, and live tomorrow (7b08a8b typed robot
+     two's facts after the last publish). Fixed: when the facts are the published site's, `git diff --quiet <their
+     commit> -- src/robots include` against this checkout's files on disk; differ, or git cannot tell → one line in
+     the terminal and in the Send card ("Careful: … Tell the coordinator."). Not checked for this laptop's own build.
+  13. **T: SIGTERM/SIGHUP untested** — REAL (R3). `case_process` runs Ctrl+C, SIGTERM and SIGHUP on POSIX, each
+     against a slow send: exit 0, "Route builder stopped.", no fake alive, the state file gone.
+  14. **T: Windows rows vacuous** — as 10.
+  15. **T: a tab closed mid-send untested** — REAL (R2). Case: the fake make 1 s, the upload 3 s; the client closes
+     after "Building"; during the upload the same child is still the helper's and a second send gets 409; it ends 0.
+  16. **T: the panel's failure paths untested** — REAL (J3, J4). Page cases: a send already running (from another
+     "tab": a direct POST) → a red card in the helper's words, Send enabled; upload_auton crashing with no ✗ line (its
+     log path a folder) → "Not sent (… ended with 1)"; the helper stopped mid-send → upload_auton's own "✗ STOPPED
+     (Ctrl+C)" (the helper streams it before it exits), and a Send after → the GONE words. Chromium logs the 409 and
+     the refused connection as console errors: those two tests allow exactly those lines.
+  17. **T: seven guards with no case** — REAL. Cases: no length → 411; a GET of /api/send → 404, nothing run; this
+     laptop's build before a kept download; non-UTF-8 → 400; a new file 0o644; `running()` on another checkout →
+     None; the page after "no facts" once the facts are back.
+  18. **T: J1, J2** — REAL. Node cases: a stream broken mid-send → GONE (after the lines before it); no `data-folder`.
+  19. **D: the slot-6 merge hazard** — REAL (integrate's staged change read with `git show :path`, read-only). The
+     self-test and page test now take the slot from `ua.SLOT` / `TESTER.slot`; guide 22's new text drops "(slot 2)";
+     its RMP1-F line is restored to the base text (so integrate's slot-6 edit of it applies cleanly) and the "Easiest"
+     sentence moved after the picture; guide 16's Send line moved BEFORE the build commands (away from both of
+     integrate's guide 16 hunks). Still conflicting by text: see the trial merges below. send-ok.png shows "slot 2":
+     re-shoot after the slot-6 merge (owed). The changelog entry moves under API 2.10 at the merge (the coordinator's).
+  20. **D: guide 14** — REAL. Its route-builder sentence now says Send builds and uploads on the team laptop, with the
+     stand-ins-only limit; the changelog entry carries the same limit. "builds and uploads" added to the prose greps.
+  21. **D: guide 22's video teaches the old path** — REAL. One line under it ("The video shows the website's way. On
+     the team laptop, steps 1 and 7 below are shorter…"). **Owed: the make-a-route video's re-record** (beats m23,
+     m29), as 4c792e1 logged the Controls video's.
+  22. **D: two deviations not logged** — REAL; both below under the deltas (and the README's auth sentence rewritten
+     for the token path).
+  23. **D: README rows** — REAL. `/api/ping` row; the model row names `sendStage`; the "never silent" rule names Send.
+  24. **D: guide 22 leftovers** — REAL. :265 and :302 say "opened from VS Code"; `export-written.png` re-shot from
+     the current site (Chromium light 1440 → 1200 × 750, 256 colours): it now shows the "Easiest" line.
+  25. **D: ✗ vs the red (!)** — REAL. Guide 22 and the changelog: "in red — NOT BUILT or NOT UPLOADED".
+  26. **D: guide 16's Send line in the wrong place** — REAL. Moved before the build commands (also the merge-safe place).
+  27. **D: route-builder.md offline** — REAL. Its offline section and "What it knows" name the one start online.
+  28. **D: PROGRESS claims** — REAL. (a) Chromium's every-file run predated the last CSS change: the final gates
+     below re-run every page file in both browsers on the final site. (b) "06:40–07:40" was written at 07:35: read
+     06:40–07:35. (c) That round had **23** distinct mutants (P1–P14 with P11b for the re-cut P11, N1–N5, W1–W4).
+     (d) Outside the brief's files that round: `dom.mjs` (one icon, `send`) and `export_robot.page.test.mjs` (the
+     Easiest assertion); this round adds `upload_auton.py` (finding 5) and `docs/guide/14`.
+  29. **D: the briefing hunk is this path's** — REAL. Drop it at the merge and regenerate in the main tree (after
+     `rm -f build/test/shulib_tests` and a fresh build).
+- Deltas from the brief added by this round (each with its reason), after the nine above:
+  10. **The top bar's Send writes on EVERY press**, not only "if the route changed since the last export" (D4): a write
+      is read back and cheap, and the robot then always gets exactly what is on screen; guide 22 says so.
+  11. **The token is in every path (`/<token>/…`), not a cookie; a POST also needs the header** (D5 said "header for
+      the API; the token in the first URL, then a same-origin cookie or the meta"): a cookie is sent to every
+      `127.0.0.1` port (finding 9). GET of the API takes the path's token alone.
+  12. **The same port every start** (D1 said "a free port"): the browser keeps the page's draft per origin (finding 3).
+  13. **`tools/upload_auton.py` changed** (delta 9 said unchanged): `find_tools()` takes the PROS extension's install
+      folder when nothing names it (finding 5) — still the ONE implementation; its self-test 36 → 39 cases.
+  14. **A robot whose autons file lacks its line is not sent to** (finding 1); **"Careful"** when the published facts
+      may not be this checkout's (finding 12); **no write while a send runs** (finding 2).
+- Trial merges onto integrate's index (`git show :path` there, read-only; base ae87076; `git merge-file`): clean for
+  `upload_auton.py`, `to_robot.mjs`, `export_robot.page.test.mjs`, guides 16, 22 and 23. Four textual conflicts, each
+  two edits side by side — take both: `docs/changelog.md` (both add an entry at the top: RMP1-I's goes under API
+  2.10), `docs/where-your-code-goes.md` (:44 ours, :45 theirs), `.vscode/tasks.json` (the header comment: ours, with
+  slot 6), `docs/internal/PROJECT-BRIEFING.md` (drop ours: finding 29). After the slot-6 merge the tests follow by
+  themselves (`ua.SLOT`, `TESTER.slot`, the fake pros prints its `--slot`); owed: `send-ok.png` re-shot (it shows
+  "slot 2").
+- 08:26–08:40 mutations (driver `scratch/rmp1-i/review-fix/mutate2.py`, verdicts `review-fix/mut/verdicts.txt`; each
+  text applied exactly once, run capped — `ulimit -v 4 GiB` + `timeout`, Firefox under `systemd-run MemoryMax=6G` —
+  restored in a `finally` and on SIGTERM/SIGHUP, timestamp bumped; every mutated file's md5 checked after). **33
+  mutants, all RED**, each by its named case: Q1 no length check, Q2 the old except list (IncompleteRead raised), Q3
+  no `\0asm`, Q4 writes mid-send, Q5 negative length, Q6a the handler ends at a failed write (its child stopped: exit
+  130), Q6b the old R2 (the child left unowned), Q7 an unguarded killpg, Q8 no SIGTERM/SIGHUP handler, Q9 a free port
+  each start, Q10 no POST header, Q11 `running()` blind to the checkout, Q12 the cache before this laptop's build, Q13
+  no retry after "no facts", Q14 a GET that sends, Q15 no length read as 0, Q16 no UTF-8 check, Q17 0o600, Q18 no
+  "Careful", Q19 `say()` not swallowing, Q20 no path token, Q21 no Origin check; U1 no extension folder, U2 the
+  extension's bin not first (Linux's system make), U3 "(make from the PROS toolchain" for any env; J1, J2; W5 Send
+  enabled for a robot without its line, W6 no re-read at the click, W7 the ✗ removed at a send, W8 Export live
+  mid-send, W9 (J3) no "ended with", W10 (J4) no catch. Two test holes found and fixed before the verdicts counted:
+  Q9 first went GREEN — `case_port`'s probe socket had no SO_REUSEADDR, so a previous run's TIME_WAIT made the port
+  look taken and the check vacuous (the same cause crashed its `hold.bind` in other runs); the test now binds exactly
+  as the Server does, and Q9, Q4, Q2 re-ran RED with no crash. Q1/Q3 first ended in a `KeyError: 'date'` crash (the
+  cut server's robots.json had no `build.date`): `download()` now refuses a robots.json without what the page bakes
+  (a real gap: the page would crash on one), the cut server sends a whole one, and Q1/Q3 re-ran RED by name.
+- **Prose review (greps 08:40, `scratch/rmp1-i/review-fix/prose-greps.txt`, every hit read):** `builds and uploads`,
+  `build and upload`, `free port`, `?t=`, `cookie`, `PROS_TOOLCHAIN`, `every VS Code terminal`, `any VS Code
+  terminal`, `route_builder.py`, `Send to robot`, `NOT BUILT`, `Upload routes to robot`, `With the folder connected`,
+  `Edge or Chrome says`, `127.0.0.1`, `Careful` over `docs/` (less internal/, api/), `README.md`, the route builder's
+  README, `test/README.md`. Fixed from them: `route-builder.md` "What it knows" (kept from a start online; Careful).
+  Not stale: the changelog's ae87076 entry (history: "the PROS_TOOLCHAIN the PROS extension sets" — this round's
+  entry says what upload_auton now finds), guide 23 :291–296 and guide 22 :258 (RMP1-F's terminal path, still true;
+  their "slot 2" is integrate's slot-6 change), guide 18's "rebuild and upload" (unrelated).
+- **Gates on the final tree (08:40–08:58):** `briefing_status.py generate` with `build/test/shulib_tests` removed
+  first; host configure + build (0 warnings; no C++ changed); suite capped (`suite_run.py green`): **3,901 cases /
+  3,776,984 assertions, green**; briefing regenerated on that binary, `check`: current (still only the
+  path-dependent assertion count: finding 29). ARM header gate: 259 headers, CLEAN. PROS-free and sim-free greps
+  hold; no CRLF in any changed file. `git diff ae87076 -- include/ src/ Makefile test/ export.mjs region.mjs`: EMPTY
+  (the exported C++ byte for byte; the RMP1-C goldens unchanged and green). `src_build_gate.py check`: **PASS** (14
+  builds; self-test not needed: no src/ or Makefile change). api_doc_tool self-test / check-fresh (exit 0) /
+  check-examples (988) / check-coverage (6,502) / check-removability OK; doc_staleness_audit self-test + run clean;
+  doc_readability self-test (159) / check-nav (264) / check-tone OK. `route_builder self-test: OK (105 cases)`,
+  `upload_auton self-test: OK (39 cases)` (both capped). Node, capped: **225/225**. Pages, every file, on a site
+  re-built at 08:56 from the final sources (after the last source edit), under MemoryMax=6G: Firefox **114, 111
+  pass, 3 skipped**; Chromium **114, 107 pass, 7 skipped** (+4: this round's). Screens: `scratch/rmp1-i/review-fix/
+  shots/` (send_robot light/dark at 1440 and 1280, both browsers; the not-listed card; xr-written). Docs pictures:
+  `export-written.png` re-made; `send*.png` re-made and byte-identical (send-failed differed only by noise: kept).
+- **Stopped here: the review round complete, uncommitted, for the coordinator.** Owed: the make-a-route video's
+  re-record; `send-ok.png` after the slot-6 merge; the same "line missing" check inside `upload_auton.py` (after
+  that merge); the CI Windows rows run the new Windows process cases for the first time; the one REAL upload, and the
+  VS Code task on the team laptop (now expected to find PROS through `pros_extension()`: confirm its terminal line).
+
+### Verification-round findings and their disposition *(2026-11-20 from 09:15 EST, `date`; the same executor, the same worktree)*
+
+- Started: this section first; 3 findings (1 major, 2 minor) from a fresh verifier (its files:
+  `scratch/rmp1-i/verify/`), each re-checked against the code before any fix. Appended as each is done.
+- Each finding, re-checked, and what was done:
+  1. **major: `case_differs` crashes on Windows** — REAL. Re-checked in CPython 3.12's own `subprocess.py`: the POSIX
+     branch looks a bare program up on `env`'s PATH (`os.get_exec_path(env)`, :1882); the Windows branch hands
+     `executable=None` to `_winapi.CreateProcess` (:1538), which searches the PARENT's PATH (the subprocess docs:
+     on Windows "env cannot override the PATH environment variable"). The self-test had set the parent's PATH to the
+     stand-in's bin, so `git init` would raise FileNotFoundError on all four Windows rows. Fixed at the root:
+     `case_differs` sets `os.environ["PATH"]` to this computer's PATH BEFORE its four git runs, inside the try whose
+     finally puts the stand-in's back, and passes no `env` (git is then found the same way on every OS). And so a
+     Linux run catches this class, not only a Windows row: the whole self-test runs under `WindowsLookup`, a
+     `subprocess.Popen` that refuses a bare program given an `env` when THIS process's PATH has no such program (as
+     CreateProcess would); restored at the end. Every other in-process run was re-read: the helper's sends,
+     `case_process` and the stand-in "next send" use `sys.executable` (a full path); `facts_differ`, `taskkill` and
+     `tasklist` pass no `env`. Mutant V1 (the old order restored) is RED here: `case_differs: crashed:
+     FileNotFoundError(… Windows never looks on env's)`. Still owed: the Windows rows' first run (below).
+  2. **minor: the README's stray table header** — REAL (`grep -n '| Request | What |'` gave :62 and :66). Deleted
+     the first header and its `|---|---|`; one hit left (:64). Scanned every Markdown file this chunk changed (11)
+     for the same shape (a separator row followed by a non-table line, or a header row straight after prose):
+     none (`scratch/rmp1-i/verify-fix/prose-greps.txt`).
+  3. **minor: five guards with no test** — REAL (the verifier's verdicts: G3, G4, G18, G20, G21 GREEN at 105
+     cases). Five cases added (105 → **110**):
+     - `case_facts`, "a download the swap cannot move in: the old put back": the published site at a new commit,
+       `Path.rename` failing for `.part` only; download() False, the cache still the old commit, no `.old`, no
+       `.part`.
+     - "… and a swap cut short is put back at the next start, offline": the cache moved to `.old`, download() from
+       a dead URL; False, the cache back.
+     - "a download cut short or too big (big)": the cut server's new `big` shape, a whole engine with no length,
+       one byte more than `MAX_DOWNLOAD` (now a module constant, 64 MiB, patched to 1 KiB for the loop; first, so
+       the later `serve(repo, bad)` never generates 64 MiB). Every shape now also asserts no `.old`/`.part` left.
+     - `case_send`, the race made deterministic: a send whose fake make takes 1 s. At its "Building" line the
+       test takes `srv.lock`. The send's handler streams to its end, then waits at its last step (it clears the
+       child under that lock). At the "done" line the test checks the ended send is not busy (`busy()` is
+       `poll()`), starts the "next send" (a 60 s sleep in its own group) as `srv.child`, and lets go. After the
+       stream's end (the handler has returned), `srv.child` must still be that next send, and busy.
+     All under the cap. Mutants (driver `scratch/rmp1-i/verify-fix/mutate3.py`, verdicts `verify-fix/mut/
+     verdicts.txt`; each text applied exactly once, run capped with `ulimit -v 4 GiB` + `timeout 300`, restored in
+     a finally and on SIGTERM/SIGHUP, timestamp bumped, md5 checked after; no build involved: Python reads the file
+     fresh each run). **8 mutants, all RED**, each by its named case first: V1 (finding 1 reverted), G3 (no
+     put-back: "the old put back: False", then a crash on the missing cache), G4 (no recovery: the cache left as
+     `.old`), G18 (cleared unconditionally: "its end never clears the next send's child": None), G20 (`busy()`
+     without `poll()`: "ended": False), G21 (no size check: "(big) keeps the old: True", the download accepted),
+     and two more of this round's: G21b (`read(MAX_DOWNLOAD)`, a too-big file read as exactly the limit: "(big)"
+     RED), G22 (a failed download's `.part` left: every cut shape RED).
+- **Gates on the final tree (2026-11-20, `date`: 09:19–09:36 EST; logs `scratch/rmp1-i/verify-fix/gates/`):**
+  `briefing_status.py generate` with `build/test/shulib_tests` removed first; host configure + build (0 warnings; no
+  C++ changed); suite capped (`suite_run.py green`): **3,901 cases / 3,776,984 assertions, green**; briefing
+  regenerated on that binary, `check`: current. ARM header gate: 259 headers, CLEAN. PROS-free and sim-free greps
+  hold; no CRLF in a changed file. `git diff ae87076 -- include/ src/ Makefile test/ export.mjs region.mjs`: EMPTY
+  (the exported C++ byte for byte; the RMP1-C goldens green in the suite and the node run). `src_build_gate.py
+  check`: **PASS** (14 builds, 14 m 19 s; no self-test: no src/ or Makefile change). api_doc_tool self-test /
+  check-coverage (6,502) / check-fresh / check-examples (988) / check-removability OK (no `///` changed: docs/api
+  not regenerated); briefing_status self-test OK; doc_staleness_audit self-test + run clean; doc_readability
+  self-test (159) / check-nav (264) / check-tone OK. Capped: `route_builder self-test: OK (110 cases)`,
+  `upload_auton self-test: OK (39 cases)`; node **225/225**. Pages, every file, on a site built at 09:23 from the
+  final sources, under MemoryMax=6G: Firefox **114, 111 pass, 3 skipped**; Chromium **114, 107 pass, 7 skipped**
+  (both as the last round; no page code changed this round, so no re-shoot). No browser or helper of this run left
+  (the Firefox seen after is another worktree's: profile `rmp1-j`).
+- **Stopped here: the verification round complete, uncommitted, for the coordinator.** Owed (unchanged, plus one):
+  the CI Windows rows' first run, which now also runs `case_differs` with git found on the parent's PATH (finding 1;
+  on Linux, `WindowsLookup` already holds the self-test to Windows' rule); the make-a-route video's re-record;
+  `send-ok.png` after the slot-6 merge; the "line missing" check inside `upload_auton.py`; the one REAL upload and
+  the VS Code task on the team laptop.

@@ -20,3 +20,32 @@ export function exportSummary(routes) {
     const count = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
     return { names, steps, words: `${count(names.length, 'route')} (${names.join(', ')}), ${count(steps, 'step')}` };
 }
+
+/**
+ * One line of tools/upload_auton.py (Send to robot, RMP1-I) said plainly: {kind, words, then} — 'step' (Building…,
+ * Uploading…), 'built', 'uploaded' (`then`: where it is on the brain), 'failed' (`words` its title, `then` the rest),
+ * 'detail' (an indented line under a failure), 'log' (where everything was printed: the panel's fold) — or null (blank).
+ */
+export function sendStage(line) {
+    const t = line.replace(/\s+$/, '');
+    let m;
+    if (!t) {
+        return null;
+    }
+    if ((m = /^Building (robot \w+)'s Auton Tester/.exec(t))) {
+        return { kind: 'step', words: `Building ${m[1]}'s Auton Tester… (a few minutes the first time)` };
+    }
+    if (/^✓ BUILT\b/.test(t)) {
+        return { kind: 'built', words: 'BUILT' };
+    }
+    if ((m = /^✓ (UPLOADED.*?)\.\s+(On the brain: .*)$/.exec(t))) {
+        return { kind: 'uploaded', words: m[1], then: m[2] };
+    }
+    if ((m = /^✗ (.*?)(?:[:.](?:\s+|$)(.*))?$/.exec(t))) {
+        return { kind: 'failed', words: m[1], then: m[2] || '' };
+    }
+    if (/^\s+\(everything (make|pros) printed: /.test(t)) {
+        return { kind: 'log' };
+    }
+    return /^\s/.test(t) ? { kind: 'detail', words: t.trim() } : { kind: 'step', words: t.replace(/\.\.\.$/, '…') };
+}

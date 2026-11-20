@@ -42,6 +42,9 @@ registered yet.
 **The competition program ("shulib Competition") calls the same `registerAutons()` and the same
 `competition::runAuton`** — [Chapter 17](17-the-competition-program.md) describes it.
 
+For a route from the route builder, the easiest is its **Send to robot** button (opened from VS Code: [chapter 22,
+step 7](22-making-your-first-route.md#7-send-it-to-the-robot)): it runs `tools/upload_auton.py`, below, for you.
+
 Build and upload it like the other programs — robot two's build below; robot one's is
 `make ROBOT=one PROGRAM=autontest`. Each robot's build refuses, naming every fact of its facts file it
 still owes, until those facts are typed ([Chapter 21](21-adding-your-robot-by-hand.md)):
