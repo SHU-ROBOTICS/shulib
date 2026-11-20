@@ -16,6 +16,18 @@
 
 ## API 2.9
 
+### 2026-11-19 — PREVIEW shows the mechanisms: the cascade rising, the claw opening
+
+> Written when it was built (chunk RMP1, run RMP1-E). **No library change — no API change:** nothing under
+> `include/shulib/` or `src/` moved; the route builder's page and its preview engine did.
+
+**What you can now do (additive):** watch the mechanisms during PREVIEW. Beside the field, the cascade's height on a
+bar, each piston's position and each toggle's motor play in step with the robot, from the real library's run on the
+host test plant; the mechanism the playing step uses is highlighted. How:
+[guide chapter 22, step 6](guide/22-making-your-first-route.md#6-preview-watch-the-library-drive-it).
+
+**What you must do:** nothing.
+
 ### 2026-11-19 — Bench Tests' station 13 made plain: a student can measure a robot's mechanisms alone
 
 > Bench Tests' own page (`src/programs/bench_r3a.{hpp,cpp}`): **no library change, no API change.** Host- and

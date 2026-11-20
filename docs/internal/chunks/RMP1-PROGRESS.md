@@ -3090,3 +3090,230 @@ from the restored sources (exit 0).
   no `(self-test plant` in `git diff -- Makefile src/`; untracked under src/include/test only GL20–GL23 and
   `test/mirrored_pair_numbers.hpp`.
 - Not run here: the Windows/Linux CI (the coordinator's). Nothing committed.
+
+## RMP1-E — the mechanisms in PREVIEW (the cascade rising, the claw opening)
+
+*Executor: Claude Opus 5.5 (a subagent of the coordinator), worktree `.claude/worktrees/rmp1-e` (branch `rmp1-e`, from
+`5e2c7f1`), started 2026-11-19. Brief: `docs/internal/chunks/RMP1-E-mechanisms-in-preview.md`. Host and browser only.*
+
+### Log
+- Started: read RESUMING's standing rules, the RMP1-E brief in full. Next: the engine's run record and the page's
+  playback.
+- THE ENGINE (D1): `test/route_maker_runner.hpp` — `MechTap`, a pacer below RPV1's recorder (through
+  `onBuilt`'s inner slot, the hook RPV1 made for a tap), reads each slot every pace when the recorder does: a lift's or
+  arm's `position()` (the library's own reading, in its units), a pneumatic's `commandedPosition()` (-1: none), a power
+  mechanism's commanded volts' sign, a flywheel's target's sign. `mechanismsOf` writes the record's new `mechanisms`
+  member (name, kind, a lift's/arm's units, bottom, top; a pneumatic's positions; RPV1's `placeholderFor` sentence; `at`
+  aligned with `samples`). `runEntry` (the tap installed) is used by `preview` and by WG1's compiled twin
+  (`route_maker_goldens.cpp`), so the two records stay byte-equal. `preview` split into `runParsed` + `recordOf` so
+  the suite can run it. RPV1's `route_preview_run.hpp` untouched. Two suite cases (`route_maker_runner_test.cpp`): the
+  brief's route on robot one, and a lift stalled by the plant's obstacle at 3 in. Both green. (The end action puts the
+  claw back to its safe `closed`: the record shows it, so the case reads the claw at the route's end, not the run's.)
+- Node, the engine: `test/wasm/engine.mjs`'s `compareRecords` compares `mechanisms` (a lift's/arm's states
+  within POS_BOUND, the rest exact); a native case in `native.test.mjs` (the brief's route: heights, the claw on the
+  pace after its step began, the toggle backward, the list in robot one's order). The module rebuilt (pinned emsdk
+  read-only, `EM_FROZEN_CACHE=1`, `TMPDIR=build/tmp`): `test/wasm/` 16 of 16 (WG1 byte-equal with the twin's new member;
+  WG2 23 routes, WG2s 500 routes). Fixtures re-recorded (`record.mjs`): only `owed` (robot one's facts typed since
+  11-17), `mechanisms` and `madeBy` changed; `mechanisms.preview.json` new (the brief's route); the two PAIR fixtures
+  stay without the member (an older record: no strip). Page: `mechanismsAt` (playback.mjs), `mech_strip.mjs`, wired in
+  `preview.mjs` (the target is lift.mjs's PLANNED height of the step playing: the number the export writes), one line
+  in About this run (`timeline.mjs`), CSS in ONE block `/* ── PREVIEW mechanisms (RMP1-E) ── */`.
+- Page tests: `test/page/mechanisms.page.test.mjs` (new; the stand-in with the `mechanisms` fixture): the bar
+  IS the record's height scrubbed (7 clicks on the track), stepped (Right, Shift+Right) and played (`frameAfter`); the
+  claw closed until its step, open on the pace after, the piston drawn out; ONE accented per mechanism step, none at
+  the end; the cascade's target marked only while its step plays (`to 0/6/4/0 in`); the toggle `backward`, only one
+  motor running; "Robot one's mechanisms", the cascade's PLACEHOLDER, About this run's line; the field, the zoom and
+  the dock clear of the strip; Esc puts it away, PREVIEW brings it back; a pre-RMP1-E record (pair_ok) shows none;
+  1440 and 1280 (light and dark with SHOTS) with every mechanism in view unscrolled. Firefox, the whole page folder
+  on the stand-in site: `# tests 68 # pass 66 # skipped 2` (the engine's two). First 1280 x 800 run: the strip
+  scrolled (heading on two lines, 168 px lift): the heading made one line, the rows tighter, the lift 120 px least —
+  re-measured: 406 of 406 px. `preview.test.mjs`'s THE REAL ENGINE compares `mechanisms` (lift/arm within 1e-5).
+- Docs: guide 22 step 6 (one paragraph + `preview-mechanisms.png`), `docs/route-builder.md` (one clause), the
+  changelog (2026-11-19 under API 2.9), `tools/route_maker/README.md` (the record's `mechanisms` row, `mech_strip.mjs`,
+  the native/module bound's sentence twice). Gates so far: ARM header gate `TU includes 259 headers` → CLEAN; CI greps
+  (PROS-free, sim-free, changed files LF) clean; `git diff -- include/ src/ Makefile` empty.
+- Mutations (`.claude/coordinator/scratch/rmp1-e/mutate.py`: each file restored in a `finally` and on SIGTERM/SIGHUP/
+  SIGINT, its timestamp bumped; the dependents rebuilt each time — the suite with `route_maker_runner_test.cpp`
+  touched, the native program with `route_maker_main.cpp` touched, the site by `build.py`). Every one observed RED:
+  - E1 the record takes the tap's FIRST n states → native `RMP1-E` RED ("up 6 in: 0 vs 6").
+  - E2 a power mechanism's direction lost → suite RED (`stateAt(m, 1, r0 + 1) == -1.0`), native RED.
+  - E3 a pneumatic's position never read → suite RED (`stateAt(m, 3, c0 + 1) == 1.0`), native RED.
+  - E4 a lift records its target, not where it is → suite RED (the stall case: `std::abs(end - blockedAt) <= ...`).
+  - E5 the states written under another mechanism's name → native RED.
+  - P1 the strip a pace ahead → playback RED, page RED (2 cases). P2 every mechanism accented → playback RED, page RED.
+    P3 the strip moves only while playing → page RED (2 cases). P5 a piston's words never change → playback RED, page
+    RED. P6 the field under the strip (its width rule gone) → page RED ("the field and the zoom left of the strip").
+    P7 a backward toggle said forward → playback RED, page RED.
+  - P4 a target marked on a lift whose step is not playing: the first run NOT caught (robot one has ONE lift, so the
+    mutant is the same on its page). A case added to playback.test.mjs (robot x's arm and lift: the arm's step marks
+    the arm's target, never the lift's) → re-run: playback RED; the page stays green (one lift: equivalent there).
+  - First pass: E2–E4 "BUILD BROKE" — not a mutant's fault: the doc gates (a dependency of `shulib_tests`) re-ran on
+    my docs edits and compared the briefing's suite line, generated while unbuilt, with the built binary. Fixed by
+    the rule's sequence (`rm -f build/test/shulib_tests`, generate, full build, generate, check); E2–E4 re-run, RED.
+  - After: no mutant text in any file (grep), the suite and the native program rebuilt from the restored tree, the
+    RMP1-E cases green again.
+
+### Deltas from the brief (each with its reason)
+*(Written after the review, which found them only in the builder's report — review finding D1 below.)*
+1. **The bar's target is the page's PLAN** (`lift.mjs`'s `plannedHeights`, the step playing), not a library reading.
+   D1's "never the page's guess" is kept for every STATE (height, position, motor): those are the library's. The target
+   is what the route asked for — the number the export writes for that step; the slot's own `target()` is its move's
+   or hold's aim (during a homing, where the push began: `holdAt(jointDeg())`, `service.hpp`, not the height the homing
+   finds). Since the review it is the plan of the
+   route that RAN (`run()` keeps it), never the route on screen.
+2. **Flywheels recorded and drawn** (a motor chip), though D1/D2 name lifts, arms, pneumatics and power mechanisms:
+   the record lists every mechanism in the robot's list, in its order, so the strip's rows are the list. No route
+   step can spin a flywheel yet (the Mechanism menu: "Flywheel steps come later"), so its chip reads off; the tap's
+   reading of one is tested in the suite (review finding T4).
+3. **The PLACEHOLDER chip is RPV1's `placeholderFor`** — D3's "existing PLACEHOLDER rule" itself: the same sentence the
+   steps carry (a mechanism on the library's starting gains, HA-182).
+4. **The field narrows while the strip shows** (D5: "nothing else changes: the drive's playback"): D2 puts the strip
+   BESIDE the field, so the field's drawing takes the pane less the strip; the playback itself (poses, path, timeline,
+   steps) is unchanged.
+5. **Robot one's facts changed under the fixtures:** the re-recorded fixtures' `owed` lists differ by facts typed since
+   11-17 (another chunk's), not by anything RMP1-E did.
+6. **The PAIR fixtures were the older-record case** (recorded before the member). Since the review the tests make
+   their own older record (the stand-in's `omit`, a copy with the member deleted), so re-recording them as the README
+   asks removes nothing.
+7. **Readings from the library's own slots below RPV1's recorder,** through RPV1's `onBuilt` hook: D1's "from the
+   library's simulated mechanisms", with `route_preview_run.hpp` untouched.
+
+### Gates on the final tree (2026-11-19, `date` 21:00–21:15 EST)
+- Build: `rm -f build/test/shulib_tests`, `briefing_status.py generate` (unbuilt), `cmake --build build/test -j8` →
+  exit 0; doc gates (re-run with guide 22 touched after its last edit): `doc coverage: 6502 public entities across 215
+  headers, all documented`, `check-nav: OK — 263 public pages`, `check-tone: OK — 48 pages`, `first_week: OK`,
+  `build_to_program: OK`, `check-register: OK — 232 register rows`. Briefing regenerated on the built binary;
+  `briefing_status.py check`: `generated block current`.
+- Suite (`suite_run.py green`): `suite run: green — 3882 cases, 3775499 assertions`.
+- Node: `node --test tools/route_maker/test/*.test.mjs` → `# tests 174 # pass 174` (173 + the RMP1-E case).
+- The engine rebuilt from the final tree (emsdk read-only, its git tree clean after): `test/wasm/` under
+  `MemoryMax=6G`: `# tests 16 # pass 16` (WG2 23 routes, largest 5.33e-14 in; WG2s 500 routes, 2.65e-7 in).
+- Fixtures: a fresh `record.mjs --out` equals every committed one (result and project).
+- Page, the stand-in site: Firefox `# tests 68 # pass 66 # skipped 2`, Chromium `# tests 68 # pass 63 # skipped 5`
+  (the same skips as before). The `--engine` site (`preview.test.mjs` + `engine.test.mjs` +
+  `mechanisms.page.test.mjs`): Firefox 28 of 28, Chromium 28 of 28 (THE REAL ENGINE and WG3 in both); THE REAL ENGINE
+  also through CI's path (`ROUTE_MAKER_NATIVE_RECORDS`, no native program): pass. No browser process of this run left.
+- Screens (`~/shulib-render-tmp/rmp1-e/shots/`, Firefox, at rest): the strip light/dark at 1440 and 1280, the cascade
+  mid-move and the claw opening. Guide 22's `preview-mechanisms.png` from the light 1440 one by RMP1-A2u's `to_docs.py`
+  (1200 x 750, 256 colours).
+- ARM header gate `TU includes 259 headers` → CLEAN; CI greps clean; `git diff -- include/ src/ Makefile` empty.
+- `api_doc_tool`: self-test OK, check-coverage as above, check-fresh exit 0, check-examples `988 quoted lines, all
+  verbatim`, check-removability `no public doc references docs/internal/`. `doc_staleness_audit.py`: self-test OK (16),
+  then `clean (37 live docs, 0 numeric claims checked)` (its note: the binary is older than `route_maker_main.cpp`,
+  touched for the native program's last rebuild, which `shulib_tests` does not compile).
+- src gate `check`: `PASS (all 14 builds link or, robot one's and robot two's, refuse naming exactly their owed facts
+  ...)`. Its self-test not run (no src/ or Makefile change).
+
+**Prose review (rule 4; greps run and hits read BEFORE this line, 20:53 and 21:07).** `route_maker_runner|
+route_maker_goldens|playback\.mjs|preview\.mjs|timeline\.mjs|mech_strip|style\.css|record\.mjs|compareRecords|schema
+1|runEntry|recordOf|runParsed` over docs/ (internal and api aside), README.md and the route builder's README: only the
+README's hits (its table rows, the engine paragraph — `route_preview_run.hpp`, "unchanged", still true). Concepts
+(`mechanism.*beside|the strip|About this run|from above|in step with|What the host test plant is not|within 1e-5|
+re-record|native twin`): fixed the README's "every member exact, poses within 1e-5" (now with a lift's or arm's
+position) and the WG2 sentence; guide 22 :157–162 (the plant is not the robot) read and true; guide 14 :66–75 and
+:562–568 read and true (PREVIEW's limits; it never said mechanisms are not shown); every "strip" hit elsewhere is the
+GPS strip. `preview|beside the field|robot from above` over where-your-code-goes, how-the-docs-stay-true,
+hardware-assumptions, docs/README, README: none. Deliberately NOT touched: `roadmap.md`, `build-order.md` (the
+coordinator's), `docs/api/` (no `///` changed), `ci.yml` (it runs `page/*.test.mjs` and `record.mjs --out`, which
+pick up the new test and fixture).
+
+**For the coordinator.**
+- No file owned by RMP1-D or RMP1-F touched (`controls_tab.mjs`, `feel_tab.mjs`, `export_drawer.mjs`,
+  `src/host/files.mjs`, `tools/upload_auton.py`); CSS in ONE block at the end of `style.css`
+  (`/* ── PREVIEW mechanisms (RMP1-E) ── */`). Likely merge touch points: `docs/changelog.md` (a new 2026-11-19 entry at
+  the top of API 2.9), guide 22, `tools/route_maker/README.md`, `style.css`'s end, and
+  `docs/internal/PROJECT-BRIEFING.md` (regenerated from this base: its suite line will conflict with main's 06c32d3 —
+  take main's, then regenerate on the merged tree after `rm -f build/test/shulib_tests` and a fresh build).
+- The record grew about 19 % (the 60 s `cut` fixture 360 → 429 KB).
+- Robot two (D4): PREVIEW plays robot one only today; the strip is robot one's and says "Robot one's mechanisms".
+  When the pair mode lands, `mechanismsOf` already writes robot two's own list for its record.
+- Not run here: the Windows/Linux CI. Nothing committed.
+
+### RMP1-E review findings and their disposition *(2026-11-19, the builder again, 21:40–22:40 EST)*
+Three reviewers (correctness, tests, docs), 17 findings; two pairs overlap (C3 = T1, the pace lag; the plan's
+target is C1). Each re-checked in the tree before acting. Mutations by `scratch/rmp1-e/review-fix/mutate2.py`
+(`mutate.py`'s pattern: restored in a `finally` and on SIGTERM/SIGHUP/SIGINT, timestamp bumped, dependents rebuilt —
+the suite with `route_maker_runner_test.cpp` touched, the native program with `route_maker_main.cpp` touched, the
+site by `build.py`); logs `eng-mut.log`, `page-mut.log`, `page-mut2.log` beside it. Every one observed RED.
+- **C1 (major) — the bar's target from the route on screen, not the run's: FIXED at the root.** Re-checked: `open()`
+  planned `app.route()`. Now `run()` keeps each step's `{name, target}` from the route that RAN (`plannedHeights(r,
+  one)`), cached with the run; `playingMech` reads only that. Test: `mechanisms.page.test.mjs` "the targets are the
+  plan of the route that RAN" (stand-in `delayMs: 2500`, step 1 deleted while running, the run opens stale, Ctrl+Z,
+  the four targets `to 0/6/4/0 in`). F1 (the old code) RED in exactly that test.
+- **C2 — a short window scrolls the strip and hid the accented row: FIXED.** `mech_strip.mjs` keeps the accented row
+  in the strip's view when the accent changes (the strip's own `scrollTop`, never the page's; the first row brings
+  the heading with it). Test at 1366 x 657 (the review's laptop case): every mechanism step's row in view, and the
+  cascade brought back after the strip is scrolled to its end by hand. F2 RED. Not done: one-line piston and motor
+  rows ("right toggle" + "backward" does not fit one 176 px line); the cascade's bar is short there but its number
+  is in view.
+- **C3 = T1 (major) — a one-pace lag (R1) and whole-inch rounding (R3) passed every gate; the native test's "BUG
+  CAUGHT: a pace off" was false: FIXED.** The suite's RMP1-E case puts a pacer below the tap (through `runEntry`'s
+  `then`, which is handed `tap.inner`) that reads the cascade's `position()` after each step of the world; the tap's
+  column must equal it at EVERY pace (and the cascade must move at > 100 paces, so the check is not of a height
+  standing still). R1, R3, E4 RED in the suite (`off == 0U`; E4 also in the stall case). The native comment now
+  claims only what it catches.
+- **C4 — a lift started by a start form ("keeps going") is never accented: KEPT, said in guide 22.** D2's rule is the
+  step playing; a start form takes no time, so it never plays (`stepAt`), and the bar still moves truthfully through
+  the drive. One sentence added to guide 22 step 6. Accenting the mechanism a start form began until its
+  `waitUntilDone` changes D2's rule — the coordinator's call (after the 21st, if wanted).
+- **T2 — the real-engine page check nearly empty: FIXED.** `preview.test.mjs` THE REAL ENGINE runs `ready` AND
+  `mechanisms` (the cascade moves in the second), asserts each mechanism's `at` length before the per-pace loop.
+  `native.test.mjs`'s RMP1-E case now compares its fresh record with the committed `mechanisms.preview.json` (steps
+  and sample count exact, every state within POS_BOUND): CI's engine job runs it, so a stale committed fixture goes
+  red there. R1, R3, E4, R7 RED in it.
+- **T3 — no engine test of D3's PLACEHOLDER mark (R7): FIXED.** Native: the cascade's `placeholder` matches
+  `^PLACEHOLDER`, the right toggle's is "". R7 RED.
+- **T4 — flywheel, arm and no-position paths unexercised: FIXED.** Suite case "the tap reads a flywheel's
+  direction, and a piston at none of its positions as -1" (`mech_rig::Rig` on robot x's list, line C refused so the
+  hood is ABSENT): R4, R5 RED. Native case "RMP1-E on robot x" (kinds and units, the arm in degrees at its `score`,
+  the hood's middle, the intake forward, the flywheel off throughout — no route step can spin one): R6 (an arm
+  labelled a lift, in inches; the review's R9 is the same assert) RED.
+- **T5 — page mutants Q1–Q5: FIXED but Q4.** Q1 (no clamp): a playback case past both stops, RED. Q2 (About's
+  mechanisms line for a record with none): the older-record test opens About and finds none, RED. Q3 (half-out
+  rod): the claw's rod 4 closed, 18 open, RED. Q5 (the accent lingering): the `ready` route accents cascade, none,
+  none, claw, none at its five steps, RED. Q4 (rows never rebuilt) stays EQUIVALENT today: robots one and two have
+  the same list and PREVIEW plays robot one only, so no page shows two records with different lists.
+- **D1 (major) — the deltas only in the report: FIXED** ("Deltas from the brief" above, with reasons).
+- **D2 — guide 22's PREVIEW pictures without the strip: RE-MADE.** `preview.png`, `preview-failed.png` and
+  `preview-mechanisms.png` from a SHOTS-only test in `mechanisms.page.test.mjs` (light 1440, Firefox, robot two's
+  question answered "one at a time": no red box, no error badge; toasts gone), by RMP1-A2u's `to_docs.py`; alt texts
+  say what the strip shows. Shots: `~/shulib-render-tmp/rmp1-e/shots-review/` (11, the 1366 x 657 one included).
+- **D3 — "the first line of About this run": FIXED** ("About this run says so"). My concept grep missed it: the
+  guide wraps `**About` / `this run**` across a line break. This round's check is a multi-line regex
+  (`About\**\s+\**this run`) over docs/ and both READMEs: two hits, both read, both true.
+- **D4 — the README's "re-record the PAIR fixtures" vs two tests that needed them unre-recorded: FIXED at the
+  tests.** `playback.test.mjs` deletes the member from a copy of `mechanisms`; the page test asks the stand-in to
+  leave it out (`standin_engine.mjs`'s new `omit`; the README's stand-in sentence names it). Re-recording the PAIR
+  fixtures now removes nothing.
+- **D5 — the strip's PLACEHOLDER chip not in guide 22's PLACEHOLDER sentence: FIXED** (one sentence, linking
+  chapter 18's Tune program).
+- **D6 — two banners: FIXED** (`route_maker_runner_test.cpp`: whole routes on robot one since RMP1-E;
+  `route_maker_runner.hpp`: `onBuilt` installs the tap, `runEntry`).
+- **D7 — the README's bound in inches for an arm, a trig-only cause: FIXED** (an arm's 1e-5 deg; "round differently
+  in the last bit").
+- **D8 — PROJECT-BRIEFING.md missing from the merge touch points: FIXED** (added, with the regenerate sequence).
+- Also: the stand-in registers a route with "both robots at the same time?" answered EITHER way (robot one's run is
+  the same), so the docs pictures can answer "one at a time".
+
+**Prose review (rule 4; greps run and hits read BEFORE this line, 21:49, the multi-line regex just after).** Names (`standin_engine|
+mech_strip|mechanisms\.page|route_maker_runner_test|preview\.mjs|native\.test`) over docs/ (chunks and api aside),
+README.md and the route builder's README: only the README's table rows and its stand-in paragraph (now naming
+`omit`). Concepts (`first line of|stand-in.s options|Its options|within 1e-5|1e-5 in|starting gains|keeps going`,
+and the multi-line "About this run" regex): the README's two bound sentences (fixed), guide 22's About sentences
+(fixed and read), every other "starting gains" hit (guide 10, 14, roadmap) about the library, not the page.
+Deliberately NOT touched: the changelog (its entry still true), `docs/route-builder.md` (one clause, still true),
+`roadmap.md`, `build-order.md`, `docs/api/` (no `///`), `ci.yml` (it already runs every new test).
+
+**Gates on the post-review tree.** Full build after `rm -f build/test/shulib_tests` and the unbuilt briefing: exit 0,
+doc gates as before (`6502 public entities ... all documented`, `check-nav: OK — 263`, `check-tone: OK — 48`,
+`check-register: OK — 232`); briefing regenerated on the built binary, `check`: current. Suite: `green — 3883
+cases, 3775506 assertions`. Node: 174 of 174. The module rebuilt (pinned emsdk read-only): `test/wasm/` 17 of 17
+(WG2 23 routes 5.33e-14 in; WG2s 500 routes 2.65e-7 in). Fresh `record.mjs --out` vs every committed fixture:
+all 8 "same". Page, stand-in site: Firefox 72 / 69 pass / 3 skipped, Chromium 72 / 66 / 6 (the engine's two or five
+and the SHOTS-only pictures). `--engine` site (preview + engine + mechanisms): Firefox and Chromium 32 / 31 / 1
+(the pictures); THE REAL ENGINE through CI's path (`ROUTE_MAKER_NATIVE_RECORDS`, no program): pass. ARM header gate
+`TU includes 259 headers` → CLEAN; PROS-free and sim-free greps clean; changed files LF; `git diff -- include/ src/
+Makefile` empty. `api_doc_tool` self-test, check-coverage, check-fresh (exit 0), check-examples (`988 quoted
+lines, all verbatim`), check-removability: OK. `doc_staleness_audit.py` self-test OK (16), run clean (37 live docs).
+src gate `check`: `PASS (all 14 builds link or, robot one's and robot two's, refuse naming exactly their owed facts
+...)` (its self-test not needed: no src/ or Makefile change). No browser process of this round left. Nothing committed.
