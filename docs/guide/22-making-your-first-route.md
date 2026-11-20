@@ -3,6 +3,12 @@
 **Do this first:** [Set up your robot first](23-set-up-your-robot-first.md) — Bench Tests and Calibrate on the
 robot, before you make a route.
 
+Watch it first — about 2 ¾ minutes, with a voice.
+
+<video controls preload="metadata" poster="../../assets/video/make-a-route.jpg" src="../../assets/video/make-a-route.mp4" style="max-width:100%"></video>
+
+Music: "Wallpaper" by Kevin MacLeod ([incompetech.com](https://incompetech.com)), licensed under [Creative Commons: By Attribution 4.0](https://creativecommons.org/licenses/by/4.0/). Voice: Kokoro.
+
 The **route builder** is a web page where you build your team's routes — the skills route and any other you name —
 by clicking on the real field, and get the C++ for the robot out of it. You place robot one's start, add steps — drive here, curve through there, open the
 claw — and the page checks every step against the library's own rules as you go. When the route is right, you
@@ -62,7 +68,8 @@ robot two then runs it as written, and nothing blue is drawn.
 ### 3. Add a drive
 
 Pick **Drive** in the toolbar (or press **D**) and click where the robot should drive to. A dashed line shows the
-plan, and a ghost square shows where the robot ends, facing along the line.
+plan, and a ghost square shows where the robot ends, facing along the line. A new step goes right AFTER the step
+selected in the list (with none selected, at the end).
 
 **"Turn to face it first"** is on: robot one's file declares it a tank, and a tank only steers itself back onto its
 line when it starts within 15° of it. A drive that starts off its line **can** stop short of the point — on the host
@@ -193,8 +200,9 @@ The result is never silent: green (**Written and checked** with the routes and t
 **Copied**) or red, with **the fix**. Code changed by hand between the lines is replaced only if you choose
 **Overwrite**. Then **Will it build?** (what the page checked; the C++ compiler checks the rest) and **Next**: the
 build and upload commands for robot one or two, each with **Copy**, or one command for both
-([chapter 16](16-testing-an-auton-on-the-bench.md)). On the brain: **shulib Auton Tester** (slot 2) → the route →
-**RUN**.
+([chapter 16](16-testing-an-auton-on-the-bench.md)). The quickest: in VS Code, **Terminal → Run Task → Upload
+routes to robot one** (or two) — it runs `python3 tools/upload_auton.py one` and ends with **✓ UPLOADED** or **✗** and
+what to fix. On the brain: **shulib Auton Tester** (slot 2) → the route → **RUN**.
 
 ![After Write: Written and checked, the routes and their steps, "Will it build?", and Next with robot one's commands](../assets/route-builder/export-written.png)
 
