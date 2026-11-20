@@ -91,7 +91,21 @@ async function until(cond, ms = 10000) {
     }
     return cond();
 }
-const calls = () => fs.readFileSync(made.env.FAKE_CALLS, 'utf8').trim();
+/** What the sends ran: make and upload_auton's pros calls. RMP1-K: a send that ends well opens Watch the robot (its own
+ *  `pros lsusb` and `pros terminal`, as the page's watch's, not the send's), left out up to the next make. */
+const calls = () => {
+    const all = fs.readFileSync(made.env.FAKE_CALLS, 'utf8').trim().split(/\r?\n/).filter(Boolean);
+    const out = [];
+    let sending = false;
+    for (const c of all) {
+        sending = c.startsWith('make') ? true : c.startsWith('pros terminal') ? false : sending;
+        if (sending && !c.startsWith('pros terminal')) {
+            out.push(c);
+        }
+        sending = sending && !c.startsWith('pros upload');
+    }
+    return out.join('\n');
+};
 /** The problems, less the ones Chromium logs for an answer this test asked for (`expected`: a 409, a helper gone). */
 const besides = (problems, expected) => problems.filter((x) => !expected.test(x));
 
@@ -196,8 +210,8 @@ test.describe('RMP1-I: Send to robot', { skip }, () => {
             assert.ok(!order.includes(-1) && order.every((x, k) => k === 0 || x > order[k - 1]), `in order: ${JSON.stringify(seen)}`);
             assert.equal(await page.locator('#send').textContent(), 'Send to robot one');
             assert.ok(!(await page.locator('#export').isDisabled()), 'Export again once it has ended');
-            assert.deepEqual(calls().split(/\r?\n/),  // Windows writes CRLF
-                ['make ROBOT=one PROGRAM=autontest', 'pros lsusb', `pros upload --slot ${TESTER.slot} --name shulib Auton Tester . /dev/ttyACM0`]);
+            assert.deepEqual(calls().split('\n'),
+                ['make ROBOT=one PROGRAM=autontest', 'pros lsusb', `pros upload --slot ${TESTER.slot} --name shulib Auton Tester --description no git | skills, left 1 . /dev/ttyACM0`]);
             await shot(page, `send-ok-${v.tag}`);
             assert.deepEqual(await p.done(), []);
         });

@@ -43,9 +43,9 @@ Robot one:
 
 ```sh
 make ROBOT=one
-pros upload --slot 3 --name "Bench Tests"
+pros upload --slot 3 --name "Bench Tests" --description "$(git describe --always --dirty)"
 make ROBOT=one PROGRAM=calibrate
-pros upload --slot 4 --name "shulib Calibrate"
+pros upload --slot 4 --name "shulib Calibrate" --description "$(git describe --always --dirty)"
 ```
 
 Robot two: the same four lines with `ROBOT=tank` in place of `ROBOT=one`.
@@ -275,7 +275,7 @@ shulib Drive builds once the answers from step 2 are typed into your robot's fac
 
 ```sh
 make ROBOT=one PROGRAM=drive
-pros upload --slot 1 --name "shulib Drive"
+pros upload --slot 1 --name "shulib Drive" --description "$(git describe --always --dirty)"
 ```
 
 Run **shulib Drive** (slot 1) and check, with the robot on the floor:

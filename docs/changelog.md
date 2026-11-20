@@ -14,6 +14,32 @@
 > after the fact from those comments and the project records; everything above it was
 > written when the change landed.
 
+## API 2.11
+
+### 2026-11-20 — See the mechanisms work: each step says when it is done
+
+> Written when it was built. **A library change, by the team lead's second freeze exception the day before the
+> competition ("Yes, live ticks") — additive (API 2.11):** a log line, nothing else.
+
+**What you can now do (additive):**
+
+- **Every step that ends well says so**, in the brain's log (Info, tag `RTN`): `routine 'skills': step 3 (cascade)
+  done in 1.42 s, at 18.0 in` — its number, its verb or mechanism, its seconds, and where a mechanism ended (`at
+  'closed'`; `started in 0.00 s` for a START form still running). A failed, stopped or skipped step keeps its own
+  line. Nothing a robot does changed: every run of the host test plant is the same, bit for bit, but for these lines.
+- **The route builder on the team laptop** (`python3 tools/route_builder.py`), in the route's menu:
+  **Check the mechanisms** sends a check of the route's mechanism steps alone (the robot stays where it is; each step
+  runs to its end; on the brain it is `<route> mechs`, and `src/team/skills_route.cpp` is written back without it when
+  the upload ends); **Watch the robot** reads the brain's USB and ticks each step as the robot finishes it (green done,
+  red stopped in the robot's words, amber failed and carried on, grey skipped), with one summary line in the colour of
+  the robot's own verdict and its END estimate on the field when it is LIVE; **What is on robot one** (or two) shows
+  each slot against what should be there. In VS Code: Terminal → Run Task → **What is on robot one**. These three have
+  run against stand-ins for `pros` only: not yet against a real brain.
+- `tools/upload_auton.py` uploads with `--description "<build> | <the routes>"`, and the docs' upload commands with
+  `--description "$(git describe --always --dirty)"`, so the check of the brain can say which build each slot holds.
+
+**What you must do:** nothing. A program that counted the routine's `Info` lines counts one more per finished step.
+
 ## API 2.10
 
 ### 2026-11-20 — The route builder on the team laptop: Send to robot is one button

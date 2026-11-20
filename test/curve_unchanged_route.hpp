@@ -20,6 +20,7 @@
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/routine.hpp"
 #include "shulib/diag/blackbox_format.hpp"
+#include "routine_done_line.hpp"
 #include "shulib/hal/fake/fake_telemetry_sink.hpp"
 #include "shulib/kinematics/tank.hpp"
 #include "shulib/kinematics/x_drive.hpp"
@@ -99,6 +100,9 @@ inline std::uint64_t routeHash(const shulib::kinematics::IKinematics& kin, doubl
         fnv.bytes(buf, n);
     }
     for (int i = 0; i < sink.size(); ++i) {
+        if (routine_d4::isStepDoneLine(sink.at(i).level, sink.at(i).subsystem, sink.at(i).message)) {
+            continue;  // RMP1-K D4's line: after this golden's base (routine_done_line.hpp)
+        }
         fnv.num(static_cast<double>(static_cast<int>(sink.at(i).level)));
         fnv.text(sink.at(i).subsystem);
         fnv.text(sink.at(i).message);

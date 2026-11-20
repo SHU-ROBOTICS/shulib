@@ -32,7 +32,7 @@ Robot one's builds. Robot two's are the same with `ROBOT=tank`, and its files ar
 | `make ROBOT=one PROGRAM=tune` | shulib Tune | 7 | `src/programs/tune_program.cpp` | `src/robots/mechanism_table.hpp` |
 
 Slot 5 is kept for the team's old code. (Since 2026-11-20 Competition is slot 2 and the Auton Tester slot 6: the team lead.) Upload a build with
-`pros upload --slot <slot> --name "<on the brain>"` ([Build and upload the programs](guide/07-getting-set-up.md)).
+`pros upload --slot <slot> --name "<on the brain>" --description "$(git describe --always --dirty)"` ([Build and upload the programs](guide/07-getting-set-up.md)).
 For the Auton Tester, `python3 tools/upload_auton.py one` (or `two`; `python` on Windows) does both and says plainly
 whether it worked.
 

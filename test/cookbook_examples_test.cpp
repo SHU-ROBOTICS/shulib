@@ -509,8 +509,9 @@ TEST_CASE("cookbook-02a: bail out when a grab fails — and park somewhere usefu
 // Bug caught: the "attempt and continue" idiom silently stopping the chain
 // after all (which is what happens the moment someone "improves" the action to
 // return the bool), or the chapter's honesty claim going stale — it tells the
-// reader that a swallowed failure is INVISIBLE in the transcript, and that
-// warning is only true while the routine layer really does stay silent.
+// reader that a swallowed failure is INVISIBLE in the transcript (since API 2.11
+// the routine layer even logs the miss as "done"), and that warning is only true
+// while the routine layer says nothing of the miss.
 TEST_CASE("cookbook-02b: attempt a grab, keep sweeping — and pay for it honestly") {
     const auto kin = shulib::kinematics::xDrive(7_in);
     shulib::hal::fake::FakeTelemetrySink log;
@@ -544,9 +545,18 @@ TEST_CASE("cookbook-02b: attempt a grab, keep sweeping — and pay for it honest
                                                         c.rig.h.truePose().heading()})
           < 1.5);
 
-    // The price, asserted: the routine layer said NOTHING about the miss.
+    // The price, asserted: the routine layer said NOTHING about the miss -- worse, since API 2.11 every
+    // attempt-grab logs "done" (RMP1-K D4): the step succeeded, whatever the grab did.
     CHECK(routineWarnings(log) == 0);
-    CHECK_FALSE(logged(log, "attempt-grab"));
+    int grabLines = 0;
+    for (int i = 0; i < log.size(); ++i) {
+        if (log.at(i).message.find("attempt-grab") != std::string::npos) {
+            ++grabLines;
+            CHECK(log.at(i).message.find(") done in ") != std::string::npos);
+        }
+    }
+    CHECK(grabLines == 3);
+    CHECK(logged(log, "routine 'sweep-three': step 5 (attempt-grab) done in 0.00 s"));  // the miss, quoted in the recipe
 }
 
 // Bug caught: a partner-wait that does not actually wait (D2's second green

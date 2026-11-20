@@ -1240,7 +1240,7 @@ using chassis::Routine
 
 An auton's step chain: `Routine r{ctx, "name"}`.
 
-*type alias, declared at [`include/shulib/chassis/routine.hpp:2439`](../../include/shulib/chassis/routine.hpp#L2439).*
+*type alias, declared at [`include/shulib/chassis/routine.hpp:2477`](../../include/shulib/chassis/routine.hpp#L2477).*
 
 <a id="routineresult"></a>
 
@@ -1252,7 +1252,7 @@ using chassis::RoutineResult
 
 What an auton returns: `return r.result();`.
 
-*type alias, declared at [`include/shulib/chassis/routine.hpp:2441`](../../include/shulib/chassis/routine.hpp#L2441).*
+*type alias, declared at [`include/shulib/chassis/routine.hpp:2479`](../../include/shulib/chassis/routine.hpp#L2479).*
 
 <a id="carryon-2"></a>
 
@@ -1264,7 +1264,7 @@ using chassis::carryOn
 
 STEP1-A: the on-failure choice's words, so a generated auton needs no namespace either — `r.onFail(carryOn)`: count the failure and run the next step.
 
-*type alias, declared at [`include/shulib/chassis/routine.hpp:2444`](../../include/shulib/chassis/routine.hpp#L2444).*
+*type alias, declared at [`include/shulib/chassis/routine.hpp:2482`](../../include/shulib/chassis/routine.hpp#L2482).*
 
 <a id="onfail"></a>
 
@@ -1276,7 +1276,7 @@ using chassis::OnFail
 
 What `r.onFail(...)` takes.
 
-*type alias, declared at [`include/shulib/chassis/routine.hpp:2446`](../../include/shulib/chassis/routine.hpp#L2446).*
+*type alias, declared at [`include/shulib/chassis/routine.hpp:2484`](../../include/shulib/chassis/routine.hpp#L2484).*
 
 <a id="skipto-2"></a>
 
@@ -1288,7 +1288,7 @@ using chassis::skipTo
 
 `r.onFail(skipTo("x"))`: count the failure and pass over every step until `r.label("x")`.
 
-*type alias, declared at [`include/shulib/chassis/routine.hpp:2448`](../../include/shulib/chassis/routine.hpp#L2448).*
+*type alias, declared at [`include/shulib/chassis/routine.hpp:2486`](../../include/shulib/chassis/routine.hpp#L2486).*
 
 <a id="stopchain-2"></a>
 
@@ -1300,7 +1300,7 @@ using chassis::stopChain
 
 `r.onFail(stopChain)`: the default rule, spelled out.
 
-*type alias, declared at [`include/shulib/chassis/routine.hpp:2450`](../../include/shulib/chassis/routine.hpp#L2450).*
+*type alias, declared at [`include/shulib/chassis/routine.hpp:2488`](../../include/shulib/chassis/routine.hpp#L2488).*
 
 ## Design commentary, from the header
 

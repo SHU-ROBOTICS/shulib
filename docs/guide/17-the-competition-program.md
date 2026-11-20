@@ -21,7 +21,7 @@ programs — robot two's build below; robot one's is `make ROBOT=one PROGRAM=com
 
 ```sh
 rm -rf bin .d && make ROBOT=tank PROGRAM=competition
-pros upload --slot 2 --name "shulib Competition"
+pros upload --slot 2 --name "shulib Competition" --description "$(git describe --always --dirty)"
 ```
 
 The `rm -rf bin .d` is harmless, for the reason [Chapter 16](16-testing-an-auton-on-the-bench.md)

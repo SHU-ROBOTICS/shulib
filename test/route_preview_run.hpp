@@ -36,8 +36,9 @@
 // the hook folds what was recorded, writes the page and the table with "after step N the auton keeps
 // looping without letting time pass ...", and ends the process with std::_Exit — 1 (kExitProblem), or
 // 3 (kExitToolFailed) when the page could not be written — it runs inside library code that must not
-// throw, so nothing is unwound. A loop of steps that SUCCEED without pacing
-// logs nothing: only the launcher's 300 s timeout catches that one, and it says so.
+// throw, so nothing is unwound. Since API 2.11 (RMP1-K D4) a step that SUCCEEDS logs its "done in" line, so a loop of
+// them is caught the same way; only code that never ends one step logs nothing: the launcher's 300 s timeout catches
+// that one, and it says so.
 //
 // ── THE END ACTION, by ORDER (RPV1-A's review, 2026-11-13) ───────────────────────────────────────
 // A step is the end action's (drawn "park", unnumbered) when it began AFTER the guard logged
@@ -406,7 +407,8 @@ inline bool parseMechLine(std::string_view line, std::string& name, std::string&
     if (l.find("' STOPPED at step ") != std::string_view::npos || l.find(") FAILED: ") != std::string_view::npos) {
         return Mark::Failed;
     }
-    if (l.find("landed at step") != std::string_view::npos) {
+    if (l.find("landed at step") != std::string_view::npos || l.find(") done in ") != std::string_view::npos ||
+        l.find(") started in ") != std::string_view::npos) {  // RMP1-K D4: a step that ended well
         return Mark::Ok;
     }
     if (l.find(": its skip target '") != std::string_view::npos) {

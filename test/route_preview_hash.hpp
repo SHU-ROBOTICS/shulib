@@ -16,6 +16,7 @@
 #include <cstring>
 #include <string_view>
 
+#include "routine_done_line.hpp"
 #include "shulib/hal/fake/fake_telemetry_sink.hpp"
 #include "shulib/motion/motion_scheduler.hpp"
 #include "shulib/sim/scenario.hpp"
@@ -59,6 +60,9 @@ struct TruthTap final : shulib::motion::ITickPacer {
     Fnv f;
     for (int i = 0; i < sink.size(); ++i) {
         const auto& e = sink.at(i);
+        if (routine_d4::isStepDoneLine(e.level, e.subsystem, e.message)) {
+            continue;  // RMP1-K D4's line: after this golden's base (routine_done_line.hpp)
+        }
         f.u32(static_cast<std::uint32_t>(e.level));
         f.text(e.subsystem);
         f.text(e.message);

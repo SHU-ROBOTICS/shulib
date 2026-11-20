@@ -32,7 +32,7 @@ push and a full push of the stick drive — and exports them into the robot's dr
 
 | Browser | What it does |
 |---|---|
-| **On the team laptop:** `python3 tools/route_builder.py` (VS Code: **Terminal → Run Task → Open the route builder**) | Any browser, everything, and **Send to robot**: it writes the routes into `src/team/skills_route.cpp`, then builds and uploads them in one button ([guide chapter 22, step 7](guide/22-making-your-first-route.md#7-send-it-to-the-robot)). |
+| **On the team laptop:** `python3 tools/route_builder.py` (VS Code: **Terminal → Run Task → Open the route builder**) | Any browser, everything, and **Send to robot**: it writes the routes into `src/team/skills_route.cpp`, then builds and uploads them in one button ([guide chapter 22, step 7](guide/22-making-your-first-route.md#7-send-it-to-the-robot)); then **Check the mechanisms**, **Watch the robot** and **What is on robot one** ([the same step](guide/22-making-your-first-route.md#check-the-mechanisms-then-watch-the-run)). |
 | **Edge or Chrome** (version 97 or newer) | Everything. Connect your shulib folder once: **Save** writes `src/team/route_maker.json`, **Export** writes the routes into `src/team/skills_route.cpp` (and reads it back) and the **Controls** tab's export into the robot's driver file, each keeping the file's own line endings. |
 | **Firefox** (115 or newer) | Everything except writing into the folder: **Save** downloads `route_maker.json`, **Export** copies the code (or hands back an updated `skills_route.cpp`, or driver file, to put in place). |
 | **Safari** (16 or newer) — not tested | Should work as Firefox does; no test runs it. |

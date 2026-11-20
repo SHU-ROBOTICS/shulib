@@ -237,6 +237,35 @@ the line, to tell the coordinator.
 one** (or **two**) — with the code one click away. While a step is still red, a red number on Export counts what is
 left, and Export (or Send) shows only that list — each with **Go there**.
 
+#### Check the mechanisms, then watch the run
+
+PREVIEW proves the order. Only the robot proves the claw is plumbed and the cascade reaches 18 in. Open the route's
+menu (its name in the top bar); under **On the robot**:
+
+**Check the mechanisms.** One screen says what will move. The robot stays where it is: clear the mechanisms' paths,
+then **Send the check to robot one**.
+
+![Check the mechanisms of "skills": the cascade homes, goes to 6 in, then 18 in; the claw goes to closed, then open; the right toggle runs 0.8 s at 8 V. The robot stays where it is. Send the check to robot one](../assets/route-builder/check.png)
+
+On the brain: **shulib Auton Tester** → **skills mechs** → **RUN**. Each mechanism step runs to its end, one after
+another. When the upload ends, `src/team/skills_route.cpp` holds only your routes again, so a **shulib Competition**
+built after it never lists the check. If the page says the file still holds it, Export before you build Competition.
+
+**Watch the robot.** After a send that uploads, it opens by itself (or pick it in the same menu). Each step turns green
+as the robot finishes it; a step that stopped is red, in the robot's own words; amber failed and carried on; grey was
+skipped; a mechanism started while the robot drives says how it ended. One line sums it up, in the robot's own verdict's
+colour, and the robot's END estimate (when it is LIVE) is the dashed square on the field.
+
+![The check running on the robot: the mechanism steps green, the cascade's second move amber (STALLED, carried on), "6 of 7 steps done — 1 failed and carried on"](../assets/route-builder/run-check.png)
+
+A program built before API 2.11 marks the steps when the run ends. Change the route after a run and its marks are
+cleared. **Show the robot's log** has every line, and each watch is saved in `build/robot_runs/` for the coordinator.
+
+**What is on robot one.** Each slot against what should be there: the first wrong one is red, with its fix. It only
+reads. (In VS Code: **Terminal → Run Task → What is on robot one**.)
+
+![What is on robot one: slot 2 holds shulib Auton Tester, highlighted: upload shulib Competition there](../assets/route-builder/slots.png)
+
 #### From the website
 
 On the website's route builder, Export shows **one card: the step for your browser**, the step to do now highlighted.

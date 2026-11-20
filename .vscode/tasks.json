@@ -2,7 +2,8 @@
     // The team's buttons: Terminal -> Run Task -> one of these. "Open the route builder" opens this folder's route
     // builder in the browser, where Send to robot is one button (tools/route_builder.py; the terminal keeps it running,
     // Ctrl+C stops it). The two "Upload routes" build the Auton Tester for that robot, upload it to slot 6 and say plainly
-    // whether it worked (tools/upload_auton.py). Plug the BRAIN in by USB.
+    // whether it worked (tools/upload_auton.py). "What is on robot one" (or two) lists what is in each of the brain's slots
+    // against what should be there, read-only (tools/route_builder.py robot one). Plug the BRAIN in by USB.
     // (The PROS extension's own Build & Upload builds the default program, not the Auton Tester.)
     "version": "2.0.0",
     "tasks": [
@@ -33,6 +34,24 @@
             "windows": { "command": "python" },
             "args": ["tools/upload_auton.py", "two"],
             "group": "build",
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "What is on robot one",
+            "type": "shell",
+            "command": "python3",
+            "windows": { "command": "python" },
+            "args": ["tools/route_builder.py", "robot", "one"],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "What is on robot two",
+            "type": "shell",
+            "command": "python3",
+            "windows": { "command": "python" },
+            "args": ["tools/route_builder.py", "robot", "two"],
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
             "problemMatcher": []
         }

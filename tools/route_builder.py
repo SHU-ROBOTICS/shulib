@@ -2,6 +2,7 @@
 """route_builder.py -- the route builder on this laptop, with Send to robot (RMP1-I).
 
     python3 tools/route_builder.py             open it in the browser (python on Windows; Ctrl+C stops it)
+    python3 tools/route_builder.py robot one   what is in each of robot one's slots, against the wanted table (or two)
     python3 tools/route_builder.py self-test
 
 Serves THIS checkout's route builder (tools/route_maker/src, put together by tools/route_maker/build.py's own code) on
@@ -11,13 +12,21 @@ into the page as they come. The robots' facts and PREVIEW's engine: this laptop'
 published site's, kept in build/route_builder_cache/ for a venue with no internet. 127.0.0.1 only; the token in every
 path (and in a header for a write or a send); the Host header checked; nothing served but the page's files; writes only
 to files under src/team/, all or nothing, and none while a send runs. Python's standard library only.
+RMP1-K: Watch the robot reads the brain's USER port (`pros terminal`, the port from `pros lsusb` as upload_auton finds
+the system port) and streams its lines to the page, saved in build/robot_runs/; one reader at a time, closed for a
+send and reopened after, the helper's child. What is on robot one reads the slots over the SYSTEM port (tools/
+brain_slots.py, run by `pros user-script`: pros-cli's own V5Device) -- read-only, and through a running helper when there
+is one (one pros on the brain at a time).
 """
+import datetime
 import hmac
 import html
 import http.client
 import importlib.util
 import json
 import os
+import queue
+import re
 import secrets
 import shutil
 import signal
@@ -25,6 +34,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import urllib.parse
 import urllib.request
 import webbrowser
@@ -47,6 +57,10 @@ NO_FACTS = ("The route builder has no robots' facts on this laptop yet: connect 
             "keeps them for the venue), or build it (tools/route_maker/README.md).")
 GROUP = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {"start_new_session": True}
 REFUSED = "refused: open the route builder with the link it printed in its terminal"
+# RMP1-K D5: what each slot should hold (the team lead, 2026-11-20); slot 5 is the team's old code, never touched.
+WANTED = {1: "shulib Drive", 2: "shulib Competition", 3: "Bench Tests", 4: "shulib Calibrate", 5: None,
+          6: "shulib Auton Tester", 7: "shulib Tune"}
+UNPLUGGED = "The brain's USB was unplugged (or the brain turned off): plug the BRAIN in, then Watch the robot again."
 FACTS_FROM = ("src/robots", "include")  # what the robots' descriptions are built from (test/route_maker_main.cpp)
 
 
@@ -138,7 +152,7 @@ def write_all_or_nothing(path, data):
         raise
 
 
-def stop(p):
+def stop(p, grace=10):
     """End a send: upload_auton, make and the compilers (its whole process group), as a terminal's Ctrl+C would. `p` may
     have ended already (poll() says None while another thread waits on it): never an error."""
     if p is None or p.poll() is not None:
@@ -146,7 +160,7 @@ def stop(p):
     if os.name == "nt":
         subprocess.run(["taskkill", "/T", "/F", "/PID", str(p.pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
-        for sig, wait in ((signal.SIGINT, 10), (signal.SIGKILL, 0)):
+        for sig, wait in ((signal.SIGINT, grace), (signal.SIGKILL, 0)):
             try:
                 os.killpg(p.pid, sig)
                 p.wait(wait) if wait else None
@@ -156,6 +170,157 @@ def stop(p):
         p.wait(10)
     except subprocess.TimeoutExpired:
         pass
+
+
+# ── RMP1-K: the brain's ports (D3), its run's lines (D2) and its slots (D5) ──────────────────────────────────────────
+
+def pros_run(args, root, timeout=60, env=None):
+    """(exit code or None when it gave no answer in `timeout` s, its output) of `pros <args>`; (None, words) without pros."""
+    pros = ua.find_tools()[1]
+    if not pros:
+        return None, f"pros not found (install PROS: {ua.PROS_HELP})"
+    try:
+        p = subprocess.run([pros, *args], cwd=root, stdin=subprocess.DEVNULL, capture_output=True, timeout=timeout,
+                           env=dict(os.environ, PYTHONIOENCODING="utf-8", **(env or {})))
+    except subprocess.TimeoutExpired:
+        return None, ua.no_answer(timeout)
+    except OSError as e:
+        return None, f"pros could not start: {e}"
+    return p.returncode, ua.ANSI.sub("", (p.stdout + p.stderr).decode("utf-8", errors="replace"))
+
+
+def brain_port(root, kind):
+    """(the brain's `kind` port -- "user" or "system" -- or None, the words why not), from `pros lsusb` as upload_auton
+    reads it: never a guess. A list not in pros's shape: (None, words) too (a read needs the port named)."""
+    code, text = pros_run(["lsusb"], root)
+    if code is None:
+        return None, text
+    port, why = ua.brain_port(text, kind) if code == 0 else (None, None)
+    alone = ua.brain_port(text, "system")[1] if code == 0 and not port else None
+    if alone and alone.startswith("Only the controller"):  # a controller-only USB lists no user port of its own
+        why = alone
+    return (port, None) if port else (None, why or f"pros lsusb did not list the brain's {kind} port: {ua.NO_BRAIN}")
+
+
+def open_reader(root, port):
+    """`pros terminal <port> --no-banner`, its output to a pipe; on POSIX its stdin a pseudo-terminal (pros's console
+    needs a tty: termios), on Windows a console with no window. The helper's child, in its own group (stop() ends it)."""
+    pros = ua.find_tools()[1]
+    kw = {"cwd": root, "stdout": subprocess.PIPE, "stderr": subprocess.STDOUT,
+          "env": dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUNBUFFERED="1")}
+    if os.name == "nt":
+        p = subprocess.Popen([pros, "terminal", port, "--no-banner"], stdin=subprocess.DEVNULL,
+                             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW, **kw)
+        p.tty = None
+        return p
+    import pty
+    tty, child = pty.openpty()
+    try:
+        p = subprocess.Popen([pros, "terminal", port, "--no-banner"], stdin=child, start_new_session=True, **kw)
+    except OSError:
+        os.close(tty)
+        raise
+    finally:
+        os.close(child)
+    p.tty = tty
+    return p
+
+
+def close_reader(p):
+    """End a reader (Ctrl+C as a terminal would, then kill) and free its pseudo-terminal; None: nothing open."""
+    if p is None:
+        return
+    stop(p, grace=3)
+    if getattr(p, "tty", None) is not None:
+        os.close(p.tty)
+        p.tty = None
+
+
+def read_slots(root):
+    """({slot: {"name", "description", "date"} or {"name": None, "unread": why}}, None) of the brain's programs over its
+    SYSTEM port, or (None, words). ONE `pros user-script tools/brain_slots.py` (pros-cli's own V5Device: the files, then
+    each slot_N.ini's [program] name, description and date -- v5_device.py generate_ini_file); its one SHULIB_SLOTS line
+    read, whatever pros prints around it. Reads only."""
+    port, why = brain_port(root, "system")
+    if not port:
+        return None, why
+    code, text = pros_run(["user-script", str(TOOLS / "brain_slots.py")], root, timeout=120, env={"SHULIB_BRAIN_PORT": port})
+    got = None
+    for raw in text.splitlines():
+        m = re.match(r"\s*SHULIB_SLOTS (\{.*\})\s*$", raw)
+        if m:
+            try:
+                got = json.loads(m.group(1))
+            except ValueError:
+                got = None
+    if code is None:
+        return None, text
+    if not isinstance(got, dict) or not isinstance(got.get("slots"), dict):
+        last = got.get("error") if isinstance(got, dict) and got.get("error") else (text.strip().splitlines() or [f"exit {code}"])[-1]
+        return None, f"pros could not read the brain's programs: {last}"
+    out = {}
+    for n, s in got["slots"].items():
+        out[int(n)] = ({"name": None, "unread": s.get("unread") or "not read", "description": "", "date": ""} if "unread" in s
+                       else {"name": s.get("name", ""), "description": s.get("description", ""), "date": s.get("date", "")})
+    return out, None
+
+
+def slot_table(have):
+    """The wanted table beside what is there: [{slot, want, have, ok, fix, date, description, unread}] (D5). A slot whose
+    file could not be read is said so -- never "empty", never "holds the wrong program"."""
+    rows = []
+    for n, want in WANTED.items():
+        got = have.get(n)
+        name = got["name"] if got else None
+        unread = bool(got and got.get("unread"))
+        row = {"slot": n, "want": want or "the team's old code", "have": name, "unread": unread,
+               "date": got and got["date"], "description": got and got["description"]}
+        if want is None:
+            rows.append(dict(row, ok=True, fix="never touched by shulib"))
+            continue
+        ok = name == want
+        where = [k for k, g in have.items() if g["name"] == want and k != n]
+        fix = ("" if ok else f"slot {n} could not be read ({got['unread']}): check again" if unread
+               else f"slot {n} is empty: upload {want} there" if not name else f"slot {n} holds {name}: upload {want} there")
+        if not ok and not unread and where:
+            fix += f" (it is in slot {where[0]} now)"
+        rows.append(dict(row, ok=ok, fix=fix))
+    return rows
+
+
+def robot_words(robot, rows, why):
+    """The table in a terminal's words (`python3 tools/route_builder.py robot one`)."""
+    if rows is None:
+        return f"Robot {robot}: {why}"
+    ok, bad, _ = ua.marks()
+    out = [f"Robot {robot}: what is in each slot (read from the brain; nothing changed)"]
+    for r in rows:
+        when = f"  uploaded {r['date'][:16].replace('T', ' ')}" if r["date"] else ""
+        build = f"  [{r['description']}]" if r["description"] else ""
+        have = "could not be read" if r.get("unread") else r["have"] or "empty"
+        out.append(f"  {ok if r['ok'] else bad} slot {r['slot']}: {have}" + ("" if r["ok"] else f" -- {r['fix']}") + when + build)
+    return "\n".join(out)
+
+
+def robot_via_helper(state, root, robot):
+    """(rows, why) from the route builder running on this checkout (its lock: never a read while it sends), or None when
+    none runs -- so a terminal's check never puts a second pros on the brain beside the page's."""
+    if not running(state, root):
+        return None
+    try:
+        s = json.loads(state.read_text(encoding="utf-8"))
+        c = http.client.HTTPConnection("127.0.0.1", int(s["port"]), timeout=180)
+        c.request("POST", f"/{s['token']}/api/robot?robot={robot}", body=b"",
+                  headers={"Host": f"127.0.0.1:{s['port']}", "X-Shulib-Token": s["token"], "Content-Length": "0"})
+        r = c.getresponse()
+        body = r.read().decode("utf-8", errors="replace")
+        c.close()
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        return None, f"the route builder running on this checkout did not answer ({e}): stop it, or try again"
+    if r.status != 200:
+        return None, f"the route builder running on this checkout says: {body}"
+    got = json.loads(body)
+    return got["rows"], got["why"]
 
 
 class Server(ThreadingHTTPServer):
@@ -175,6 +340,7 @@ class Server(ThreadingHTTPServer):
         self.port = self.server_address[1]
         self.hosts = {f"127.0.0.1:{self.port}", f"localhost:{self.port}"}
         self.lock, self.child = threading.Lock(), None
+        self.reader, self.watching, self.checking = None, False, False  # RMP1-K: the user port's reader; one watch, one check
         site.REPO = self.root  # the team's files (driver files, the shared route) from this checkout
         self.modules = set(site.module_graph(site.ENTRY))
         self.load()
@@ -258,6 +424,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.team_file(method, (q.get("path") or [""])[0])
         if method == "POST" and path == "/api/send":
             return self.send((q.get("robot") or [""])[0])
+        if method == "POST" and path == "/api/watch":
+            return self.watch()
+        if method == "POST" and path == "/api/robot":
+            return self.robot((q.get("robot") or [""])[0])
         return self.reply(404, "not here")
 
     def team_file(self, method, rel):
@@ -299,6 +469,10 @@ class Handler(BaseHTTPRequestHandler):
         with srv.lock:
             if srv.busy():
                 return self.reply(409, "A send is already running: wait for it to finish.")
+            if srv.checking:
+                return self.reply(409, "Reading the robot's slots: wait a moment, then send.")
+            close_reader(srv.reader)  # D3: the brain's port is the upload's now; the watch reopens it after
+            srv.reader = None
             try:
                 srv.child = p = subprocess.Popen(
                     [sys.executable, str(TOOLS / "upload_auton.py"), "--root", str(srv.root), robot], cwd=srv.root,
@@ -340,6 +514,118 @@ class Handler(BaseHTTPRequestHandler):
                     srv.child = None
         self.close_connection = True
 
+    def stream_start(self):
+        """The 200 and the headers of a stream of JSON lines; False when the tab has gone already."""
+        try:
+            self.send_response(200)
+            for k, v in (("Content-Type", "application/x-ndjson; charset=utf-8"), ("Cache-Control", "no-store"),
+                         ("X-Content-Type-Options", "nosniff")):
+                self.send_header(k, v)
+            self.end_headers()
+            return True
+        except OSError:
+            return False
+
+    def emit(self, message):
+        """One JSON line to the tab; False when the tab has gone (the watch then ends, and its reader with it)."""
+        try:
+            self.wfile.write((json.dumps(message) + "\n").encode("utf-8"))
+            self.wfile.flush()
+            return True
+        except OSError:
+            return False
+
+    def watch(self):
+        """RMP1-K D2/D3: the brain's USER port, line by line, to the tab -- and into build/robot_runs/<time>.log. One watch
+        at a time; while a send runs the reader is closed (the send closed it) and the watch waits, then reopens it. A ping
+        each second finds a closed tab. Ends when the tab goes, the port goes, or no brain is there (said)."""
+        srv = self.server
+        with srv.lock:
+            if srv.watching:
+                return self.reply(409, "The robot's log is already open in another tab: close that one first.")
+            srv.watching = True
+        runs = srv.root / "build" / "robot_runs"
+        saved = runs / (datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S") + ".log")
+        try:
+            if not self.stream_start():
+                return
+            runs.mkdir(parents=True, exist_ok=True)
+            with open(saved, "a", encoding="utf-8") as log:
+                self.emit({"saved": saved.relative_to(srv.root).as_posix()})
+                self.watch_loop(srv, log)
+        finally:
+            with srv.lock:
+                close_reader(srv.reader)
+                srv.reader, srv.watching = None, False
+            self.close_connection = True
+
+    def watch_loop(self, srv, log):
+        while True:
+            if srv.busy():  # a send has the brain: wait for it (pinging), then reopen
+                if not self.emit({"paused": "Sending to the robot: the log reopens when it is done."}):
+                    return
+                while srv.busy():
+                    time.sleep(0.2)
+                    if not self.emit({}):
+                        return
+            port, why = brain_port(srv.root, "user")
+            if not port:
+                return self.emit({"error": why})
+            with srv.lock:
+                if srv.busy():
+                    continue
+                try:
+                    srv.reader = p = open_reader(srv.root, port)
+                except OSError as e:
+                    return self.emit({"error": f"pros terminal could not start: {e}"})
+            if not self.emit({"open": port}):
+                return
+            lines, broken = queue.Queue(), [False]
+
+            def pump(out=p.stdout):
+                for raw in out:
+                    lines.put(raw.decode("utf-8", errors="replace").rstrip("\r\n"))
+                lines.put(None)
+            threading.Thread(target=pump, daemon=True).start()
+            while True:
+                try:
+                    line = lines.get(timeout=1)
+                except queue.Empty:
+                    if not self.emit({}):
+                        return
+                    continue
+                if line is None:
+                    break
+                log.write(line + "\n")
+                log.flush()
+                broken[0] = broken[0] or (" broken" in line and "Connection to" in line)
+                if not self.emit({"line": line}):
+                    return
+            with srv.lock:
+                if srv.reader is p:
+                    close_reader(p)
+                    srv.reader = None
+            if srv.busy():
+                continue  # the send closed it: reopen after
+            return self.emit({"error": UNPLUGGED if broken[0] else "The robot's log stopped (pros terminal ended): Watch the robot again."})
+
+    def robot(self, robot):
+        """RMP1-K D5: the wanted table beside what is in each slot (JSON). Never while a send uses the brain."""
+        srv = self.server
+        if robot not in ("one", "two"):
+            return self.reply(400, "say which robot: one or two")
+        with srv.lock:
+            if srv.busy() or srv.checking:
+                return self.reply(409, "The brain is busy (a send, or another check): wait for it to finish.")
+            srv.checking = True
+        try:
+            have, why = read_slots(srv.root)
+        finally:
+            with srv.lock:
+                srv.checking = False
+        body = {"robot": robot, "rows": slot_table(have) if have is not None else None, "why": why}
+        return self.reply(200, json.dumps(body), "application/json")
+
 
 def running(state, root):
     """The URL of a route builder already running on this checkout, or None."""
@@ -362,8 +648,16 @@ def main(argv):
             browser, argv = False, argv[1:]
         else:
             root, url, argv = (Path(argv[1]), url, argv[2:]) if argv[0] == "--root" else (root, argv[1], argv[2:])
+    if len(argv) == 2 and argv[0] == "robot" and argv[1] in ("one", "two"):  # RMP1-K D5, in the terminal
+        root = Path(root).resolve()
+        via = robot_via_helper(root / "build" / "route_builder.json", root, argv[1])  # one pros on the brain at a time
+        if via is None:
+            have, why = read_slots(root)
+            via = (slot_table(have) if have is not None else None, why)
+        print(robot_words(argv[1], *via), flush=True)
+        return 0 if via[0] is not None else 1
     if argv:
-        print("Say nothing to open it: python3 tools/route_builder.py   (or self-test)")
+        print("Say nothing to open it: python3 tools/route_builder.py   (or robot one, robot two, self-test)")
         return 2
     root = Path(root).resolve()
     state = root / "build" / "route_builder.json"
@@ -397,6 +691,7 @@ def main(argv):
         pass
     finally:
         stop(srv.child)
+        close_reader(srv.reader)  # D3: the reader dies with the helper
         srv.server_close()
         try:
             if srv.token in state.read_text(encoding="utf-8"):  # still ours (never another start's)
@@ -417,6 +712,8 @@ if case and os.path.exists(case):  # the case for this send ("ok", "region", ...
     os.environ["FAKE_CASE"], make_s, upload_s = (open(case).read().split() + ["0", "0"])[:3]
     step = os.sys.argv[1:3]
     time.sleep(float(make_s) if step[:1] == ["make"] else float(upload_s) if step == ["pros", "upload"] else 0)
+if os.sys.argv[1:3] == ["pros", "lsusb"]:  # RMP1-K D3: a slow USB list (the window a send may start in)
+    time.sleep(float(os.environ.get("FAKE_LSUSB_S", "0")))
 """
 
 
@@ -450,7 +747,7 @@ def stand_in(work, robots=None):
     home = str(work / "nohome")
     return {"root": str(repo), "python": sys.executable, "env": {"PATH": str(work / "bin"), "FAKE_CALLS": str(work / "calls.txt"),
             "FAKE_PIDS": str(work / "pids.txt"), "FAKE_CASE": "ok", "FAKE_CASE_FILE": str(work / "case.txt"),
-            "APPDATA": home, "XDG_CONFIG_HOME": home, "HOME": home}}
+            "APPDATA": home, "XDG_CONFIG_HOME": home, "HOME": home, "GIT_CEILING_DIRECTORIES": str(work)}}
 
 
 def self_test():
@@ -738,6 +1035,206 @@ def self_test():
         except Exception as e:  # noqa: BLE001
             check("stopping a send that has just ended", False, repr(e))
 
+    # ── RMP1-K: Watch the robot (D2/D3) and Check robot one (D5), against the fake pros's terminal and v5 commands ──
+    log1 = TOOLS / "route_maker" / "test" / "fixtures" / "robot_log" / "robot_one_2026-11-19_run3.log"
+
+    def more(r, until=None, s=30):
+        """A watch's messages from response `r` up to the first `until(m)` holds for (None: to its end), at most `s` s (its
+        pings would keep a wait alive forever); pings left out."""
+        got, end = [], time.time() + s
+        while time.time() < end:
+            try:
+                line = r.readline()
+            except TimeoutError:
+                return got
+            if not line:
+                return got
+            m = json.loads(line)
+            if m:
+                got.append(m)
+                if until and until(m):
+                    return got
+        return got
+
+    def watch_stream(srv, until=None, timeout=20):
+        """POST a watch: (status, its messages up to `until` (more()), the connection, the response)."""
+        c = http.client.HTTPConnection("127.0.0.1", srv.port, timeout=timeout)
+        c.request("POST", f"/{srv.token}/api/watch", headers={"Host": f"127.0.0.1:{srv.port}", "X-Shulib-Token": srv.token})
+        r = c.getresponse()
+        if r.status != 200:
+            return r.status, [r.read().decode()], c, r
+        return 200, more(r, until), c, r
+
+    def readers():
+        return [x for x in fakes("terminal") if alive(x)]
+
+    def case_watch(srv):
+        unplug = work / "unplug"
+        unplug.unlink(missing_ok=True)
+        os.environ.update(FAKE_CASE="ok", FAKE_TERMINAL=str(log1), FAKE_TERMINAL_EVERY="0", FAKE_UNPLUG=str(unplug))
+        (work / "pids.txt").unlink(missing_ok=True)
+        want = log1.read_text(encoding="utf-8", errors="replace").split("\n")
+        last = want[-1] if want[-1] else want[-2]
+        st, got, conn, resp = watch_stream(srv, until=lambda m: m.get("line") == last)
+        lines = [m["line"] for m in got if "line" in m]
+        opened = [m.get("open") for m in got if "open" in m]
+        check("watch: the brain's USER port, from pros lsusb (never a guess)", opened == ["/dev/ttyACM1"], got[:3])
+        check("watch: the robot's lines as they come, the real 11-19 run whole", lines[1:] == [x.rstrip("\r") for x in want[:len(lines) - 1]]
+              and lines[0] == "Established terminal connection" and any("1 of 23 steps done" in x for x in lines), lines[:3])
+        saved = srv.root / [m["saved"] for m in got if "saved" in m][0]
+        check("watch: saved to build/robot_runs/", saved.parent == srv.root / "build" / "robot_runs"
+              and "END estimate (52.51, -13.32)" in saved.read_text(encoding="utf-8"), saved)
+        check("watch: the reader is the helper's child, given a terminal (pros's console needs one)", len(readers()) == 1
+              and srv.reader is not None and srv.reader.poll() is None, readers())
+        st2, body, _, _ = watch_stream(srv)
+        check("a second reader refused", st2 == 409 and "already open" in body[0], (st2, body))
+        # a Send closes the reader first (the brain's port is the upload's), then the watch reopens it
+        reader = srv.reader
+        st3, sent, code, _ = stream(srv)
+        closed = reader.poll() is not None
+        rest = more(resp, lambda m: "open" in m)
+        check("a Send closes the reader before its upload, and the watch reopens it after", code == 0 and closed
+              and any("paused" in m for m in rest) and rest[-1].get("open") == "/dev/ttyACM1"
+              and not any("Traceback" in m.get("line", "") for m in rest) and wait_for(lambda: len(readers()) == 1), (code, closed, rest))
+        unplug.write_text("", encoding="utf-8")  # the cable pulled mid-run
+        end = more(resp)
+        check("a port that vanishes mid-run: said plainly, the watch ends, no reader left", end and end[-1].get("error") == UNPLUGGED
+              and wait_for(lambda: not readers() and srv.reader is None and not srv.watching), (end[-3:], readers()))
+        resp.close()
+        conn.close()
+        unplug.unlink()
+        os.environ["FAKE_CASE"] = "controller"
+        st, got, _, _ = watch_stream(srv)
+        check("a controller-only USB: said plainly, no reader", st == 200 and got[-1].get("error", "").startswith("Only the controller")
+              and not readers(), got)
+        os.environ["FAKE_CASE"] = "ok"
+        st, got, conn, resp = watch_stream(srv, until=lambda m: "open" in m)
+        resp.close()  # the tab closed: the next ping finds it, the reader goes
+        conn.close()
+        gone = wait_for(lambda: not readers() and not srv.watching, 10)
+        st, got, conn, resp = watch_stream(srv, until=lambda m: "open" in m)
+        check("a tab closed: its reader goes, and the next watch may open", gone and st == 200 and got[-1].get("open"), (readers(), got))
+        resp.close()
+        conn.close()
+        wait_for(lambda: not srv.watching and not readers(), 10)
+        # a send that starts while the watch is still listing the USB: the watch re-checks under the lock and opens no
+        # reader beside the upload (the send closed "the" reader before this one existed), then opens it after
+        os.environ.update(FAKE_CASE="ok", FAKE_LSUSB_S="1.5")
+        (work / "case.txt").write_text("ok 0 3", encoding="utf-8")
+        (work / "pids.txt").unlink(missing_ok=True)
+        conn = resp = None
+        try:
+            st, got, conn, resp = watch_stream(srv, until=lambda m: "saved" in m)
+            wait_for(lambda: fakes("lsusb"), 5)
+            sent, beside = [], []
+            th = threading.Thread(target=lambda: sent.append(stream(srv)))
+            th.start()
+            while th.is_alive():
+                if srv.busy() and readers():
+                    beside.append(readers())
+                time.sleep(0.05)
+            th.join()
+            rest = more(resp, lambda m: "open" in m)
+            check("a send that starts while the watch lists the USB: no reader beside the upload; the watch opens after",
+                  sent and sent[0][2] == 0 and not beside and any("paused" in m for m in rest) and rest[-1].get("open") == "/dev/ttyACM1",
+                  (beside, rest, sent and sent[0][:3]))
+        finally:
+            os.environ["FAKE_LSUSB_S"] = "0"
+            (work / "case.txt").unlink(missing_ok=True)
+            for x in (resp, conn):
+                if x is not None:
+                    x.close()
+            wait_for(lambda: not srv.watching and not readers(), 10)
+
+    def case_robot(srv):
+        good = {str(n): [w or "VEXcode", f"v0.1.1-470-gabc1234 | skills" if n in (2, 6) else "Made with PROS", f"2026-11-20T0{n}:00:00"]
+                for n, w in WANTED.items()}
+        os.environ.update(FAKE_CASE="ok", FAKE_SLOTS=json.dumps(good))
+        (work / "calls.txt").unlink(missing_ok=True)
+        st, body, _ = ask(srv, "POST", "/api/robot?robot=one")
+        got = json.loads(body)
+        rows = got["rows"] or [{}] * 7
+        calls = (work / "calls.txt").read_text(encoding="utf-8").splitlines()
+        check("Check robot one: every slot right (pros's own 'Loading' and 'Downloading slot_N.ini' lines around the answer)",
+              st == 200 and [r.get("ok") for r in rows] == [True] * 7 and rows[1]["have"] == "shulib Competition"
+              and rows[5]["description"] == "v0.1.1-470-gabc1234 | skills" and rows[0]["date"] == "2026-11-20T01:00:00", got)
+        check("... read-only: lsusb, then ONE pros user-script tools/brain_slots.py (the fake V5Device can only read)",
+              calls == ["pros lsusb", f"pros user-script {TOOLS / 'brain_slots.py'}"], calls)
+        check("the old code's slot: never touched by shulib", rows[4]["ok"] and rows[4]["fix"] == "never touched by shulib", rows[4])
+        out = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--root", str(repo), "robot", "one"], capture_output=True,
+                             text=True, encoding="utf-8", timeout=60, env=dict(os.environ, PYTHONIOENCODING="utf-8"))
+        check("python3 tools/route_builder.py robot one: each slot's whole line (its upload time and its build's tag)", out.returncode == 0
+              and "  ✓ slot 6: shulib Auton Tester  uploaded 2026-11-20 06:00  [v0.1.1-470-gabc1234 | skills]\n" in out.stdout
+              and "  ✓ slot 5: VEXcode  uploaded 2026-11-20 05:00  [Made with PROS]\n" in out.stdout, out.stdout + out.stderr)
+        bad = dict(good, **{"2": ["shulib Auton Tester", "x", "2026-11-20T02:00:00"], "5": ["somebody's old code", "", ""]})
+        del bad["6"]
+        os.environ["FAKE_SLOTS"] = json.dumps(bad)
+        rows = json.loads(ask(srv, "POST", "/api/robot?robot=one")[1])["rows"]
+        check("one slot wrong: the plain fix", not rows[1]["ok"] and rows[1]["fix"] == "slot 2 holds shulib Auton Tester: upload shulib Competition there", rows[1])
+        check("one slot empty: the plain fix", not rows[5]["ok"] and rows[5]["fix"].startswith("slot 6 is empty: upload shulib Auton Tester there")
+              and rows[5]["fix"].endswith("(it is in slot 2 now)"), rows[5])
+        check("the old code's slot left alone, whatever is in it", rows[4]["ok"] and rows[4]["have"] == "somebody's old code", rows[4])
+        out = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--root", str(repo), "robot", "one"], capture_output=True,
+                             text=True, encoding="utf-8", timeout=60, env=dict(os.environ, PYTHONIOENCODING="utf-8"))
+        check("python3 tools/route_builder.py robot one: the table in the terminal", out.returncode == 0
+              and "✗ slot 2: shulib Auton Tester -- slot 2 holds shulib Auton Tester: upload shulib Competition there" in out.stdout
+              and "✓ slot 1: shulib Drive  uploaded 2026-11-20 01:00" in out.stdout, out.stdout + out.stderr)
+        os.environ["FAKE_SLOTS"] = json.dumps(dict(good, **{"2": "unread"}))
+        rows = json.loads(ask(srv, "POST", "/api/robot?robot=one")[1])["rows"]
+        check("a slot whose file cannot be read: said so, never 'empty' or 'holds ?: upload'", not rows[1]["ok"] and rows[1]["unread"]
+              and rows[1]["have"] is None and rows[1]["fix"] == "slot 2 could not be read (pros could not read slot_2.ini): check again"
+              and [r["ok"] for r in rows] == [True, False, True, True, True, True, True], rows[1])
+        os.environ["FAKE_SLOTS"] = json.dumps(dict(good, **{"5": ["VEXcode", "100% auton", "2026-11-20T05:00:00"]}))
+        got = json.loads(ask(srv, "POST", "/api/robot?robot=one")[1])
+        rows = got["rows"] or [{}] * 7
+        check("another tool's '%' in slot 5 (pros's ConfigParser interpolates): the whole table, slot 5's row as written",
+              [r.get("ok") for r in rows] == [True] * 7 and not rows[4]["unread"] and rows[4]["have"] == "VEXcode"
+              and rows[4]["description"] == "100% auton" and rows[1]["have"] == "shulib Competition", got)
+        os.environ.update(FAKE_SLOTS=json.dumps(good), FAKE_CASE="slotsfail")
+        got = json.loads(ask(srv, "POST", "/api/robot?robot=one")[1])
+        check("the brain does not answer pros: said in pros's words, no table", got["rows"] is None and got["why"]
+              == "pros could not read the brain's programs: OSError: could not open port /dev/ttyACM0: the brain did not answer", got)
+        os.environ["FAKE_CASE"] = "lsusbbad"
+        got = json.loads(ask(srv, "POST", "/api/robot?robot=one")[1])
+        check("a USB list pros says failed is not trusted (no read on a port from it)", got["rows"] is None
+              and got["why"].startswith("pros lsusb did not list the brain's system port"), got)
+        os.environ["FAKE_CASE"] = "nobrain"
+        got = json.loads(ask(srv, "POST", "/api/robot?robot=two")[1])
+        check("no brain: said plainly", got["rows"] is None and got["why"].startswith("No brain found"), got)
+        os.environ["FAKE_CASE"] = "ok"
+        # a terminal's check asks the route builder running on this checkout (its lock), never a second pros beside it
+        state = repo / "build" / "route_builder.json"
+        state.parent.mkdir(parents=True, exist_ok=True)
+        state.write_text(json.dumps({"port": srv.port, "token": srv.token, "pid": os.getpid()}), encoding="utf-8")
+        try:
+            (work / "calls.txt").unlink(missing_ok=True)
+            srv.checking = True  # the page is reading the slots right now
+            out = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--root", str(repo), "robot", "one"], capture_output=True,
+                                 text=True, encoding="utf-8", timeout=60, env=dict(os.environ, PYTHONIOENCODING="utf-8"))
+            srv.checking = False
+            check("robot one beside a running route builder: asks it, and its 'busy' stands (no pros of its own)", out.returncode == 1
+                  and "the route builder running on this checkout says: The brain is busy" in out.stdout
+                  and not (work / "calls.txt").exists(), out.stdout + out.stderr)
+            out = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--root", str(repo), "robot", "one"], capture_output=True,
+                                 text=True, encoding="utf-8", timeout=60, env=dict(os.environ, PYTHONIOENCODING="utf-8"))
+            check("... and its table when it is free", out.returncode == 0 and "✓ slot 2: shulib Competition" in out.stdout, out.stdout + out.stderr)
+        finally:
+            srv.checking = False
+            state.unlink(missing_ok=True)
+        os.environ["FAKE_CASE"] = "slow"
+        st, lines, _, conn = stream(srv, until="Building")
+        check("no check while a send uses the brain", ask(srv, "POST", "/api/robot?robot=one")[0] == 409)
+        stop(srv.child)
+        conn.close()
+        wait_for(lambda: srv.child is None or srv.child.poll() is not None)
+        os.environ["FAKE_CASE"] = "ok"
+        srv.checking = True  # a slot read holds the brain's port: no send starts under it
+        st, body, _, conn = stream(srv)
+        srv.checking = False
+        if conn is not None:
+            conn.close()
+        check("no send while the slots are read", st == 409 and "Reading the robot's slots" in body[0], (st, body[:2]))
+
     def case_facts():
         global MAX_DOWNLOAD
         local = repo / "build" / "route_maker_site"
@@ -903,11 +1400,40 @@ def self_test():
                 if a.poll() is None:
                     a.kill()
                     a.wait()
+        # RMP1-K D3: the robot's log reader is the helper's child and ends with it
+        name, sig = sigs[-1] if os.name == "nt" else ("a stopped VS Code task (SIGTERM)", signal.SIGTERM)
+        env = dict(os.environ, FAKE_CASE="ok", FAKE_TERMINAL=str(log1), PYTHONIOENCODING="utf-8")
+        a = subprocess.Popen(cmd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             **({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {}))
+        try:
+            a.stdout.readline()
+            s = json.loads((repo / "build/route_builder.json").read_text())
+            (work / "pids.txt").unlink(missing_ok=True)
+            c = http.client.HTTPConnection("127.0.0.1", s["port"], timeout=30)
+            c.request("POST", f"/{s['token']}/api/watch", headers={"Host": f"127.0.0.1:{s['port']}", "X-Shulib-Token": s["token"]})
+            r = c.getresponse()
+            opened = wait_for(lambda: [x for x in fakes("terminal") if alive(x)])
+            a.send_signal(sig)
+            a.communicate(timeout=60)
+            r.close()
+            c.close()
+            check(f"{name} ends the robot's log reader too", r.status == 200 and opened and fakes("terminal")
+                  and wait_for(lambda: not any(alive(x) for x in fakes("terminal"))), fakes("terminal"))
+        finally:
+            if a.poll() is None:
+                a.kill()
+                a.wait()
 
     tasks = json.loads("".join(x for x in (TOOLS.parent / ".vscode/tasks.json").read_text(encoding="utf-8").splitlines(True)
                                if not x.lstrip().startswith("//")))["tasks"][0]
     check("VS Code's first task opens it, by the name the docs and the page use", tasks["label"] == "Open the route builder"
           and tasks["args"] == ["tools/route_builder.py"] and tasks["isBackground"] and tasks["windows"]["command"] == "python", tasks)
+    every = json.loads("".join(x for x in (TOOLS.parent / ".vscode/tasks.json").read_text(encoding="utf-8").splitlines(True)
+                               if not x.lstrip().startswith("//")))["tasks"]
+    for robot in ("one", "two"):
+        t = [x for x in every if x["label"] == f"What is on robot {robot}"]
+        check(f"VS Code's task 'What is on robot {robot}' (RMP1-K D5)", len(t) == 1 and t[0]["args"] == ["tools/route_builder.py", "robot", robot]
+              and t[0]["windows"]["command"] == "python", t)
 
     def run(case, *args):  # a crash is a named failure, and the next case still runs
         try:
@@ -921,6 +1447,8 @@ def self_test():
         with contextlib.redirect_stdout(io.StringIO()):  # the helper's own terminal lines
             run(case_files, srv)
             run(case_send, srv)
+            run(case_watch, srv)
+            run(case_robot, srv)
     finally:
         stop(srv.child)
         srv.shutdown()
