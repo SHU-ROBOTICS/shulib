@@ -8,7 +8,8 @@ tested in Edge, Chrome and Firefox on Windows, and in Chromium and Firefox on Li
 
 Press **PREVIEW** and the robot drives the route right there: the real library runs it on the host test plant
 inside the page, and plays it back on a timeline you can scrub — each step marked done, failed or skipped in the
-library's own words.
+library's own words, and the mechanisms moving beside the field: the cascade rising and falling, the claw opening,
+the toggles running.
 
 [Open the route builder](route-builder/app.html){ .md-button .md-button--primary }
 [Download for offline use](route-builder/shulib-route-builder.html){ .md-button download="shulib-route-builder.html" }

@@ -126,7 +126,7 @@ not a drawing: the page runs the **real library** — the same code the robot ru
 library's own model of a drive, and plays back what it did. The path the robot drove is solid; your plan stays
 dashed beside it, so you see where the robot went differently from the plan.
 
-![PREVIEW playing: robot one partway through the curve, its path solid beside the dashed plan; the timeline across the bottom with each step's span, and the steps on the left marked done with their times](../assets/route-builder/preview.png)
+![PREVIEW playing: robot one partway through the curve, its path solid beside the dashed plan; the timeline across the bottom with each step's span, the steps on the left marked done with their times, and the mechanisms beside the field](../assets/route-builder/preview.png)
 
 **The timeline** across the bottom shows each step's span in the colour of how it went: green done, red failed,
 amber cut by the 57 s mark, grey skipped; a step too short to see at this scale is a thin mark at its moment. Play and pause with **Space**, go to the step before or after with
@@ -134,25 +134,35 @@ amber cut by the 57 s mark, grey skipped; a step too short to see at this scale 
 choose the speed (½×, 1×, 2×, 4×). Drag along the timeline, or click a step in the list to go to where it began.
 The small bar on the right is the run against the 60 s, the 57 s cut marked.
 
+**The mechanisms** move beside the field, in step with the robot: the cascade's height on a bar (its bottom and top
+marked, and while its step plays, the height it is going to), each piston's position (the claw open or closed), and
+each toggle's motor, lit while it runs, with its direction. The mechanism the playing step uses is highlighted.
+A step that only starts a mechanism ("keeps going") is not highlighted while the robot drives on, but its bar still
+moves. Like the drive, their heights and times come from the host test plant.
+
+![PREVIEW with the mechanisms beside the field: the cascade at 3.7 in on its way to 6 in, highlighted because its step is playing; the toggles off, the claw, the flipper and the ramp in their positions](../assets/route-builder/preview-mechanisms.png)
+
 **The steps** on the left say how each one went, and the one playing is highlighted. A step that failed is red,
 with the library's own line under it — the line the brain's log would show. A step in which the robot would go
 **through a wall** is red too, saying where (the host test plant has no walls, so the page checks the robot's square
 against the real field); the steps after it are grey, and the robot is drawn faded from that moment: on the field it
 would not get there.
 
-![A drive that ran out of time: step 2 red with the library's line "STOPPED at step 2 (driveTo): motion TIMEOUT", the two steps after it greyed as skipped](../assets/route-builder/preview-failed.png)
+![A drive that ran out of time: step 2 red with the library's line "STOPPED at step 2 (driveTo): motion TIMEOUT", the two steps after it greyed as skipped; beside the field, the claw open from step 1](../assets/route-builder/preview-failed.png)
 
-**Robot two.** PREVIEW plays robot one; robot two's mirrored run is not in it yet, and the first line of **About
-this run** says so. Whether the two robots stay apart is checked while you build (step 2), for a route both run at
-the same time ([chapter 17](17-the-competition-program.md#both-robots-at-once)). PREVIEW does not wait for that
-answer, nor for a too-close start or step: robot one runs the route the same either way.
+**Robot two.** PREVIEW plays robot one; robot two's mirrored run is not in it yet, and **About this run** says
+so. Whether the two robots stay apart is checked while you build (step 2), for a route both run at the same time
+([chapter 17](17-the-competition-program.md#both-robots-at-once)). PREVIEW does not wait for that answer, nor for a
+too-close start or step: robot one runs the route the same either way.
 
 **What the host test plant is not.** It is a stand-in drive — a 12 in tank with made-up gains, not your robot's —
 with no walls, and every number robot one's facts file has not measured yet is a **PLACEHOLDER**: the steps that
 used one say so, and **About this run** (the **?** button beside the speeds) lists them, with every line the library
-printed. The steps, their order and what the library refuses are the library's; the times and the exact path are
-the host test plant's. Time the route on the robot with **shulib Auton Tester**
-([chapter 16](16-testing-an-auton-on-the-bench.md)).
+printed. A mechanism still on the library's starting gains is marked **PLACEHOLDER** beside the field too (point at
+the mark for why; **shulib Tune** sets the real ones on the robot,
+[chapter 18](18-mechanisms.md#the-tune-program--tuning-on-the-brain-screen)). The steps, their order and what the
+library refuses are the library's; the times and the exact path are the host test plant's. Time the route on the
+robot with **shulib Auton Tester** ([chapter 16](16-testing-an-auton-on-the-bench.md)).
 
 PREVIEW runs the route on the page, saved or not. Change the route and the run is put away (an undo brings it
 back); press PREVIEW again. A route with a red step is not run — fix it first (robot two's red waits only for Export). **Cancel** stops a PREVIEW that is

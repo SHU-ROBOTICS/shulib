@@ -67,6 +67,15 @@ export const ROUTES = {
         { do: 'driveTo', x: -36, y: -36, faceFirst: false },
         { do: 'wait', seconds: 0.3 },
     ]],
+    // RMP1-E: the cascade up, down and back, the claw opened, a toggle run backward (the mechanism strip's run)
+    mechanisms: [START, [
+        { do: 'home', mechanism: 'cascade', boundS: 2 },
+        { do: 'move', mechanism: 'cascade', up: 6, boundS: 3 },
+        { do: 'move', mechanism: 'cascade', down: 2, boundS: 3 },
+        { do: 'move', mechanism: 'cascade', bottom: true, boundS: 3 },
+        { do: 'set', mechanism: 'claw', position: 'open' },
+        { do: 'run', mechanism: 'rightToggle', volts: -6, forS: 0.5 },
+    ]],
     // the program stops: a wait on a mechanism the run never started throws (the page refuses it first: RC15)
     threw: [START, [
         { do: 'driveTo', x: -36, y: -48, faceFirst: false },

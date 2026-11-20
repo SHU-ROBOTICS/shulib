@@ -84,7 +84,7 @@ export const HEAD_BOUND = 1e-6;
 
 /**
  * WG2's comparison of a native and a WebAssembly record: everything EXACT but the poses (a sample's x, y, theta; a
- * step's target; a field note's depth), which must agree within the bounds. Returns {problems, maxPos, maxHead}.
+ * step's target; a field note's depth; a lift's or an arm's position, RMP1-E), which must agree within the bounds. Returns {problems, maxPos, maxHead}.
  */
 export function compareRecords(a, b) {
     const A = JSON.parse(a);
@@ -104,7 +104,7 @@ export function compareRecords(a, b) {
         }
     };
     for (const k of new Set([...Object.keys(A), ...Object.keys(B)])) {
-        if (k === 'samples' || k === 'steps' || k === 'field') {
+        if (k === 'samples' || k === 'steps' || k === 'field' || k === 'mechanisms') {
             continue;
         }
         if (JSON.stringify(A[k]) !== JSON.stringify(B[k])) {
@@ -144,6 +144,17 @@ export function compareRecords(a, b) {
             problems.push(`field note ${i} differs`);
         }
         near(da, db, POS_BOUND, `field note ${i} depth`, false);
+    });
+    pairs('mechanisms', (p, q, i) => {  // RMP1-E: a lift's or an arm's position is a pose's kind of number
+        const { at: aa, ...pa } = p;
+        const { at: ab, ...pb } = q;
+        if (JSON.stringify(pa) !== JSON.stringify(pb) || aa.length !== ab.length) {
+            problems.push(`mechanism ${i} differs`);
+        } else if (p.kind === 'lift' || p.kind === 'arm') {
+            aa.forEach((v, k) => near(v, ab[k], POS_BOUND, `${p.name} at ${k}`, false));
+        } else if (JSON.stringify(aa) !== JSON.stringify(ab)) {
+            problems.push(`${p.name}'s states differ`);
+        }
     });
     return { problems, maxPos, maxHead };
 }

@@ -109,10 +109,12 @@ are indices into `samples`):
 | `steps` | RPV1's steps seen from below: `n`, `kind`, `what`, `s0`, `s1`, `t0`, `t1`, `verdict`, `mark`, `sentence`, `endAction`, `background`, `openAtThrow`, `placeholder`, `target` (`[x, y, heading]` or null) |
 | `lines` | every log line from the arming on: `s`, `t`, `sub`, `text`, `mark` |
 | `field`, `through`, `throughAt` | RPV1's field check: `kind` (THROUGH, TOUCH, PIECE), `element`, `s`, `t`, `step`, `depth` |
+| `mechanisms` | (RMP1-E) each mechanism in the robot's list, in its order: `name`, `kind` (`lift`, `arm`, `pneumatic`, `power`, `flywheel`), a lift's or arm's `units`, `bottom`, `top`, a pneumatic's `positions`, `placeholder` (RPV1's PLACEHOLDER sentence, or ""), and `at` — its state at every sample, read from the library's own mechanism each pace: a lift's or arm's position in its units, a pneumatic's position index (-1: none), a power mechanism's or flywheel's direction (-1, 0, 1). An older record has no such member: the page shows no strip |
 | `samples` | every 10 ms pace: `[t, x, y, theta]` — the plant's TRUE pose (inches, radians unwrapped) |
 
-A non-finite number is written `null`. Native and WebAssembly records agree exactly but for the poses (within
-1e-5 in and 1e-6 rad: the two maths libraries round sin, cos and atan2 differently in the last bit — WG2).
+A non-finite number is written `null`. Native and WebAssembly records agree exactly but for the poses and a lift's
+or arm's position (within 1e-5 in — an arm's 1e-5 deg — and 1e-6 rad: the two maths libraries round differently in
+the last bit — WG2).
 
 ## PREVIEW in the page (RMP1-A2u)
 
@@ -125,6 +127,7 @@ PREVIEW runs the route on screen through the engine and plays the record back. T
 | `src/host/engine_backend.mjs` | the real engine for that script: RMP1-A2e's `engine_module.mjs` and `route_lines.mjs` around the WebAssembly module |
 | `src/model/playback.mjs` | the record (schema 1) → what the screen draws: each robot's pose at time t (only the record's own, straight between paces), each page step's span and verdict in plain words beside the library's own lines, the PLACEHOLDER marks, a run's key (the route it belongs to) |
 | `src/ui/preview.mjs`, `src/ui/timeline.mjs` | the button, the keys and the dock: progress and Cancel, then the scrubber; the run on its own field layer (`field_view.mjs`'s `drawRun`), the step cards lit (`step_list.mjs`) |
+| `src/ui/mech_strip.mjs` | (RMP1-E) the mechanisms beside the field, from the record's `mechanisms` (`playback.mjs`'s `mechanismsAt`) at the pace playing: a height bar per lift or arm (its stops, its height, the planned target of its step — `lift.mjs`), a piston per pneumatic, a motor per power mechanism or flywheel; the mechanism the step playing uses accented |
 
 `build.py --engine build/wasm` (the built module) writes `engine/worker.mjs` + `engine/preview.wasm` beside the SITE
 form's page (a `<meta name="shulib-engine">` points at it) and the same script, with the single-file module, inside
@@ -155,7 +158,8 @@ shape the page reads:
 `window.routeBuilder.useEngine` as the file tests inject a folder; a route with no recording is answered "no recorded
 run", never another's. Its options: a delay, a run that never returns, a load that fails, an exit code, a REFUSED
 record as RPV1's `refusedModel` writes it, a member of the record changed (`patch`), robot two's record and verdict
-(`two`, `pairRc`); every record it sends carries the instance and the run it came from. The robot-one records are the
+(`two`, `pairRc`), members left out as an older engine's record lacks them (`omit`); every record it sends carries
+the instance and the run it came from. The robot-one records are the
 engine's native twin's (`shulib_route_maker preview`), made by `test/fixtures/record.mjs` (the routes and the
 command) — re-record them when the record's schema, robot one's facts or the API change. The two PAIR fixtures' robot
 two and verdict came from a PROTOTYPE of the pair mode on a copy of RPV1's header with `plantStartFor` patched (their
@@ -169,11 +173,11 @@ On a site built with `--engine` the same file also runs the REAL module through 
 compares its record with the native twin's of the same route, from the same tree — made at test time when the
 program is there (`ROUTE_MAKER_NATIVE`, or `build/test/shulib_route_maker`), else read from
 `ROUTE_MAKER_NATIVE_RECORDS` (a folder `test/fixtures/record.mjs --out` wrote: CI's Linux job makes it for the
-browser rows, which have no native program) — every member exact, poses within 1e-5 in and 1e-6 rad. Off CI with
-neither, it compares with the committed fixture less the API version and the facts ledger's lists; that run is robot
-one's facts', so it goes red when they change until the fixtures are re-recorded. In CI (`CI` set) a tree with
-`tools/route_maker/wasm/` must have built its site with `--engine` and must give the native twin's record: that test
-fails, not skips, when either is missing.
+browser rows, which have no native program) — every member exact, poses (and a lift's or arm's position) within 1e-5
+in (an arm's 1e-5 deg) and 1e-6 rad; for the `ready` route and for `mechanisms`, the strip's. Off CI with neither, it compares with the committed fixture less the API version and the facts
+ledger's lists; that run is robot one's facts', so it goes red when they change until the fixtures are re-recorded.
+In CI (`CI` set) a tree with `tools/route_maker/wasm/` must have built its site with `--engine` and must give the
+native twin's record: that test fails, not skips, when either is missing.
 
 ## The rules that keep it true to the library
 

@@ -184,3 +184,63 @@ test('describe reads a robot\'s C++ names from its own build\'s tree, whatever t
         fs.rmSync(decoy, { recursive: true, force: true });
     }
 });
+
+test('RMP1-E: the record\'s mechanisms — the cascade rises, falls and returns, the claw opens at its step\'s next pace, the toggle runs backward', { skip: !NATIVE && 'set ROUTE_MAKER_NATIVE' }, async () => {
+    // BUG CAUGHT: the slots out of the list's order, a height that never moves, the PLACEHOLDER mark lost, a committed
+    // fixture this engine no longer records. (A height a pace off the robot's: the suite's RMP1-E case, every pace.)
+    const { ROUTES, projectOf } = await import('../fixtures/record.mjs');
+    const { loadProject } = await import('../../src/model/project.mjs');
+    assert.ok(ROUTES.mechanisms);
+    const one = robot('one');
+    const rec = JSON.parse(native(routeLines(loadProject(projectOf('mechanisms')).project.routes[0], one)).out);
+    assert.deepEqual(rec.mechanisms.map((m) => [m.name, m.kind]), one.mechanisms.map((m) => [m.name, m.kind]));
+    for (const m of rec.mechanisms) {
+        assert.equal(m.at.length, rec.samples.length, `${m.name}: a state for every sample`);
+    }
+    const [cascade, right, left, claw] = rec.mechanisms;
+    assert.deepEqual([cascade.units, cascade.bottom, cascade.top], ['in', ...one.mechanisms[0].range]);
+    assert.deepEqual(claw.positions, ['closed', 'open']);
+    const ps = rec.pageSteps;
+    assert.ok(ps.every((p) => p.verdict === 'ok'));
+    const tol = 0.25;  // the library's "reached" starting value for a lift (robot one's cascade states none)
+    const near = (v, want, what) => assert.ok(Math.abs(v - want) <= tol, `${what}: ${v} vs ${want}`);
+    near(cascade.at[ps[1].last], 6, 'up 6 in');
+    near(cascade.at[ps[2].last], 4, 'down 2 in');
+    near(cascade.at[ps[3].last], cascade.bottom, 'back to the bottom');
+    assert.ok(Math.max(...cascade.at) <= 6 + tol);
+    assert.deepEqual([claw.at[ps[4].first], claw.at[ps[4].first + 1]], [0, 1], 'the claw opens on the pace after its step began');
+    assert.deepEqual([right.at[ps[5].first], right.at[ps[5].first + 1], left.at[ps[5].first + 1]], [0, -1, 0]);
+    assert.match(cascade.placeholder, /^PLACEHOLDER/, 'the cascade runs on the library\'s starting gains (HA-182)');
+    assert.equal(right.placeholder, '');
+    // the committed fixture the strip's page tests replay IS this run (CI runs this: stale, it goes red -- re-record)
+    const kept = JSON.parse(fs.readFileSync(path.join(REPO, 'tools/route_maker/test/fixtures/preview/mechanisms.preview.json'), 'utf8')).result.one;
+    assert.deepEqual(rec.pageSteps, kept.pageSteps, 'the committed fixture\'s steps (re-record: fixtures/record.mjs)');
+    assert.equal(rec.samples.length, kept.samples.length);
+    assert.deepEqual(rec.mechanisms.map(({ at, ...m }) => m), kept.mechanisms.map(({ at, ...m }) => m));
+    rec.mechanisms.forEach((m, k) => {
+        assert.equal(m.at.length, kept.mechanisms[k].at.length);
+        m.at.forEach((v, i) => assert.ok(Math.abs(v - kept.mechanisms[k].at[i]) <= POS_BOUND, `${m.name} at pace ${i}: ${v} vs the fixture's ${kept.mechanisms[k].at[i]}`));
+    });
+});
+
+test('RMP1-E on robot x: an arm in degrees, a lift in inches, the flywheel, the motor and the three-position piston, each its own kind', { skip: !NATIVE && 'set ROUTE_MAKER_NATIVE' }, () => {
+    // BUG CAUGHT: an arm labelled a lift (inches), a kind lost, a piston's middle position read as another.
+    const desc = { ...robot('x'), id: 'x' };
+    let r = setStart({ ...newRoute(), robot: 'x' }, { x: 0, y: 0, headingDeg: 0 });
+    for (const s of [{ do: 'home', mechanism: 'arm', boundS: 3 }, { do: 'move', mechanism: 'arm', preset: 'score', boundS: 3 },
+                     { do: 'set', mechanism: 'hood', position: 'middle' }, { do: 'run', mechanism: 'intake', volts: 6, forS: 0.3 }]) {
+        r = addStep(r, s);
+    }
+    const rec = JSON.parse(native(routeLines(r, desc)).out);
+    assert.deepEqual(rec.mechanisms.map((m) => [m.name, m.kind, m.units ?? null]),
+                     [['arm', 'arm', 'deg'], ['lift', 'lift', 'in'], ['flywheel', 'flywheel', null], ['intake', 'power', null], ['hood', 'pneumatic', null]]);
+    const [arm, , flywheel, intake, hood] = rec.mechanisms;
+    const ps = rec.pageSteps;
+    assert.ok(ps.every((q) => q.verdict === 'ok'), JSON.stringify(ps.map((q) => q.verdict)));
+    const score = desc.mechanisms.find((m) => m.ident === 'arm').presets.find((q) => q.name === 'score').value;
+    assert.ok(Math.abs(arm.at[ps[1].last] - score) <= 2, `the arm at its "score" (${score} deg): ${arm.at[ps[1].last]}`);
+    assert.deepEqual(hood.positions, ['down', 'middle', 'up']);
+    assert.deepEqual([hood.at[ps[2].first], hood.at[ps[2].first + 1]], [0, 1], 'the hood down, then middle');
+    assert.deepEqual([intake.at[ps[3].first], intake.at[ps[3].first + 1]], [0, 1], 'the intake forward during its run');
+    assert.ok(flywheel.at.every((v) => v === 0), 'no route step spins a flywheel ("Flywheel steps come later")');
+});

@@ -140,8 +140,9 @@ int runGolden(const char* name) {
             shulib::competition::AutonRegistry reg{shulib::bench::kAutonPeriods,
                                                    shulib::competition::OnRefusal::DropEntry};
             robot.registerAutons(reg);
-            const route_preview::Model m = route_preview::previewEntry(robot, reg, 0, {});
-            route_maker::emit(route_maker::record(m, nullptr, nullptr));
+            const route_preview::Model m = route_maker::runEntry(robot, reg);
+            route_maker::emit(route_maker::record(m, nullptr, nullptr,
+                                                  route_maker::mechanismsOf(robot, &route_maker::state().tap, m.samples.size())));
             return m.exitCode;
         }
     }

@@ -793,46 +793,55 @@ test.describe('PREVIEW in the page', { skip }, () => {
         // the native twin's record of the same route, from this tree: made now (the program), or by CI's Linux job
         // (ROUTE_MAKER_NATIVE_RECORDS). Off CI with neither, the committed fixture less the API's and the ledger's own
         // members: its run is robot one's facts', so it goes red when they change (re-record: record.mjs)
-        const f = fixture('ready');
-        let want;
-        let skipKeys = ['samples', 'steps', 'field'];
-        const kept = NATIVE_RECORDS && path.join(NATIVE_RECORDS, 'ready.preview.json');
-        if (fs.existsSync(NATIVE)) {
-            const { routeLines } = await import('../../src/model/route_lines.mjs');
-            const one = JSON.parse(fs.readFileSync(path.join(SITE, 'robots.json'), 'utf8')).robots.one;
-            const r = spawnSync(NATIVE, ['preview', '-'], { input: routeLines(f.route, one), encoding: 'utf8', maxBuffer: 256 << 20, timeout: 60000 });
-            assert.ok(r.status === 0, `the native twin (${NATIVE}): rc ${r.status} ${r.stderr}`);
-            want = JSON.parse(r.stdout);
-        } else if (kept) {
-            assert.ok(fs.existsSync(kept), `${kept} is missing: CI's Linux job writes it (record.mjs --out)`);
-            want = JSON.parse(fs.readFileSync(kept, 'utf8')).result.one;
-        } else {
-            assert.ok(!MUST, 'in CI the native twin\'s record must be here: set ROUTE_MAKER_NATIVE_RECORDS (record.mjs --out)');
-            want = f.result.one;
-            skipKeys = [...skipKeys, 'api', 'owed', 'robotLine', 'ledgerFile', 'notices'];
-        }
-        for (const form of ['site', 'onefile']) {
-            const p = await openPage({ form, engine: null });
-            await openFixture(p.page, 'ready');
-            await preview(p.page);
-            assert.equal((await pv(p.page)).phase, 'open', `${form}: ${(await pv(p.page)).words}`);
-            const got = await p.page.evaluate(() => window.routeBuilder.previewRecord());
-            for (const k of Object.keys(want).filter((x) => !skipKeys.includes(x))) {
-                assert.deepEqual(got[k], want[k], `${form}: ${k}`);
+        for (const name of ['ready', 'mechanisms']) {  // RMP1-E: the mechanisms' route too (the strip's)
+            const f = fixture(name);
+            let want;
+            let skipKeys = ['samples', 'steps', 'field', 'mechanisms'];
+            const kept = NATIVE_RECORDS && path.join(NATIVE_RECORDS, `${name}.preview.json`);
+            if (fs.existsSync(NATIVE)) {
+                const { routeLines } = await import('../../src/model/route_lines.mjs');
+                const one = JSON.parse(fs.readFileSync(path.join(SITE, 'robots.json'), 'utf8')).robots.one;
+                const r = spawnSync(NATIVE, ['preview', '-'], { input: routeLines(f.route, one), encoding: 'utf8', maxBuffer: 256 << 20, timeout: 60000 });
+                assert.ok(r.status === 0, `the native twin (${NATIVE}): rc ${r.status} ${r.stderr}`);
+                want = JSON.parse(r.stdout);
+            } else if (kept) {
+                assert.ok(fs.existsSync(kept), `${kept} is missing: CI's Linux job writes it (record.mjs --out)`);
+                want = JSON.parse(fs.readFileSync(kept, 'utf8')).result.one;
+            } else {
+                assert.ok(!MUST, 'in CI the native twin\'s record must be here: set ROUTE_MAKER_NATIVE_RECORDS (record.mjs --out)');
+                want = f.result.one;
+                skipKeys = [...skipKeys, 'api', 'owed', 'robotLine', 'ledgerFile', 'notices'];
             }
-            // poses: the module's maths library rounds in the last bit differently from the native one (A.2, WG2's bounds)
-            assert.equal(got.samples.length, want.samples.length);
-            got.samples.forEach((s, i) => {
-                assert.equal(s[0], want.samples[i][0]);
-                assert.ok(Math.abs(s[1] - want.samples[i][1]) <= 1e-5 && Math.abs(s[2] - want.samples[i][2]) <= 1e-5
-                          && Math.abs(s[3] - want.samples[i][3]) <= 1e-6, `${form}: pace ${i}`);
-            });
-            assert.deepEqual(got.steps.map(({ target, ...s }) => s), want.steps.map(({ target, ...s }) => s), `${form}: the steps`);
-            const notes = (r) => r.field.map(({ depth, ...x }) => x);
-            assert.deepEqual(notes(got), notes(want), `${form}: the field notes`);
-            got.field.forEach((x, i) => assert.ok(Math.abs(x.depth - want.field[i].depth) <= 1e-5, `${form}: note ${i}'s depth`));
-            assert.equal(await p.page.locator('.step.pv-ok').count(), 5);
-            assert.deepEqual(await p.done(), []);
+            for (const form of ['site', 'onefile']) {
+                const p = await openPage({ form, engine: null });
+                await openFixture(p.page, name);
+                await preview(p.page);
+                assert.equal((await pv(p.page)).phase, 'open', `${name}, ${form}: ${(await pv(p.page)).words}`);
+                const got = await p.page.evaluate(() => window.routeBuilder.previewRecord());
+                for (const k of Object.keys(want).filter((x) => !skipKeys.includes(x))) {
+                    assert.deepEqual(got[k], want[k], `${name}, ${form}: ${k}`);
+                }
+                // poses: the module's maths library rounds in the last bit differently from the native one (A.2, WG2's bounds)
+                assert.equal(got.samples.length, want.samples.length);
+                got.samples.forEach((s, i) => {
+                    assert.equal(s[0], want.samples[i][0]);
+                    assert.ok(Math.abs(s[1] - want.samples[i][1]) <= 1e-5 && Math.abs(s[2] - want.samples[i][2]) <= 1e-5
+                              && Math.abs(s[3] - want.samples[i][3]) <= 1e-6, `${name}, ${form}: pace ${i}`);
+                });
+                assert.deepEqual(got.steps.map(({ target, ...s }) => s), want.steps.map(({ target, ...s }) => s), `${name}, ${form}: the steps`);
+                const notes = (r) => r.field.map(({ depth, ...x }) => x);
+                assert.deepEqual(notes(got), notes(want), `${name}, ${form}: the field notes`);
+                got.field.forEach((x, i) => assert.ok(Math.abs(x.depth - want.field[i].depth) <= 1e-5, `${name}, ${form}: note ${i}'s depth`));
+                // RMP1-E: the mechanisms -- a lift's or an arm's position within the poses' bound, the rest exact
+                assert.deepEqual(got.mechanisms.map(({ at, ...m }) => m), want.mechanisms.map(({ at, ...m }) => m), `${name}, ${form}: the mechanisms`);
+                got.mechanisms.forEach((m, k) => {
+                    assert.equal(m.at.length, want.mechanisms[k].at.length, `${name}, ${form}: ${m.name}'s states`);
+                    m.at.forEach((v, i) => assert.ok(['lift', 'arm'].includes(m.kind)
+                        ? Math.abs(v - want.mechanisms[k].at[i]) <= 1e-5 : v === want.mechanisms[k].at[i], `${name}, ${form}: ${m.name} at pace ${i}`));
+                });
+                assert.equal(await p.page.locator('.step.pv-ok').count(), f.route.steps.length);
+                assert.deepEqual(await p.done(), []);
+            }
         }
     });
 

@@ -518,3 +518,36 @@ input.num.bad { border-color: var(--failed); }
 .g-twin-label { font: 600 12px var(--font-ui); fill: var(--blue-alliance); text-anchor: middle; dominant-baseline: central; pointer-events: none;
   paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
 .g-handle.sel.point { fill: var(--accent); }
+
+/* ── PREVIEW mechanisms (RMP1-E): the strip beside the field, one mechanism accented ── */
+.fieldpane { --strip-w: 176px; }
+.fieldpane.with-strip .field-svg { width: calc(100% - var(--strip-w) - 2 * var(--s-3)); }
+.fieldpane.with-strip .zoom { right: calc(var(--strip-w) + 2 * var(--s-3)); }
+.mech-strip { position: absolute; top: 76px; right: var(--s-3); bottom: calc(var(--dock-h, 0px) + 2 * var(--s-3)); width: var(--strip-w); z-index: 3;
+  display: flex; flex-direction: column; gap: var(--s-1); padding: var(--s-3); overflow: auto; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow); font-size: var(--t-xs); color: var(--text-muted); }
+.mech-strip h3 { margin: 0 0 var(--s-1); font-size: var(--t-xs); font-weight: 650; }
+.ms-mech { border: 1px solid transparent; border-radius: var(--radius-sm); padding: 2px var(--s-2); line-height: 1.3; transition: border-color var(--motion-fast), background var(--motion-fast); }
+.ms-mech.on { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
+.ms-name { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--s-1); font-weight: 600; color: var(--text); min-width: 0; overflow-wrap: anywhere; }
+.ms-mech .ph { padding: 0 5px; border-radius: 999px; background: var(--surface-2); color: var(--unconfirmed); font-size: var(--t-xs); font-weight: 600; }
+.ms-lift { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 120px; }
+.ms-body { flex: 1; display: grid; grid-template-columns: auto 22px 1fr; gap: var(--s-2); margin-top: var(--s-1); min-height: 0; }
+.ms-stops { display: flex; flex-direction: column; justify-content: space-between; text-align: right; font-variant-numeric: tabular-nums; }
+.ms-track { position: relative; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); }
+.ms-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: var(--radius-sm); background: var(--grey); }
+.ms-lift.on .ms-fill { background: var(--accent); }
+.ms-target { position: absolute; left: -5px; right: -5px; height: 2px; margin-bottom: -1px; background: var(--text); }
+.ms-read { display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.ms-value { font: 650 var(--t-lg) var(--font-ui); color: var(--text); font-variant-numeric: tabular-nums; }
+.ms-piston, .ms-motor { display: grid; grid-template-columns: 34px 1fr; column-gap: var(--s-2); align-items: center; }
+.ms-piston .ms-word, .ms-motor .ms-word { grid-column: 2; }
+.ms-cyl { fill: var(--surface-2); stroke: var(--grey); stroke-width: 1.5; }
+.ms-rod { fill: var(--grey); }
+.ms-piston.on .ms-cyl { stroke: var(--accent); }
+.ms-piston.on .ms-rod { fill: var(--accent); }
+.ms-dot { justify-self: center; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--grey); }
+.ms-motor.running .ms-dot { background: var(--grey); }
+.ms-motor.running .ms-word { color: var(--text); font-weight: 600; }
+.ms-motor.on .ms-dot { border-color: var(--accent); }
+.ms-motor.on.running .ms-dot { background: var(--accent); }
