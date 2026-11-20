@@ -461,7 +461,10 @@ test.describe('the route builder in a browser', { skip }, () => {
         assert.ok(written.endsWith('═\r\n// after\r\n'), 'nothing after it changed, CRLF kept');
         assert.ok(!/[^\r]\n/.test(written), 'no bare LF written into a CRLF file');
         assert.ok(written.includes(code.replace(/\n/g, '\r\n')));
-        assert.ok(await page.getByText('Robot two registers every route').isVisible());
+        // RMP1-F: read back, then "Will it build?" names the autons line this folder lacks (robot one's), and only it
+        const build = await page.locator('.drawer [data-result="ok"] .xr-build').textContent();
+        assert.match(build, /Robot one will not list the routes: src\/team\/robot_one_autons\.cpp is missing/);
+        assert.doesNotMatch(build, /Robot two will not/);
         // and the project saved with it (the export's hash), into the folder
         const saved = JSON.parse(await page.evaluate(() => window.routeBuilder.memory.store['src/team/route_maker.json']));
         assert.match(saved.exports['src/team/skills_route.cpp#skills'], /^sha256:[0-9a-f]{64}$/);
@@ -938,7 +941,7 @@ test.describe('the route builder in a browser', { skip }, () => {
             // (3) the file is there but has no markers (someone deleted them): the builder leaves it alone
             await page.evaluate((m) => window.routeBuilder.useMemoryFolder({ 'src/team/skills_route.cpp': 'int x;\n', 'src/team/autons.cpp': m }), MIRRORED);
             await openExport(page);
-            assert.ok(await page.getByText('src/team/skills_route.cpp has no ROUTE MAKER lines yet').isVisible());
+            assert.ok(await page.getByText('src/team/skills_route.cpp has no ROUTE MAKER lines: someone removed them.').isVisible());
             assert.ok(await page.getByText('Robot two registers every route').isVisible());
             await settle(page);
             await shot(page, `export-no-markers-${v.tag}`);

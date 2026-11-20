@@ -24,6 +24,12 @@ mechanism step is the claw. Log what you find in [`RMP1-PROGRESS.md`](RMP1-PROGR
 6. **Export** (Ctrl+E): **Copy the code** works (paste it into Notepad). *After robot two's update is published:*
    **Write into src/team/skills_route.cpp**; in VS Code the file changed only between the two `ROUTE MAKER` lines,
    the status bar shows the same line ending (CRLF or LF) as before, and `git diff` shows only the region.
+   *(RMP1-F)* The green card says **Written and checked** with the routes and their steps; in **Next**, Copy the build
+   command and paste it where the card says (the PROS terminal: VS Code, PROS, then Integrated Terminal) — confirm
+   that terminal has `make`, `pros` AND `python` (Python 3; if not, note it: the card's commands 1 and 2 still work).
+   With the brain on USB, `python tools/upload_auton.py one` prints ✓ BUILT and ✓ UPLOADED to slot 2 (the first run
+   of the script against the real `pros`, and on Windows); paste `pros lsusb`'s output into the log (the script picks
+   the port from its "V5 System Ports" list).
 7. **Download for offline use** (it saves one file; if Edge opens it instead, right-click → **Save link as**), turn
    Wi-Fi off, double-click the downloaded `shulib-route-builder.html`: it opens, and steps 3, 4 (PREVIEW) and 6
    (Copy) work with no network. **Then, in that same downloaded file in Edge: is there a "Connect your shulib folder" button in the
