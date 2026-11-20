@@ -4,6 +4,8 @@
 // it; or Copy), then a result that is never silent: a write is READ BACK (files.mjs), a refusal is red with its fix, a
 // hand edit is the student's choice. A success hides the steps and shows "Will it build?" and Next (to_robot.mjs). The
 // code is one click away. The line each autons file needs to register the routes is CHECKED, never written (D6, R2).
+// RMP1-I: on the page tools/route_builder.py serves (the 'local' host), Next is Send to robot (send_panel.mjs), and
+// `{send}` (the top bar's Send) writes, then sends. A robot whose autons file lacks its line is never sent to (its ✗ stays).
 
 import { h, icon } from './dom.mjs';
 import { exportRegion } from '../model/export.mjs';
@@ -13,7 +15,7 @@ import { exportSummary } from '../model/to_robot.mjs';
 import { resultCard, copyButton, willItBuild, pastePicture, nextCard } from './to_robot.mjs';
 
 /** Open the export drawer. */
-export async function openExportDrawer(app) {
+export async function openExportDrawer(app, { send = null } = {}) {
     if (document.querySelector('.drawer')) {
         return;  // one at a time (Ctrl+E pressed again)
     }
@@ -21,6 +23,7 @@ export async function openExportDrawer(app) {
     const here = app.at();
     const errors = [...app.issues().filter((x) => x.level === 'error').map((x) => ({ ...x, route: here })), ...app.otherErrors()];
     const files = app.files();
+    const local = files.kind === 'local' && app.sendPanel;
     const close = () => {
         scrim.remove();
         drawer.remove();
@@ -81,7 +84,36 @@ export async function openExportDrawer(app) {
     const done = (card) => {
         steps.remove();
         result.replaceChildren(card);
-        next.replaceChildren(nextCard(summary.names));
+        next.replaceChildren(local ? sendCard() : nextCard(summary.names));
+    };
+    /** RMP1-I: Send to robot one (and two, when robot two's build takes the routes too); the panel under them. A robot
+     *  whose autons file lacks its addTeamRoutes line would build and upload and never list the routes: no Send for it. */
+    const sendCard = () => {
+        const panel = app.sendPanel;
+        const shared = app.baked.sharedRoute && app.baked.sharedRoute.robots;
+        const robots = ['one', ...(shared && shared.includes('two') ? ['two'] : [])];
+        const lacks = (r) => (missing || []).some((m) => m.robot === r);
+        const buttons = robots.map((r, k) => h('button', {
+            class: `btn${k === 0 && !lacks(r) ? ' primary' : ''}`, 'data-send': r, disabled: panel.busy() || lacks(r), onclick: async () => {
+                buttons.forEach((b) => { b.disabled = true; });
+                missing = await linesMissing().catch(() => missing);  // read again now (a helper gone: the send says so)
+                if (lacks(r)) {
+                    next.replaceChildren(sendCard());
+                    return;
+                }
+                result.querySelectorAll('.xr-build').forEach((x) => !x.querySelector('.bad') && x.remove());  // the build answers it now
+                await panel.start(r);
+                buttons.forEach((b, i) => { b.disabled = lacks(robots[i]); });
+            } }, icon('send'), `Send to robot ${r}`));
+        return h('section', { class: 'card xr-next send-card', 'aria-labelledby': 'send-title' },
+            h('h3', { id: 'send-title' }, 'Next: send it to the robot'),
+            h('p', { class: 'muted' }, 'Plug the BRAIN in with USB (not the controller), then:'),
+            h('div', { class: 'row' }, buttons),
+            robots.filter(lacks).map((r) => h('p', { class: 'xr-warn', 'data-lacks': r },
+                `Robot ${r} is not sent to: ${r === 'one' ? ROBOT_ONE_AUTONS_FILE : ROBOT_TWO_AUTONS_FILE} is missing ${teamRoutesLine(r === 'one' ? 'One' : 'Two')} `
+                + '— tell the coordinator.')),
+            app.baked.build.differs ? h('p', { class: 'xr-warn' }, app.baked.build.differs) : null,
+            panel.element);
     };
     /** A refusal: red, its reason, its one fix (the one highlighted button now). */
     const fail = (title, words, ...fix) => {
@@ -120,17 +152,24 @@ export async function openExportDrawer(app) {
         return [`ask the coordinator to put back its one pair of ROUTE MAKER lines (git checkout ${SKILLS_ROUTE_FILE} `
             + 'undoes changes not yet committed).'];
     };
+    /** A write that failed or vanished: write again (the local page has no folder to connect). */
+    const reconnect = () => (local ? [h('button', { class: 'btn primary', onclick: () => writeOut(false) }, 'Write again')]
+        : ['connect your shulib folder again, then write again. ', connectBtn()]);
     const FIX = {
         noMarkers: putBack,
         markerCount: putBack,
         markerOrder: putBack,
-        failed: () => ['connect your shulib folder again, then write again. ', connectBtn()],
-        gone: () => ['connect your shulib folder again, then write again. ', connectBtn()],
+        failed: () => reconnect(),
+        gone: () => reconnect(),
         noFolder: () => [connectBtn()],
         differs: () => ['close the file in your editor (or let the sync finish), then ',
                         h('button', { class: 'btn primary', onclick: () => writeOut(false) }, 'Write again')],
     };
     let missing = null;  // the robots whose autons file lacks its line (read when the folder is connected; null: not read)
+    /** The robots whose autons file lacks its addTeamRoutes line (files.teamRoutesLines()'s `lines`): [{robot, file, line}]. */
+    const missingIn = (lines) => [['One', ROBOT_ONE_AUTONS_FILE], ['Two', ROBOT_TWO_AUTONS_FILE]].filter(([robot]) => lines[robot] === 'missing')
+        .map(([robot, file]) => ({ robot: robot.toLowerCase(), file, line: teamRoutesLine(robot) }));
+    const linesMissing = async () => missingIn(await files.teamRoutesLines());
     /** A write that landed and then read back wrong is not "Not written": the file did change. */
     const TITLE = { differs: 'Written, but it read back different', gone: 'Written, then the file was gone' };
     const writeOut = async (overwrite) => {
@@ -141,6 +180,11 @@ export async function openExportDrawer(app) {
             done(resultCard('ok', `Written and checked: ${SKILLS_ROUTE_FILE}`, h('p', { class: 'xr-sum' }, summary.words),
                 saved === false ? h('p', { class: 'xr-warn' }, 'src/team/route_maker.json was NOT saved: it changed in the folder since this page read it. Press Save to choose which to keep.') : null,
                 willItBuild('write', missing)));
+            const go = send && local && next.querySelector(`[data-send="${send}"]:not([disabled])`);
+            send = null;
+            if (go) {
+                go.click();
+            }
         } else if (out.why === 'handEdit') {
             askHandEdit(out, writeOut);
         } else {
@@ -174,14 +218,14 @@ export async function openExportDrawer(app) {
         h('span', { class: 'xr-num' }, state === 'done' ? icon('check') : String(n)), h('div', {}, control, h('small', {}, hint)));
     steps.append(h('h3', {}, 'Put it into your robot\'s code'));
     let fixFirst = null;  // the banner when the markers must go back first: no Copy, and focus on it
+    let ready = false;
     if (files.canWriteFolder) {
         const connected = files.connected();
         const st = connected ? await files.skillsFileState() : { state: 'unknown' };
         const lines = connected ? await files.teamRoutesLines() : { One: 'unknown', Two: 'unknown' };
-        const ready = connected && st.state === 'ready';
-        missing = !connected ? null : [['One', ROBOT_ONE_AUTONS_FILE], ['Two', ROBOT_TWO_AUTONS_FILE]].filter(([robot]) => lines[robot] === 'missing')
-            .map(([robot, file]) => ({ robot: robot.toLowerCase(), file, line: teamRoutesLine(robot) }));
-        steps.append(h('p', { class: 'muted' }, 'Chrome or Edge: the page writes it into the file for you.'),
+        ready = connected && st.state === 'ready';
+        missing = connected ? missingIn(lines) : null;
+        steps.append(h('p', { class: 'muted' }, `${local ? 'The page' : 'Chrome or Edge: the page'} writes it into the file for you.`),
             h('ol', { class: 'xr-list' },
                 step(1, connected ? 'done' : 'now', connected ? h('strong', {}, `Connected: ${files.folderName()}`) : connectBtn(),
                      'your shulib folder: the one with src inside'),
@@ -213,4 +257,7 @@ export async function openExportDrawer(app) {
     }
     body.append(steps, result, next, codeView);
     (fixFirst || steps.querySelector('.btn.primary') || orCopy.querySelector('button')).focus();
+    if (send && local && ready) {
+        await writeOut(false);
+    }
 }

@@ -124,6 +124,8 @@ test.describe('RMP1-F: export to the robot', { skip }, () => {
             assert.equal(await cmd('the upload command'), 'pros upload --slot 2 --name "shulib Auton Tester"');
             assert.equal(await cmd('the one command'), robotCommands('one', { windows }).helper);
             assert.match(robotCommands('one', { windows }).helper, windows ? /^python tools/ : /^python3 tools/);
+            assert.equal(await next.locator('.xr-easiest').textContent(), 'Easiest: open the route builder from VS Code — Terminal → Run Task → '
+                + 'Open the route builder — then Send to robot is one button.', 'RMP1-I D6: the site names the easier way, once');
             assert.match(await next.textContent(), /In the PROS terminal, in your shulib folder.*needs Python 3, from python\.org; without it, use 1 and 2/);
             assert.match(await next.textContent(), /On the brain: shulib Auton Tester \(slot 2\) → one of: skills, left 1 → RUN/);
             assert.match(await next.textContent(), /make ends with no line saying "error".*pros says "Finished uploading"/);

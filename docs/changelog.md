@@ -16,6 +16,23 @@
 
 ## API 2.9
 
+### 2026-11-20 — The route builder on the team laptop: Send to robot is one button
+
+> Written when it was built. **No library change — no API change:** a new tool, `tools/route_builder.py`, and the
+> route builder's page.
+
+**What you can now do (additive):** in VS Code, **Terminal → Run Task → Open the route builder** (or
+`python3 tools/route_builder.py`; `python` on Windows) opens this folder's route builder in any browser, already
+reading and writing `src/team/` — no folder to connect. **Send to robot one** (or **two**) writes the routes, then
+builds and uploads them (`tools/upload_auton.py`) and shows each step as it happens: **✓ BUILT**, **✓ UPLOADED** and
+where the route is on the brain, or in red **NOT BUILT** / **NOT UPLOADED** and what to fix. A robot whose autons file
+lacks the line that lists the routes is not sent to. It answers only this laptop (`127.0.0.1`) and only the page it
+opened, on the same port every start (so the page's draft stays). `tools/upload_auton.py` now also finds `make` and
+`pros` where the PROS extension installed them, so it works from a VS Code task as well as the PROS terminal. Send
+has run against stand-ins for `make` and `pros` only: not yet against the real `pros`, or on Windows.
+
+**What you must do:** nothing. The website's route builder works as before; its Next card names the easier way.
+
 ### 2026-11-20 — The upload command finds make and pros without the PROS terminal
 
 > Written when it was built. **No library change — no API change:** only `tools/upload_auton.py` changed.
@@ -71,7 +88,7 @@ nothing). The exported code is unchanged.
   get it back, replace it; or Copy, with a picture of where it is pasted. After a write the page **reads the file
   back**: green **Written and checked** names the routes and their steps; a refusal is red, with its fix. Then
   **Will it build?** and **Next**: the build and upload commands for robot one or two, each with Copy. How:
-  [guide chapter 22, step 7](guide/22-making-your-first-route.md#7-export).
+  [guide chapter 22, step 7](guide/22-making-your-first-route.md#7-send-it-to-the-robot).
 - **`python3 tools/upload_auton.py one`** (or `two`; `python` on Windows) builds the Auton Tester, uploads it to
   slot 2 on the brain's own port, and prints ✓ or ✗ with the first real error in plain words. It needs Python 3. It
   has run against stand-ins for `make` and `pros` only: not yet against the real `pros`, or on Windows.

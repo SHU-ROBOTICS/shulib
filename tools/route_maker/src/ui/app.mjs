@@ -13,7 +13,8 @@
 // Robot two's mirrored start and path are drawn beside robot one's; a mirrored route asks, on the route (no dialog in
 // the way, no default: Export waits for the answer), whether both robots run it at the same time. Arrow keys nudge the
 // selected point 1 in (Shift: 0.25 in). RMP1-G: H hides the selected step on the field, L locks it, O focuses on it and
-// its neighbours (Esc leaves); hide, lock and sections are route edits (undo, saved), focus is not.
+// its neighbours (Esc leaves); hide, lock and sections are route edits (undo, saved), focus is not. RMP1-I: served by
+// tools/route_builder.py, the page takes the local host (no folder dialog) and the top bar's Send to robot.
 
 import { h, icon, mount, ask, openMenu } from './dom.mjs';
 import { createRoutesMenu } from './routes_menu.mjs';
@@ -28,6 +29,8 @@ import { targetKind } from '../model/lift.mjs';
 import { makeFiles, memoryHost } from '../host/files.mjs';
 import { folderHost } from '../host/files_fsaccess.mjs';
 import { downloadHost } from '../host/files_download.mjs';
+import { localPage, localHost, sendToRobot, sendLog } from '../host/files_local.mjs';
+import { createSendPanel } from './send_panel.mjs';
 import { bakedRobots, routeRobots } from '../host/robots.mjs';
 import { capabilities, capabilityWords } from '../host/capabilities.mjs';
 import { makeEngine } from '../host/engine.mjs';
@@ -69,7 +72,8 @@ async function main() {
     const picture = JSON.parse(document.getElementById('shulib-field').textContent);
     const caps = capabilities();
     const engine = makeEngine();
-    let files = makeFiles(caps.writeFolder ? await folderHost() : downloadHost());
+    const local = localPage();
+    let files = makeFiles(local ? localHost(local) : caps.writeFolder ? await folderHost() : downloadHost());
 
     // ── the state ──
     const madeWith = `shulib route builder (API ${baked.build.api})`;
@@ -791,7 +795,17 @@ async function main() {
     els.fieldPane.append(els.toolbar, els.hud, els.zoom, els.modeHint, els.coach);
     app.refresh = () => render();  // RMP1-A2u: PREVIEW redraws the shell (the step list lit, a run put away)
     app.preview = createPreview(app, els, engine, baked, toast);
+    app.sendPanel = local ? createSendPanel({ send: (r, onLine) => sendToRobot(local, r, onLine), log: () => sendLog(local),
+        onChange: (end) => {
+            renderTop();
+            if (end && !app.sendPanel.element.isConnected) {  // the drawer was closed mid-send: say how it ended
+                toast(`${end.kind === 'uploaded' ? '✓' : '✗'} ${end.words}${end.then ? `: ${end.then}` : ''}`, end.kind === 'uploaded' ? '' : 'error');
+            }
+        } }) : null;
 
+    /** RMP1-I: a send is running — nothing is written (Save, Export) until it ends: what it builds is what it started with. */
+    const sending = () => !!(app.sendPanel && app.sendPanel.busy());
+    const SENDING = 'A send to the robot is running: wait for it to finish.';
     function renderTop() {
         const r = route();
         const saveWords = { new: ['New route', ''], saved: ['Saved', 'ok'], downloaded: ['Downloaded', 'ok'], exported: ['Exported', 'ok'],
@@ -820,29 +834,40 @@ async function main() {
                     h('span', { class: 'cap-words' }, files.connected() ? files.folderName() : 'Connect your shulib folder'))
                 : h('span', { class: 'chip cap hide-narrow', title: capabilityWords(caps) }, 'Save downloads · Export copies'),
             h('button', { class: 'btn icon ghost', 'aria-label': 'Open a project', title: 'Open a project', onclick: openProj }, icon('open')),
-            h('button', { class: 'btn icon ghost', 'aria-label': 'Save (Ctrl+S)', title: 'Save (Ctrl+S)', onclick: save }, icon('save')),
+            h('button', { class: 'btn icon ghost', 'aria-label': 'Save (Ctrl+S)', title: sending() ? SENDING : 'Save (Ctrl+S)', disabled: sending(), onclick: save }, icon('save')),
             h('button', { class: 'btn icon ghost', 'aria-label': dark ? 'Light theme' : 'Dark theme', title: dark ? 'Light theme' : 'Dark theme', onclick: theme }, icon(dark ? 'sun' : 'moon')),
             h('button', { class: 'btn icon ghost', 'aria-label': 'Help and shortcuts (?)', title: 'Help and shortcuts (?)', onclick: () => openHelp(app) }, icon('help')),
             h('span', { class: 'sep' }),
             ui.tab === 'route' ? app.preview.topbar() : null,  // PREVIEW plays the route: not on the Controls tab
             exportButton(),
+            sendButton(),
             h('button', { class: 'btn icon ghost pane-toggle', 'aria-label': 'Step details', onclick: () => { els.app.dataset.right = els.app.dataset.right ? '' : 'open'; } }, icon('panel')));
     }
     /** Export: always clickable (it lists what to fix, each one click away); with errors it carries their count. */
     function exportButton() {
         if (ui.tab === 'controls') {
             const n = controlsTab.errors().length;
-            return h('button', { class: `btn big primary${n ? ' has-errors' : ''}`, id: 'export', onclick: () => controlsTab.openExport(),
+            return h('button', { class: `btn big primary${n ? ' has-errors' : ''}`, id: 'export', disabled: sending(), onclick: () => controlsTab.openExport(),
                                  title: n ? `Fix ${n === 1 ? 'this' : `these ${n}`} first (Ctrl+E lists them)` : 'Export the driver file\'s controls and feel (Ctrl+E)' },
                      icon('code'), 'Export', n ? h('span', { class: 'count', 'aria-label': `${n} error${n === 1 ? '' : 's'} to fix first` }, String(n)) : null);
         }
         const errs = derive().issues.filter((x) => x.level === 'error');
         const first = errs.slice(0, 3).map((x) => `${x.stepIndex >= 0 ? `step ${x.stepIndex + 1}: ` : ''}${x.words}`);
-        return h('button', { class: `btn big primary${errs.length ? ' has-errors' : ''}`, id: 'export', onclick: () => openExportDrawer(app),
+        return h('button', { class: `btn big${app.sendPanel ? '' : ' primary'}${errs.length ? ' has-errors' : ''}`, id: 'export', disabled: sending(), onclick: () => openExportDrawer(app),
                              title: errs.length ? `Fix ${errs.length === 1 ? 'this' : `these ${errs.length}`} first (Ctrl+E lists them): ${first.join(' · ')}`
                                                 : 'Export the C++ (Ctrl+E)' },
                  icon('code'), 'Export',
                  errs.length ? h('span', { class: 'count', 'aria-label': `${errs.length} error${errs.length === 1 ? '' : 's'} to fix first` }, String(errs.length)) : null);
+    }
+    /** RMP1-I: Send to robot — writes the routes (when they changed), then builds and uploads (the export drawer shows it). */
+    function sendButton() {
+        const panel = app.sendPanel;
+        if (!panel || ui.tab !== 'route') {
+            return null;
+        }
+        return h('button', { class: 'btn big primary', id: 'send', disabled: panel.busy(), onclick: () => openExportDrawer(app, { send: panel.robot() }),
+                             title: `Write the routes into src/team/skills_route.cpp, then build and upload them to robot ${panel.robot()}` },
+                 icon('send'), panel.busy() ? 'Sending…' : `Send to robot ${panel.robot()}`);
     }
     function renderStatus() {
         if (ui.tab === 'controls') {
@@ -985,6 +1010,11 @@ async function main() {
         if (ctrl && e.key.toLowerCase() === 'y' && !typing) {
             e.preventDefault();
             redo();
+            return;
+        }
+        if (ctrl && ['s', 'e'].includes(e.key.toLowerCase()) && sending()) {
+            e.preventDefault();
+            toast(SENDING);
             return;
         }
         if (ctrl && e.key.toLowerCase() === 's') {
