@@ -57,9 +57,12 @@ NO_FACTS = ("The route builder has no robots' facts on this laptop yet: connect 
             "keeps them for the venue), or build it (tools/route_maker/README.md).")
 GROUP = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {"start_new_session": True}
 REFUSED = "refused: open the route builder with the link it printed in its terminal"
-# RMP1-K D5: what each slot should hold (the team lead, 2026-11-20); slot 5 is the team's old code, never touched.
+# RMP1-K D5: what each slot should hold (the team lead, 2026-11-20). None: never judged -- slot 5 is whatever the PROS
+# extension's own Upload button built last (project.pros), slot 8 the team's old code ("we arent going to delete dan's code").
 WANTED = {1: "shulib Drive", 2: "shulib Competition", 3: "Bench Tests", 4: "shulib Calibrate", 5: None,
-          6: "shulib Auton Tester", 7: "shulib Tune"}
+          6: "shulib Auton Tester", 7: "shulib Tune", 8: None}
+LEFT_ALONE = {5: ("the PROS button's build (optional)", "optional, never judged"),
+              8: ("the team's old code", "never touched by shulib")}
 UNPLUGGED = "The brain's USB was unplugged (or the brain turned off): plug the BRAIN in, then Watch the robot again."
 FACTS_FROM = ("src/robots", "include")  # what the robots' descriptions are built from (test/route_maker_main.cpp)
 
@@ -273,10 +276,10 @@ def slot_table(have):
         got = have.get(n)
         name = got["name"] if got else None
         unread = bool(got and got.get("unread"))
-        row = {"slot": n, "want": want or "the team's old code", "have": name, "unread": unread,
+        row = {"slot": n, "want": want or LEFT_ALONE[n][0], "have": name, "unread": unread,
                "date": got and got["date"], "description": got and got["description"]}
         if want is None:
-            rows.append(dict(row, ok=True, fix="never touched by shulib"))
+            rows.append(dict(row, ok=True, fix=LEFT_ALONE[n][1]))
             continue
         ok = name == want
         where = [k for k, g in have.items() if g["name"] == want and k != n]
@@ -1153,27 +1156,32 @@ def self_test():
         (work / "calls.txt").unlink(missing_ok=True)
         st, body, _ = ask(srv, "POST", "/api/robot?robot=one")
         got = json.loads(body)
-        rows = got["rows"] or [{}] * 7
+        rows = got["rows"] or [{}] * 8
         calls = (work / "calls.txt").read_text(encoding="utf-8").splitlines()
         check("Check robot one: every slot right (pros's own 'Loading' and 'Downloading slot_N.ini' lines around the answer)",
-              st == 200 and [r.get("ok") for r in rows] == [True] * 7 and rows[1]["have"] == "shulib Competition"
+              st == 200 and [r.get("ok") for r in rows] == [True] * 8 and rows[1]["have"] == "shulib Competition"
               and rows[5]["description"] == "v0.1.1-470-gabc1234 | skills" and rows[0]["date"] == "2026-11-20T01:00:00", got)
         check("... read-only: lsusb, then ONE pros user-script tools/brain_slots.py (the fake V5Device can only read)",
               calls == ["pros lsusb", f"pros user-script {TOOLS / 'brain_slots.py'}"], calls)
-        check("the old code's slot: never touched by shulib", rows[4]["ok"] and rows[4]["fix"] == "never touched by shulib", rows[4])
+        check("the old code's slot (8): never touched by shulib", rows[7]["slot"] == 8 and rows[7]["ok"]
+              and rows[7]["want"] == "the team's old code" and rows[7]["fix"] == "never touched by shulib", rows[7])
+        check("the PROS button's slot (5): optional, never judged", rows[4]["slot"] == 5 and rows[4]["ok"]
+              and rows[4]["want"] == "the PROS button's build (optional)" and rows[4]["fix"] == "optional, never judged", rows[4])
         out = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--root", str(repo), "robot", "one"], capture_output=True,
                              text=True, encoding="utf-8", timeout=60, env=dict(os.environ, PYTHONIOENCODING="utf-8"))
         check("python3 tools/route_builder.py robot one: each slot's whole line (its upload time and its build's tag)", out.returncode == 0
               and "  ✓ slot 6: shulib Auton Tester  uploaded 2026-11-20 06:00  [v0.1.1-470-gabc1234 | skills]\n" in out.stdout
-              and "  ✓ slot 5: VEXcode  uploaded 2026-11-20 05:00  [Made with PROS]\n" in out.stdout, out.stdout + out.stderr)
-        bad = dict(good, **{"2": ["shulib Auton Tester", "x", "2026-11-20T02:00:00"], "5": ["somebody's old code", "", ""]})
+              and "  ✓ slot 8: VEXcode  uploaded 2026-11-20 08:00  [Made with PROS]\n" in out.stdout, out.stdout + out.stderr)
+        bad = dict(good, **{"2": ["shulib Auton Tester", "x", "2026-11-20T02:00:00"], "8": ["somebody's old code", "", ""]})
         del bad["6"]
+        del bad["5"]
         os.environ["FAKE_SLOTS"] = json.dumps(bad)
         rows = json.loads(ask(srv, "POST", "/api/robot?robot=one")[1])["rows"]
         check("one slot wrong: the plain fix", not rows[1]["ok"] and rows[1]["fix"] == "slot 2 holds shulib Auton Tester: upload shulib Competition there", rows[1])
         check("one slot empty: the plain fix", not rows[5]["ok"] and rows[5]["fix"].startswith("slot 6 is empty: upload shulib Auton Tester there")
               and rows[5]["fix"].endswith("(it is in slot 2 now)"), rows[5])
-        check("the old code's slot left alone, whatever is in it", rows[4]["ok"] and rows[4]["have"] == "somebody's old code", rows[4])
+        check("the old code's slot left alone, whatever is in it", rows[7]["ok"] and rows[7]["have"] == "somebody's old code", rows[7])
+        check("the PROS button's slot empty: still fine (it is optional)", rows[4]["ok"] and rows[4]["have"] is None, rows[4])
         out = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--root", str(repo), "robot", "one"], capture_output=True,
                              text=True, encoding="utf-8", timeout=60, env=dict(os.environ, PYTHONIOENCODING="utf-8"))
         check("python3 tools/route_builder.py robot one: the table in the terminal", out.returncode == 0
@@ -1183,13 +1191,13 @@ def self_test():
         rows = json.loads(ask(srv, "POST", "/api/robot?robot=one")[1])["rows"]
         check("a slot whose file cannot be read: said so, never 'empty' or 'holds ?: upload'", not rows[1]["ok"] and rows[1]["unread"]
               and rows[1]["have"] is None and rows[1]["fix"] == "slot 2 could not be read (pros could not read slot_2.ini): check again"
-              and [r["ok"] for r in rows] == [True, False, True, True, True, True, True], rows[1])
-        os.environ["FAKE_SLOTS"] = json.dumps(dict(good, **{"5": ["VEXcode", "100% auton", "2026-11-20T05:00:00"]}))
+              and [r["ok"] for r in rows] == [True, False, True, True, True, True, True, True], rows[1])
+        os.environ["FAKE_SLOTS"] = json.dumps(dict(good, **{"8": ["VEXcode", "100% auton", "2026-11-20T08:00:00"]}))
         got = json.loads(ask(srv, "POST", "/api/robot?robot=one")[1])
-        rows = got["rows"] or [{}] * 7
-        check("another tool's '%' in slot 5 (pros's ConfigParser interpolates): the whole table, slot 5's row as written",
-              [r.get("ok") for r in rows] == [True] * 7 and not rows[4]["unread"] and rows[4]["have"] == "VEXcode"
-              and rows[4]["description"] == "100% auton" and rows[1]["have"] == "shulib Competition", got)
+        rows = got["rows"] or [{}] * 8
+        check("another tool's '%' in slot 8 (pros's ConfigParser interpolates): the whole table, slot 8's row as written",
+              [r.get("ok") for r in rows] == [True] * 8 and not rows[7]["unread"] and rows[7]["have"] == "VEXcode"
+              and rows[7]["description"] == "100% auton" and rows[1]["have"] == "shulib Competition", got)
         os.environ.update(FAKE_SLOTS=json.dumps(good), FAKE_CASE="slotsfail")
         got = json.loads(ask(srv, "POST", "/api/robot?robot=one")[1])
         check("the brain does not answer pros: said in pros's words, no table", got["rows"] is None and got["why"]

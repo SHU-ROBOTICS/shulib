@@ -5320,3 +5320,22 @@ One finding from a fresh verifier. Re-checked before anything changed.
   skipped / 0 fail, Chromium 111 / 7 / 0** (the same skips as before). No helper or browser process left running.
 - **Stopped here: uncommitted, for the coordinator.** The "owed on the robot" list above stands unchanged; item (2), the
   real `pros user-script tools/brain_slots.py`, also covers this round's `raw=True` read on the frozen 3.9 pros-cli.
+
+### RMP1-K coordinator fix at the merge (2026-11-20 14:35 EST): the slot table matches robot one's brain
+
+- **Found by the coordinator** before merging: D5's table held slot 5 for "the team's old code". On robot one
+  (2F007C00, `pros v5 ls-files` 11-20 12:40 and 13:52) the old code — the team lead: "we arent going to delete dan's
+  code" — is in **slot 8** (uploaded 2026-08-13), and slot 5 is where the PROS extension's own Upload button now builds
+  ("PROS button (bench bot)", integrate 61816f6). So a robot with every program right showed slot 8 nowhere, and
+  slot 5 was called the old code.
+- **Fix** (`tools/route_builder.py`): `WANTED` covers slots 1–8; slots 5 and 8 are `None` (never judged), worded by
+  `LEFT_ALONE`: 5 "the PROS button's build (optional)" / "optional, never judged"; 8 "the team's old code" / "never
+  touched by shulib". Self-test 142 (2 new: slot 5 named and optional; slot 5 EMPTY still ✓); the `%` case moved to
+  slot 8 (a VEXcode upload is where another tool's ini would be); the page test's fake brain has slot 5 = the PROS
+  button's build and slot 8 = old code, and pins both rows' words.
+- **Mutants:** S1 (slot 8 dropped from `WANTED`) RED — "every slot right" fails first; S2 (slot 5 judged as "PROS
+  button (bench bot)") RED — both slot-5 checks by name.
+- **Gates:** route_builder self-test 142 OK; `run_view.page.test.mjs` Chromium 4/4 (slots test, shots light/dark
+  1440/1280 in `scratch/rmp1-k/shots-slots8/`, read: 8 rows fit at 1280×800) and Firefox 4/4. `slots.png` re-made from
+  Chromium light 1440 (1200×750, 256 colours, as `to_docs.py`). The docs that say "slot 5 is the team's old code"
+  (where-your-code-goes, guide 17) are integrate's, corrected in the merge.

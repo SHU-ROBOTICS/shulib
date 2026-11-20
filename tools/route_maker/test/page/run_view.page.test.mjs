@@ -45,8 +45,9 @@ const LIVE = ['[ATS] booted: shulib AUTON TESTER build [shulib-robot-variant=one
     '[t=  20.81] [ATS] run 1: seated (-36.00, -60.00) facing 90.0 deg (the IMU read 0.0); END estimate (-36.10, -59.80) facing 90.2 deg LIVE -- measure the tape'];
 const SLOTS = { 1: ['shulib Drive', 'v0.1.1-470-gabc1234 | no routes', '2026-11-20T08:10:00'], 2: ['shulib Auton Tester', 'x', '2026-11-19T21:00:00'],
                 3: ['Bench Tests', 'Made with PROS', '2026-11-18T19:00:00'], 4: ['shulib Calibrate', 'Made with PROS', '2026-11-18T19:05:00'],
-                5: ['old code', '', ''], 6: ['shulib Auton Tester', 'v0.1.1-470-gabc1234 | skills', '2026-11-20T09:30:00'],
-                7: ['shulib Tune', 'Made with PROS', '2026-11-19T20:00:00'] };
+                5: ['PROS button (bench bot)', 'Made with PROS', '2026-11-19T18:00:00'],
+                6: ['shulib Auton Tester', 'v0.1.1-470-gabc1234 | skills', '2026-11-20T09:30:00'],
+                7: ['shulib Tune', 'Made with PROS', '2026-11-19T20:00:00'], 8: ['old code', '', ''] };
 const VARIANTS = (SHOTS ? [['light', 1440, 900], ['dark', 1440, 900], ['light', 1280, 800], ['dark', 1280, 800]] : [['light', 1440, 900]])
     .map(([scheme, width, height]) => ({ scheme, viewport: { width, height }, tag: `${scheme}-${width}` }));
 const WORK = path.join(REPO, 'build', 'route_builder_runview_pagetest');
@@ -273,7 +274,9 @@ test.describe('RMP1-K: check the mechanisms, watch the run, what is on the robot
             assert.equal(await dlg.locator('.rk-verdict').textContent(),
                 'Fix this first: slot 2 holds shulib Auton Tester: upload shulib Competition there.');
             assert.equal(await dlg.locator('tr.first').getAttribute('data-slot'), '2');
-            assert.deepEqual(await dlg.locator('tbody .rk-mark').allTextContents(), ['✓', '✗', '✓', '✓', '✓', '✓', '✓']);
+            assert.deepEqual(await dlg.locator('tbody .rk-mark').allTextContents(), ['✓', '✗', '✓', '✓', '✓', '✓', '✓', '✓']);
+            assert.equal(await dlg.locator('tr[data-slot="5"] td').nth(1).textContent(), "the PROS button's build (optional)");
+            assert.equal(await dlg.locator('tr[data-slot="8"] td').nth(1).textContent(), "the team's old code");
             assert.match(await dlg.locator('tr[data-slot="6"] small').textContent(), /uploaded 2026-11-20 09:30 · v0\.1\.1-470-gabc1234 \| skills/);
             const ran = fs.readFileSync(made.env.FAKE_CALLS, 'utf8');
             assert.ok(!/upload|rm-|write/.test(ran), `read-only: ${ran}`);
