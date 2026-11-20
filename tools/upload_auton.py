@@ -22,6 +22,7 @@ import threading
 from pathlib import Path
 
 SLOT = 6
+JOBS = os.cpu_count() or 1  # make's parallel jobs (the team lead, 2026-11-20: "i want to easily be able to iterate")
 NAME = "shulib Auton Tester"
 ROBOTS = {"one": "one", "two": "tank"}
 SKILLS = "src/team/skills_route.cpp"
@@ -239,7 +240,7 @@ def main(argv):
     log = root / "build" / "upload_auton.log"
     log.parent.mkdir(parents=True, exist_ok=True)
     log.write_text("", encoding="utf-8")
-    cmd = [make, f"ROBOT={ROBOTS[which]}", "PROGRAM=autontest"]
+    cmd = [make, f"-j{JOBS}", f"ROBOT={ROBOTS[which]}", "PROGRAM=autontest"]  # every core: a full build ~3x faster
     print(f"Building robot {which}'s Auton Tester: make ROBOT={ROBOTS[which]} PROGRAM=autontest (a few minutes the "
           "first time; Ctrl+C stops it)...", flush=True)
     if env and Path(make).parent == Path(env.get("PROS_TOOLCHAIN", "")) / "bin":
@@ -454,11 +455,11 @@ def self_test():
         if calls is not None and made != calls:
             failures.append(f"{name}: ran {made}, wanted {calls}")
 
-    make1, lsusb = "make ROBOT=one PROGRAM=autontest", "pros lsusb"
+    make1, lsusb = f"make -j{JOBS} ROBOT=one PROGRAM=autontest", "pros lsusb"
     upload = f"pros upload --slot 6 --name {NAME}"
     case("ok", "one", 0, ["✓ BUILT", "✓ UPLOADED to slot 6. On the brain: shulib Auton Tester → skills or left 1 → RUN"],
          calls=[make1, lsusb, upload + " . /dev/ttyACM0"])
-    case("ok", "two", 0, ["✓ UPLOADED to slot 6"], calls=["make ROBOT=tank PROGRAM=autontest", lsusb, upload + " . /dev/ttyACM0"])
+    case("ok", "two", 0, ["✓ UPLOADED to slot 6"], calls=[f"make -j{JOBS} ROBOT=tank PROGRAM=autontest", lsusb, upload + " . /dev/ttyACM0"])
     case("owed", "one", 1, ["✗ NOT BUILT", "robot one's build refuses while a fact it needs is OWED (not measured or typed yet):\n"
                             "    - the cascade's motor ports\n    - the AI Vision camera's port\n  Type them in src/robots/robot_one_facts.hpp"],
          unwanted=["✓ BUILT", "UPLOADED"], calls=[make1])
@@ -500,7 +501,7 @@ def self_test():
     case("ok", "one", 0, ["(make from the PROS toolchain: ", "✓ BUILT", "✓ UPLOADED to slot 6"],
          calls=["tc" + make1, lsusb, upload + " . /dev/ttyACM0"], path=work / "prosonly", tc=tc)  # make from PROS_TOOLCHAIN/bin
     case("ok", "two", 0, ["(make from the PROS toolchain: ", "✓ UPLOADED to slot 6"],
-         calls=["tcmake ROBOT=tank PROGRAM=autontest", lsusb, upload + " . /dev/ttyACM0"], path=False, tc=tc)  # both from there
+         calls=[f"tcmake -j{JOBS} ROBOT=tank PROGRAM=autontest", lsusb, upload + " . /dev/ttyACM0"], path=False, tc=tc)  # both from there
     case("ok", "one", 0, ["✓ UPLOADED to slot 6"], unwanted=["from the PROS toolchain"],
          calls=[make1, lsusb, upload + " . /dev/ttyACM0"], tc=tc)  # make on PATH wins: the toolchain's is not used
     case("ok", "one", 1, ["✗ make not found. Run this in the PROS terminal"], unwanted=["make and pros"], calls=[],
@@ -516,12 +517,12 @@ def self_test():
     stand_in(tcx.parent.parent / "pros-cli-windows" if os.name == "nt" else tcx.parent / "pros-cli-linux", "pros")
     ran = ["pros lsusb", f"pros upload --slot {SLOT} --name {NAME} . /dev/ttyACM0"]
     case("ok", "one", 0, ["(make from the PROS toolchain: ", "✓ BUILT", "✓ UPLOADED"], path=False, ext=(gs, tcx),
-         calls=["tcmake ROBOT=one PROGRAM=autontest"] + ran)
+         calls=[f"tcmake -j{JOBS} ROBOT=one PROGRAM=autontest"] + ran)
     case("ok", "one", 0, ["✓ UPLOADED"], unwanted=["from the PROS toolchain"], ext=(gs, tcx),
-         calls=["make ROBOT=one PROGRAM=autontest"] + ran)  # both on PATH: the extension's folder is not used
+         calls=[f"make -j{JOBS} ROBOT=one PROGRAM=autontest"] + ran)  # both on PATH: the extension's folder is not used
     stand_in(work / "sysmake", "make", says="tcmake")  # Linux: make on PATH, the compiler only in the extension's bin
     case("ok", "one", 0, ["✓ UPLOADED"], unwanted=["from the PROS toolchain"], path=work / "sysmake", ext=(gs, tcx),
-         calls=["tcmake ROBOT=one PROGRAM=autontest"] + ran)
+         calls=[f"tcmake -j{JOBS} ROBOT=one PROGRAM=autontest"] + ran)
     if os.name != "nt":  # Ctrl+C while make runs: a plain ✗, never a traceback, and what make printed is in the log
         count[0] += 1
         log, until = work / "repo" / "build" / "upload_auton.log", time.time() + 10

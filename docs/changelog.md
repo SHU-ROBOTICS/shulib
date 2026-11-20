@@ -33,6 +33,9 @@ has run against stand-ins for `make` and `pros` only: not yet against the real `
 
 **What you must do:** nothing. The website's route builder works as before; its Next card names the easier way.
 
+Send and `tools/upload_auton.py` build on every core of the laptop (`make -jN`): a first build, or one after a
+`git pull`, is about three times faster; a route-only change rebuilds in about a second.
+
 ### 2026-11-20 — The cascade goes down at 60 %; Competition is slot 2
 
 > Written when it was built. **A library change, by the team lead's freeze exception the day before the
