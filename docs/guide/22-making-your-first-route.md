@@ -235,6 +235,31 @@ the menu's other two autons, `40in forward` and `TEST 24in turn back`. The box s
 waits. The **skills** route — the competition's — keeps its name and is always there. The brain's menu holds 16
 autons, and those two take 2: at most 14 routes.
 
+### 10. Crowded spots: hide, lock, focus
+
+A real route goes back to the same few spots, so its points sit on top of each other. Three ways to get the others
+out of the way, each from the step's row in the list (hover or select it) or a key with the step selected:
+
+| | What it does |
+|---|---|
+| **Focus** (**O**, or **Focus** above the field) | Only the selected step and the steps just before and after it are drawn full; the rest fade and cannot be clicked. Select another step and the focus moves with it. **Esc** or **O** shows everything again. |
+| **Hide** (the eye, **H**) | The step is not drawn on the field and cannot be clicked there. It still runs, in PREVIEW and in the code. Its row is dimmed; **Show all** at the top of the list brings every hidden step back. Hiding, locking or folding while a PREVIEW shows puts the run away (**Ctrl+Z** brings it back). |
+| **Lock** (the lock, **L**) | The step is drawn but cannot be dragged or moved with the arrow keys: a click on it goes to whatever is under it. Its numbers can still be typed on the right. |
+
+Where points still overlap, click the spot again to pick the next point under it; the right side says **2 of 3
+here**. A drag there moves the highlighted one, and hovering names the step a drag would move (the highlighted one
+when it is there, else the top one).
+
+**Sections.** A step's **...** menu has **Start a section here**: a name ("Start", "Claw 1") for the steps from it to
+the next section. The section's row in the list folds them away, and hides or locks them all in one click. A step
+moved into a folded section opens it, so you always see where the step went.
+
+![Focus on step 6 of a crowded route: steps 5, 6 and 7 drawn full, the rest faded; the eye, the lock and ... on step 6's row](../assets/route-builder/focus.png)
+
+Hide, lock and sections are saved in the project file and undone with **Ctrl+Z**; focus is only for now. None of
+them changes the exported code. An offline copy of the route builder downloaded before this feature cannot open a
+project that uses them: download it again.
+
 ## The driver's buttons and the driving feel
 
 **Quick start — the Controls tab in 5 steps**
@@ -406,6 +431,8 @@ one-click fix it offers it.
 | **V** or **Esc** | select (and cancel what is being added) |
 | **D**, **B**, **T**, **C**, **F**, **M**, **P** | drive, back up, turn, curve, straight, mechanism, wait |
 | **Arrow keys** | move the selected point 1 in (**Shift**: 0.25 in) |
+| **H**, **L**, **O** | hide, lock the selected step; focus on it and its neighbours (**Esc** leaves) |
+| a click again on one spot | the next point under it |
 | **Delete**, **Ctrl+D** | delete, duplicate the selected step |
 | **Ctrl+Z**, **Ctrl+Shift+Z** | undo, redo |
 | **Ctrl+S**, **Ctrl+E** | save, export |
@@ -424,7 +451,8 @@ Points snap to the half-tile grid (every 12 in) and flush against a wall; headin
 
 Save writes `src/team/route_maker.json`. It holds every route, in order, in the same units you see — inches,
 degrees, seconds, volts — one step per entry, in a fixed order so a change shows as a small `git diff`, and for a
-mirrored route the answer to "both robots at the same time?" (`together`). It also remembers a fingerprint of the
+mirrored route the answer to "both robots at the same time?" (`together`). It keeps how each step shows on the page
+too — hidden, locked, its section (`view`) — which the export never reads. It also remembers a fingerprint of the
 code it last exported, so that if someone edits the code between the `ROUTE MAKER` lines by hand, the next export
 asks before replacing their change (**Keep their change**, or **Overwrite**). **Deleting the two `ROUTE MAKER`
 lines** makes the routes hand-written code that the route builder leaves alone from then on. A project file from

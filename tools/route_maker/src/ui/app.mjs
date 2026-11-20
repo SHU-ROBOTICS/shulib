@@ -12,7 +12,8 @@
 // route on the field at a time, and the undo history holds the whole set (an undo can bring a deleted route back).
 // Robot two's mirrored start and path are drawn beside robot one's; a mirrored route asks, on the route (no dialog in
 // the way, no default: Export waits for the answer), whether both robots run it at the same time. Arrow keys nudge the
-// selected point 1 in (Shift: 0.25 in).
+// selected point 1 in (Shift: 0.25 in). RMP1-G: H hides the selected step on the field, L locks it, O focuses on it and
+// its neighbours (Esc leaves); hide, lock and sections are route edits (undo, saved), focus is not.
 
 import { h, icon, mount, ask, openMenu } from './dom.mjs';
 import { createRoutesMenu } from './routes_menu.mjs';
@@ -39,6 +40,7 @@ import { bearingDeg, wrapDeg } from '../model/geometry.mjs';
 
 import { kMaxCurvePoints } from '../model/curve.mjs';
 import { createControlsTab } from './controls_tab.mjs';
+import { setView, isHidden, isLocked, sectionsOf, indicesOf } from '../model/step_view.mjs';
 
 const DRAFT_KEY = 'shulib-route-builder:draft';
 const SAVED_KEY = 'shulib-route-builder:saved';  // the project text last saved or opened (the draft is "unsaved" only when it differs)
@@ -92,7 +94,7 @@ async function main() {
     // it, so it asks before replacing a file the page did not take.
     let folderBase;
     const ui = {
-        selected: null, point: null, tool: 'select', curveDraft: [], snap: true,
+        selected: null, point: null, tool: 'select', curveDraft: [], snap: true, focus: false, focusAt: null, here: null,
         saveState: startState, coach: !store(COACH_KEY) && project.routes.every((r) => r.steps.length === 0),
         tab: store(TAB_KEY) === 'controls' ? 'controls' : 'route',
     };
@@ -155,15 +157,15 @@ async function main() {
             els.hud.textContent = `x ${f.x.toFixed(1)}   y ${f.y.toFixed(1)} in`;
         },
         /** `open`: a narrow window's step drawer slides in (a click; never a drag, which would cover the field). */
-        select(sel, point = null, open = true) {
-            pick(sel, point);
+        select(sel, point = null, open = true, here = null) {
+            pick(sel, point, here);
             render();
             if (open && typeof sel === 'number' && window.matchMedia('(max-width: 1100px)').matches) {
                 els.app.dataset.right = 'open';
             }
         },
-        selectHandle(kind, index, point, open) {
-            app.select(kind === 'start' || kind === 'heading' ? 'start' : index, kind === 'curvePoint' ? point : null, open);
+        selectHandle(kind, index, point, open, here = null) {
+            app.select(kind === 'start' || kind === 'heading' ? 'start' : index, kind === 'curvePoint' ? point : null, open, here);
         },
         beginDrag() {
             dragBase = hist.present;
@@ -349,6 +351,7 @@ async function main() {
             if (k !== at() && routes()[k]) {
                 hist = { ...hist, present: { ...hist.present, at: k } };  // which route shows is not an edit
                 pick(null);
+                ui.focus = false;
                 ui.curveDraft = [];
                 ui.tool = 'select';
                 render();
@@ -400,27 +403,35 @@ async function main() {
             return true;
         }
         const s = typeof ui.selected === 'number' ? r.steps[ui.selected] : null;
-        if (s && s.points && Number.isInteger(ui.point) && s.points[ui.point] && Number.isFinite(s.points[ui.point].x)) {
-            edit(updateStep(r, ui.selected, { points: s.points.map((p, k) => (k === ui.point ? move(p) : p)) }));
+        const curve = s && s.points && Number.isInteger(ui.point) && s.points[ui.point] && Number.isFinite(s.points[ui.point].x);
+        if (!curve && !(s && Number.isFinite(s.x) && Number.isFinite(s.y))) {
+            return false;
+        }
+        if (isHidden(s) || isLocked(s)) {  // RMP1-G: a point nobody can see, or one locked, does not move
+            const hidden = isHidden(s);
+            toast(`Step ${ui.selected + 1} is ${hidden ? 'hidden' : 'locked'}: ${hidden ? 'show it (H)' : 'unlock it (L)'} to move it, or type its numbers.`);
             return true;
         }
-        if (s && Number.isFinite(s.x) && Number.isFinite(s.y)) {
-            edit(updateStep(r, ui.selected, move(s)));
-            return true;
-        }
-        return false;
+        edit(updateStep(r, ui.selected, curve ? { points: s.points.map((p, k) => (k === ui.point ? move(p) : p)) } : move(s)));
+        return true;
     }
     function insertAt() {
         return typeof ui.selected === 'number' ? ui.selected + 1 : route().steps.length;
     }
-    /** The selection and the curve point picked ON THE FIELD are set only together: the point never outlives its pick. */
-    function pick(sel, point = null) {
+    /** The selection and the curve point picked ON THE FIELD are set only together: the point never outlives its pick.
+     *  `here`: {k, n} when the pick was the k-th of n points on one spot (RMP1-G D4); focus follows the selection. */
+    function pick(sel, point = null, here = null) {
         ui.selected = sel;
         ui.point = point;
+        ui.here = here;
+        if (sel !== null) {
+            ui.focusAt = sel;
+        }
     }
     /** `select` undefined (the nudge): the selection AND its picked point stay; any other edit drops the point. */
     function edit(r, select) {
         hist = commit(hist, withRoute(normalizeRoute(r)));
+        ui.here = null;  // what is on the clicked spot may have changed
         if (select !== undefined) {
             pick(select);
         }
@@ -434,6 +445,7 @@ async function main() {
     function editSet(set) {
         hist = commit(hist, { ...set, routes: set.routes.map(normalizeRoute) });
         pick(null);
+        ui.focus = false;
         changed();
         render();
         els.fieldView.fit();
@@ -575,6 +587,7 @@ async function main() {
             folderBase = folderText;
         }
         pick(null);
+        ui.focus = false;
         ui.saveState = 'saved';
         ui.coach = false;
         try {
@@ -718,6 +731,7 @@ async function main() {
         const same = h.present.at === hist.present.at;
         hist = h;
         pick(same ? ui.selected : null);
+        ui.focus = ui.focus && same;
         changed();
         render();
     }
@@ -876,14 +890,16 @@ async function main() {
             b.setAttribute('aria-pressed', String(ui.tool === id));
         }
         els.snapBtn.setAttribute('aria-pressed', String(ui.snap));
+        els.focusBtn.setAttribute('aria-pressed', String(ui.focus));  // RMP1-G
         const hints = { driveTo: 'Click where the robot drives to', reverseTo: 'Click where the robot backs up to', face: 'Click the point to turn and face',
                         curveTo: ui.curveDraft.length ? `${ui.curveDraft.length} point${ui.curveDraft.length === 1 ? '' : 's'} — click more; Enter or double-click finishes; Esc cancels`
                                                       : 'Click the curve\'s points; Enter or double-click finishes' };
         const noStart = !route().start;
         const startHole = !noStart && !startPose(route().start);  // a hand-edited file's start missing a number
-        els.modeHint.hidden = ui.coach || !(noStart || startHole || hints[ui.tool]);  // the coach card says it already, over the same spot
+        const focusWords = ui.focus ? `Focus: ${ui.focusAt === 'start' ? 'the start' : `step ${ui.focusAt + 1}`} and its neighbours. Esc or O shows all` : '';  // RMP1-G
+        els.modeHint.hidden = ui.coach || !(noStart || startHole || hints[ui.tool] || focusWords);  // the coach card says it already, over the same spot
         els.modeHint.textContent = noStart ? 'Click the field where robot one starts'
-            : startHole ? 'Robot one\'s start is missing a number: select the start (the top of the list) and type it' : hints[ui.tool] || '';
+            : startHole ? 'Robot one\'s start is missing a number: select the start (the top of the list) and type it' : hints[ui.tool] || focusWords;
         mount(els.coach, ui.coach ? coachCard(app) : null);
         renderTop();
         renderStepList(els.steps, app);
@@ -893,6 +909,67 @@ async function main() {
         document.documentElement.dataset.steps = String(route().steps.length);
         app.preview.sync();
     }
+
+    // ── RMP1-G: hide, lock, focus and sections (the step list's, the inspector's and the keys' calls) ──────────
+    Object.assign(app, {
+        toggleHidden(i) {
+            const on = !isHidden(route().steps[i]);
+            edit(setView(route(), [i], { hidden: on }));
+            toast(on ? `Step ${i + 1} is hidden on the field (it still runs). H shows it.` : `Step ${i + 1} shows again.`);
+        },
+        toggleLocked(i) {
+            const on = !isLocked(route().steps[i]);
+            edit(setView(route(), [i], { locked: on }));
+            toast(on ? `Step ${i + 1} is locked: it cannot be dragged, and clicks pass through it. Its numbers can still be typed.` : `Step ${i + 1} is unlocked.`);
+        },
+        showAll() {
+            edit(setView(route(), route().steps.map((_, k) => k), { hidden: false }));
+        },
+        setFocus(on) {
+            if (on && ui.selected === null) {
+                toast('Select a step first (click it in the list), then Focus.');
+                return;
+            }
+            ui.focus = on;
+            render();
+        },
+        /** A section's steps hidden (or locked) together: all of them, or none when all already are. */
+        sectionSet(head, key) {
+            const sec = sectionsOf(route()).find((x) => x.head === head);
+            const idx = indicesOf(sec);
+            const is = key === 'hidden' ? isHidden : isLocked;
+            edit(setView(route(), idx, { [key]: !idx.every((k) => is(route().steps[k])) }));
+        },
+        setSection(i, patch) {
+            edit(setView(route(), [i], patch));
+        },
+    });
+    els.focusBtn = h('button', { class: 'tool', 'aria-pressed': 'false', 'data-tool': 'focus', title: 'Focus: only the selected step and its neighbours, the rest faded (O; Esc leaves)',
+                                 'aria-label': 'Focus (O)', onclick: () => app.setFocus(!ui.focus) }, icon('target'), 'Focus', h('kbd', {}, 'O'));
+    els.toolbar.append(els.focusBtn);
+    /** H, L, O and Esc's focus (true: the key was this block's). */
+    function viewKey(e) {
+        const k = e.key.toLowerCase();
+        const i = ui.selected;
+        if ((k === 'h' || k === 'l') && !e.shiftKey) {
+            if (typeof i === 'number') {
+                (k === 'h' ? app.toggleHidden : app.toggleLocked)(i);
+            } else {
+                toast(`Select a step first, then ${k === 'h' ? 'H hides' : 'L locks'} it.`);
+            }
+            return true;
+        }
+        if (k === 'o' && !e.shiftKey) {
+            app.setFocus(!ui.focus);
+            return true;
+        }
+        if (e.key === 'Escape' && ui.focus && ui.tool === 'select' && !ui.curveDraft.length) {
+            app.setFocus(false);
+            return true;
+        }
+        return false;
+    }
+    // ── (end RMP1-G) ──
 
     // ── the keyboard (§1.4's shortcuts) ──
     document.addEventListener('keydown', (e) => {
@@ -946,6 +1023,9 @@ async function main() {
         const arrow = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
         if (arrow && !app.preview.showing() && nudge(arrow[0] * (e.shiftKey ? 0.25 : 1), arrow[1] * (e.shiftKey ? 0.25 : 1))) {
             e.preventDefault();
+            return;
+        }
+        if (viewKey(e)) {
             return;
         }
         if (e.key === 'Escape') {

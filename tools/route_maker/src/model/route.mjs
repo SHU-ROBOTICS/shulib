@@ -28,12 +28,14 @@
 // absent), "carryOn", or {"skipTo": "<label>"}. A `mechanism` is the declaration's C++ NAME (what the export
 // writes); the page shows the mechanism's `.name` beside it from the robot's description.
 // NOT in A1 (A1b): triggers partway, the wall reset, the Toggle steps, "who runs it".
+// RMP1-G: and `view` — how the step shows on the page (hidden, locked, a section: step_view.mjs); never exported.
 //
 // Pure: no DOM, no file API.
 
 import { round3, isStored } from './numbers.mjs';
 import { wrapDeg, bearingDeg, dist } from './geometry.mjs';
 import { CurvePath, kDefaultCurveConfig } from './curve.mjs';
+import { normalizeView, passSection, unfoldAt } from './step_view.mjs';
 
 /** Every step kind A1 offers, in the toolbar's order. */
 export const STEP_KINDS = Object.freeze([
@@ -52,7 +54,7 @@ export const MECHANISM_KINDS = new Set(['move', 'startMove', 'set', 'run', 'star
 export const CARE_MOTION_FIELDS = Object.freeze(['timeoutS', 'maxSpeedInPerS', 'maxTurnDegPerS', 'toleranceIn', 'toleranceDeg']);
 /** Every field a step of THIS builder carries (D3: a file with any other is from a newer builder, refused). */
 export const STEP_KEYS = Object.freeze(['label', 'do', 'x', 'y', 'faceFirst', 'headingDeg', 'points', 'inches', 'mechanism', 'preset',
-                                        'up', 'down', 'to', 'bottom', 'position', 'volts', 'forS', 'boundS', 'seconds', 'care']);
+                                        'up', 'down', 'to', 'bottom', 'position', 'volts', 'forS', 'boundS', 'seconds', 'care', 'view']);
 /** Every field of a step's `care` this builder knows. */
 export const CARE_KEYS = Object.freeze([...CARE_MOTION_FIELDS, 'onFail']);
 /** Every field of a curve point. */
@@ -162,13 +164,17 @@ export function normalizeStep(step) {
         }
     }
     for (const k of Object.keys(step)) {
-        if (!(k in out) && k !== 'care' && k !== 'label' && step[k] !== undefined) {
+        if (!(k in out) && k !== 'care' && k !== 'label' && k !== 'view' && step[k] !== undefined) {
             out[k] = step[k];
         }
     }
     const care = roundCare(step.care);
     if (care) {
         out.care = care;
+    }
+    const view = normalizeView(step.view);
+    if (view) {
+        out.view = view;
     }
     return out;
 }
@@ -230,25 +236,31 @@ export function updateStep(route, index, patch) {
     return { ...route, steps };
 }
 
-/** Remove step `index`. */
+/** Remove step `index` (a section it started stays, from the step after: step_view.mjs passSection). */
 export function removeStep(route, index) {
     const steps = route.steps.slice();
-    steps.splice(index, 1);
+    passSection(steps, index, steps.splice(index, 1)[0]);
     return { ...route, steps };
 }
 
-/** Move step `from` to position `to` (the index it will have afterwards). */
+/** Move step `from` to position `to` (the index it will have afterwards); a section it started stays where it was,
+ *  and a folded section it lands in unfolds. */
 export function moveStep(route, from, to) {
+    const at = Math.max(0, Math.min(to, route.steps.length - 1));
+    if (at === from) {
+        return route;
+    }
     const steps = route.steps.slice();
-    const [s] = steps.splice(from, 1);
-    steps.splice(Math.max(0, Math.min(to, steps.length)), 0, s);
-    return { ...route, steps };
+    const s = passSection(steps, from, steps.splice(from, 1)[0]);
+    steps.splice(at, 0, s);
+    return unfoldAt({ ...route, steps }, at);
 }
 
-/** Duplicate step `index` just after it (its label is not copied: labels are unique). */
+/** Duplicate step `index` just after it (its label is not copied: labels are unique; nor its view: a copy shows). */
 export function duplicateStep(route, index) {
     const copy = { ...route.steps[index] };
     delete copy.label;
+    delete copy.view;
     return addStep(route, copy, index + 1);
 }
 

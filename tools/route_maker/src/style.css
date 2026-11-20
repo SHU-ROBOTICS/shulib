@@ -518,3 +518,35 @@ input.num.bad { border-color: var(--failed); }
 .g-twin-label { font: 600 12px var(--font-ui); fill: var(--blue-alliance); text-anchor: middle; dominant-baseline: central; pointer-events: none;
   paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
 .g-handle.sel.point { fill: var(--accent); }
+
+/* ── Hide / lock / focus (RMP1-G) ── */
+.step { position: relative; }
+.step-acts { position: absolute; right: 28px; top: 50%; transform: translateY(-50%); display: flex; gap: 2px; padding: 2px; border-radius: var(--radius-sm);
+  background: var(--surface); box-shadow: -12px 0 10px var(--surface); visibility: hidden; }
+.step:hover .step-acts, .step:focus-within .step-acts, .step.selected .step-acts { visibility: visible; }  /* the selected: a touch screen reaches them */
+.step.selected:not(.start-card) { grid-template-columns: 22px 32px 1fr auto auto; }  /* the selected card's own column: they never cover its words */
+.step.selected .step-acts { position: static; transform: none; background: none; box-shadow: none; }
+.step-act { width: 26px; height: 26px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 6px; background: transparent;
+  color: var(--text-muted); cursor: pointer; flex: none; }
+.step-act:hover { background: var(--surface-2); color: var(--text); }
+.step-act.on { color: var(--accent-strong); }
+.step-act svg { width: 16px; height: 16px; }
+.step.is-hidden .step-num, .step.is-hidden .step-icon, .step.is-hidden .step-main { opacity: .5; }
+.section-row { display: flex; align-items: center; gap: 2px; margin-top: var(--s-2); padding: 0 2px 2px; border-bottom: 1px solid var(--border);
+  font-size: var(--t-xs); color: var(--text-muted); }
+.sec-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; color: var(--text); }
+.sec-count { padding-right: 4px; white-space: nowrap; }
+.section-row.folded .sec-fold svg { transform: rotate(-90deg); }
+.view-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); padding: 6px 10px; border-radius: var(--radius-md);
+  background: var(--accent-soft); color: var(--accent-strong); font-size: var(--t-xs); font-weight: 600; }
+.view-bar .link, .view-line .link { color: var(--accent-strong); background: none; border: 0; cursor: pointer; padding: 0; font-weight: 650; text-decoration: underline; }
+.view-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin: -4px 0 var(--s-3); font-size: var(--t-sm); color: var(--text-muted); }
+.view-line.here { color: var(--accent-strong); font-weight: 600; }
+.field-svg .faded { opacity: .18; pointer-events: none; }
+.field-svg .faded .g-handle, .g-step.locked .g-handle { pointer-events: none; }
+.g-step.locked .g-handle { fill: var(--surface-2); stroke-dasharray: 3 3; cursor: default; }
+.focusing .g-twin, .focusing .g-twin-path, .focusing .g-mirror, .focusing .g-twin-label { opacity: .12; }
+.g-tip { position: absolute; z-index: 4; pointer-events: none; max-width: min(420px, 80%); padding: 4px 10px; border-radius: var(--radius-sm);
+  background: var(--text); color: var(--surface); font-size: var(--t-xs); font-weight: 600; box-shadow: var(--shadow); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
+/* ── (end RMP1-G) ── */

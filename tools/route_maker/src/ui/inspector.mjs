@@ -2,6 +2,7 @@
 // typed, numbers.mjs), the step's checks right above it in plain words with the library's own sentence beside
 // them and their one-click fixes, then "if it fails" and the label. With nothing selected: the start and the
 // route's name. Nothing here invents a number: an empty time limit stays empty until the student types one.
+// RMP1-G: under the title, one line each when it applies — "2 of 3 here" (a click on a crowded spot), hidden, locked.
 
 import { h, icon, mount } from './dom.mjs';
 import { parseTyped, fmt } from '../model/numbers.mjs';
@@ -9,6 +10,7 @@ import { stepTitle, stepIcon, KIND_LABEL, HOMING_WORDS } from './words.mjs';
 import { ROUTE_NAME, startPose } from '../model/route.mjs';
 import { targetKind, unitOf, bottomOf, plannedHeights } from '../model/lift.mjs';
 import { reflect } from '../model/pair.mjs';
+import { isHidden, isLocked } from '../model/step_view.mjs';
 
 /**
  * A number with its unit. Empty means "nothing typed" (the step keeps its hole, and the checks ask for it);
@@ -209,6 +211,17 @@ function robotTwoSection(route, app) {
         ] : h('p', { class: 'hint' }, 'Robot two runs it as written, from robot one\'s start: for a route one robot runs.'));
 }
 
+/** RMP1-G: where the step is among the points on its spot, and whether it is hidden or locked on the field. */
+function viewLines(step, i, st, app) {
+    const line = (cls, words, btn, fn) => h('p', { class: `view-line ${cls}` }, words,
+        btn ? h('button', { class: 'link', type: 'button', onclick: fn }, btn) : null);
+    return [
+        st.here ? line('here', `${st.here.k} of ${st.here.n} here: click the same spot again for the next.`) : null,
+        isHidden(step) ? line('hidden', 'Hidden on the field (it still runs).', 'Show it (H)', () => app.toggleHidden(i)) : null,
+        isLocked(step) ? line('locked', 'Locked on the field: type its numbers here.', 'Unlock (L)', () => app.toggleLocked(i)) : null,
+    ];
+}
+
 /** Render the inspector into `el`. */
 export function renderInspector(el, app) {
     const st = app.state();
@@ -219,6 +232,7 @@ export function renderInspector(el, app) {
         const s0 = route.start;
         mount(el,
             h('h2', { class: 'insp-title' }, icon('start'), `The route "${route.name}"`),
+            st.here ? h('p', { class: 'view-line here' }, `The start: ${st.here.k} of ${st.here.n} here: click the same spot again for the next.`) : null,
             startIssues.map((x) => issueBox(x, app)),
             h('div', { class: 'fld' }, h('span', {}, 'Its name on the brain\'s menu'),
               route.name === ROUTE_NAME
@@ -312,6 +326,7 @@ export function renderInspector(el, app) {
     mount(el, 
         h('h2', { class: 'insp-title' }, h('span', { class: 'step-icon' }, icon(stepIcon(step))), `Step ${i + 1}`),
         h('p', { class: 'muted', style: 'margin-top:-8px' }, title),
+        viewLines(step, i, st, app),
         mine.map((x) => issueBox(x, app)),
         body,
         failSection(step, i, app),

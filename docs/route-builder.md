@@ -13,6 +13,9 @@ Press **PREVIEW** and the robot drives the route right there: the real library r
 inside the page, and plays it back on a timeline you can scrub — each step marked done, failed or skipped in the
 library's own words.
 
+A crowded spot, where many steps' points sit on one place, stays easy to work: hide a step, lock it, or focus on one
+step and its neighbours ([guide chapter 22, step 10](guide/22-making-your-first-route.md#10-crowded-spots-hide-lock-focus)).
+
 [Open the route builder](route-builder/app.html){ .md-button .md-button--primary }
 [Download for offline use](route-builder/shulib-route-builder.html){ .md-button download="shulib-route-builder.html" }
 
@@ -38,7 +41,8 @@ Edge is on every Windows laptop. A browser older than these says so in a yellow 
 
 **Download for offline use** saves one file, `shulib-route-builder.html` (if your browser opens it instead,
 right-click the button and choose **Save link as**). Double-click it — no internet needed. It is the same route
-builder, built from the same version of the library as this site.
+builder, built from the same version of the library as this site. Download it again after an update: an older copy
+cannot open a project that uses something added since (it names what it cannot read).
 
 ## What it knows
 

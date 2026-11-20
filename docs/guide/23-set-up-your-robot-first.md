@@ -250,7 +250,7 @@ A red **CANNOT START** before anything moves means the robot file is missing som
 line names it). Tell whoever types your robot's facts.
 
 **NOT SAVED** means the card did not take the record. Copy the numbers off the screen anyway, check the
-SD card is in (Bench Tests tile 5 tests it), and run Calibrate again.
+SD card is in (Bench Tests' tile 5 checks the card), and run Calibrate again.
 
 ## 4. Check it in shulib Drive
 
