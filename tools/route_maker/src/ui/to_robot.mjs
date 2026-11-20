@@ -82,6 +82,8 @@ export function nextCard(names) {
     show('one');
     return h('section', { class: 'card xr-next', 'aria-labelledby': 'xr-next-title' },
         h('div', { class: 'card-head' }, h('h3', { id: 'xr-next-title' }, 'Next: build and upload'), seg),
+        h('p', { class: 'xr-easiest' }, 'Easiest: open the route builder from VS Code — Terminal → Run Task → Open the route builder — then '
+          + 'Send to robot is one button.'),
         h('p', { class: 'muted' }, 'In the PROS terminal, in your shulib folder (VS Code: PROS, then Integrated Terminal):'),
         list, helper);
 }

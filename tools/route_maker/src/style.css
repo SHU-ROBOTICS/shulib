@@ -714,3 +714,21 @@ input.num.bad { border-color: var(--failed); }
 .g-obstacle-moment.warn { stroke: var(--cut); }
 .field-svg.previewing .g-obstacle { opacity: .6; }
 /* ── end Field obstacles (RMP1-H) ── */
+
+/* ── Send to robot (RMP1-I) ── the steps as they come; one result card (green ✓ or red ✗) */
+@media (max-width: 1600px) { .topbar:has(#send) > .chip.robot { display: none; } }  /* Send's room: the words give way first */
+.send-card .row { margin: var(--s-2) 0 var(--s-3); }
+.send-panel { display: flex; flex-direction: column; gap: var(--s-3); }
+.send-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-1); }
+.send-steps li { display: flex; gap: var(--s-2); align-items: center; color: var(--text-muted); }
+.send-steps li.ok { color: var(--ok); font-weight: 700; }
+.send-steps li.now { color: var(--text); font-weight: 600; }
+.send-mark { width: 1em; flex: none; text-align: center; }
+.send-steps li.now .send-mark { animation: send-pulse 1s ease-in-out infinite; }
+@keyframes send-pulse { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .send-steps li.now .send-mark { animation: none; } }
+.send-brain { font-weight: 600; }
+.send-detail { overflow-wrap: anywhere; }
+.send-all summary { cursor: pointer; font-size: var(--t-sm); color: var(--text-muted); min-height: var(--hit); display: flex; align-items: center; }
+.xr-easiest { font-weight: 600; }
+/* ── end Send to robot (RMP1-I) ── */

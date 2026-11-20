@@ -32,6 +32,7 @@ push and a full push of the stick drive — and exports them into the robot's dr
 
 | Browser | What it does |
 |---|---|
+| **On the team laptop:** `python3 tools/route_builder.py` (VS Code: **Terminal → Run Task → Open the route builder**) | Any browser, everything, and **Send to robot**: it writes the routes into `src/team/skills_route.cpp`, then builds and uploads them in one button ([guide chapter 22, step 7](guide/22-making-your-first-route.md#7-send-it-to-the-robot)). |
 | **Edge or Chrome** (version 97 or newer) | Everything. Connect your shulib folder once: **Save** writes `src/team/route_maker.json`, **Export** writes the routes into `src/team/skills_route.cpp` (and reads it back) and the **Controls** tab's export into the robot's driver file, each keeping the file's own line endings. |
 | **Firefox** (115 or newer) | Everything except writing into the folder: **Save** downloads `route_maker.json`, **Export** copies the code (or hands back an updated `skills_route.cpp`, or driver file, to put in place). |
 | **Safari** (16 or newer) — not tested | Should work as Firefox does; no test runs it. |
@@ -39,6 +40,9 @@ push and a full push of the stick drive — and exports them into the robot's dr
 Edge is on every Windows laptop. A browser older than these says so in a yellow box when the page opens.
 
 ## Offline, at the event
+
+On the team laptop, start it once from VS Code (**Open the route builder**) with the internet on before the event: it
+keeps the robots' facts and PREVIEW for a venue with none.
 
 **Download for offline use** saves one file, `shulib-route-builder.html` (if your browser opens it instead,
 right-click the button and choose **Save link as**). Double-click it — no internet needed. It is the same route
@@ -52,6 +56,10 @@ levels, how each one homes, and each robot's driver file (its buttons and feel).
 the library that was. A fact typed into a robot's file reaches the route builder at the next publish; with your
 shulib folder connected (Edge or Chrome), the **Controls** tab reads today's driver file instead, and in Firefox its
 export checks the driver file you pick.
+
+Opened from VS Code (`tools/route_builder.py`), it knows the robots as this laptop last built the route builder, or
+else as the site last published them (kept from a start with the internet on), and it reads today's driver files and
+routes from the shulib folder. When this folder's robots differ from the site's, it says **Careful** first.
 
 The dashed path on the field is the **plan** — where the library is told to go. The route builder never draws
 its own guess of where the robot will end up.

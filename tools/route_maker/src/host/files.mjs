@@ -2,7 +2,8 @@
 //
 // The screens never call a browser file API; they call this. It is built over a HOST — a few primitives:
 //   kind                  'folder' (Chrome/Edge: the connected shulib folder), 'download' (any other browser),
-//                         'memory' (the tests' in-memory folder; later a VS Code panel or a local helper)
+//                         'local' (the page tools/route_builder.py serves: files_local.mjs, RMP1-I),
+//                         'memory' (the tests' in-memory folder; later a VS Code panel)
 //   canWriteFolder        true when this host writes into the team's files
 //   connected()           a folder is connected (and allowed) now
 //   connect()             ask for the folder (Chrome/Edge: the folder dialog)

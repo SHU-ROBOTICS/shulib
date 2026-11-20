@@ -41,7 +41,7 @@ whether it worked.
 | You want to | Change |
 |---|---|
 | add or change an auton | `src/team/robot_one_autons.cpp`, and the same in `src/team/autons.cpp` (the suite fails when the two robots' lists differ) |
-| add or change a route | the [route builder](route-builder.md): **Export** writes every route into `src/team/skills_route.cpp`, and each appears on the brain's menu by its name |
+| add or change a route | the [route builder](route-builder.md) (on the team laptop: VS Code's **Open the route builder** task, then **Send to robot**): **Export** writes every route into `src/team/skills_route.cpp`, and each appears on the brain's menu by its name |
 | change a button or the stick feel | that robot's driver file: `src/team/robot_one_driver.hpp` or `src/team/robot_two_driver.hpp` (each robot's buttons are its own), or the route builder's **Controls** tab |
 | move a mechanism to another port | `src/robots/robot_one_facts.hpp` ([Add your robot](guide/21-adding-your-robot-by-hand.md)) |
 | re-cable the drive | nothing by hand: run shulib Calibrate again with an SD card in the brain; its record beats the typed table ([Calibrate the drive](guide/19-calibrating-your-robot.md)) |

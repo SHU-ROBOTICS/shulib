@@ -8,9 +8,9 @@ the skills route by clicking and exports the C++. Students: read
 
 | Where | What |
 |---|---|
-| `src/model/` | PURE ES modules (no DOM, no file API), each with its node test in `test/`: the route and its edits (`route.mjs`), the library's curve ported line for line (`curve.mjs`, pinned by CV1), every check (`checks.mjs`), the export (`export.mjs`), the ONE number formatter (`numbers.mjs`), the marker / hand-edit / line-ending / read-back rules (`region.mjs`), what Export says next (`to_robot.mjs`: the build and upload commands), the project file (`project.mjs`), undo, the field and snapping, the field's solid structures (`obstacles.mjs`, RMP1-H: the goals and the Loaders from the description's `field.obstacles` — `test/override_field_obstacles.hpp`, cited to the game manual — every step's swept square checked against them), the library's quoted sentences (`library_words.mjs`, checked against the headers) |
-| `src/host/` | the four host interfaces the screens call: `files.mjs` (over `files_fsaccess.mjs` — Chrome/Edge's folder — or `files_download.mjs` — every browser), `engine.mjs` (PREVIEW's engine, in a Worker — below), `robots.mjs` (the descriptions baked into the page), `capabilities.mjs`. A later VS Code panel or local helper swaps these, never the screens or a rule |
-| `src/ui/` | the screens: `app.mjs` (the shell and the store), `field_view.mjs` (and `field_obstacles.mjs`: the structures' outlines, the one highlight, a step's "touches it on purpose"), `step_list.mjs`, `inspector.mjs`, `export_drawer.mjs` (with `to_robot.mjs`: the result, "Will it build?", Next), `help.mjs`, `words.mjs` (what the page calls each step), `dom.mjs` (helpers and the icons); the Controls tab, one step on screen at a time: `controls_tab.mjs` (step 1: the controller and the editor beside it), `feel_tab.mjs` (step 2: the driving feel and its graph, "More settings" closed at first), `controls_export.mjs` |
+| `src/model/` | PURE ES modules (no DOM, no file API), each with its node test in `test/`: the route and its edits (`route.mjs`), the library's curve ported line for line (`curve.mjs`, pinned by CV1), every check (`checks.mjs`), the export (`export.mjs`), the ONE number formatter (`numbers.mjs`), the marker / hand-edit / line-ending / read-back rules (`region.mjs`), what Export says next (`to_robot.mjs`: the build and upload commands, and `sendStage`, Send's reading of upload_auton's lines), the project file (`project.mjs`), undo, the field and snapping, the field's solid structures (`obstacles.mjs`, RMP1-H: the goals and the Loaders from the description's `field.obstacles` — `test/override_field_obstacles.hpp`, cited to the game manual — every step's swept square checked against them), the library's quoted sentences (`library_words.mjs`, checked against the headers) |
+| `src/host/` | the four host interfaces the screens call: `files.mjs` (over `files_fsaccess.mjs` — Chrome/Edge's folder — `files_download.mjs` — every browser — or `files_local.mjs` — the page `tools/route_builder.py` serves, RMP1-I), `engine.mjs` (PREVIEW's engine, in a Worker — below), `robots.mjs` (the descriptions baked into the page), `capabilities.mjs`. A host (the local helper; later a VS Code panel) swaps these, never the screens or a rule |
+| `src/ui/` | the screens: `app.mjs` (the shell and the store), `field_view.mjs` (and `field_obstacles.mjs`: the structures' outlines, the one highlight, a step's "touches it on purpose"), `step_list.mjs`, `inspector.mjs`, `export_drawer.mjs` (with `to_robot.mjs`: the result, "Will it build?", Next; and `send_panel.mjs`: Send to robot, RMP1-I), `help.mjs`, `words.mjs` (what the page calls each step), `dom.mjs` (helpers and the icons); the Controls tab, one step on screen at a time: `controls_tab.mjs` (step 1: the controller and the editor beside it), `feel_tab.mjs` (step 2: the driving feel and its graph, "More settings" closed at first), `controls_export.mjs` |
 | `src/model/` (the Controls tab) | `controls.mjs` (the controls as data, one check per build refusal of `controls()`, the `controls` and `control words` regions), `feel.mjs` (the library's stick curve in the C++'s order, `checkFeel`, the `feel` region), `driver_file.mjs` (the driver file's three marked regions: found, read, written all or none) |
 | `controls_cases.mjs` | the CT agreement's data: one configuration per build refusal on the fixture robots; `goldens.mjs --write` turns each into `test/compile_refusals/rm_ct_*.cpp` |
 | `src/app.html`, `src/style.css`, `src/browser_check.js` | the page's template, its design tokens and stylesheet, and the script that runs first and refuses an old browser in plain words |
@@ -45,6 +45,37 @@ temporary file under `~/shulib-render-tmp/` (a non-hidden folder: the snap Firef
 /tmp, and is not used). Chromium reserves more ADDRESS SPACE than `ulimit -v` allows (it dies with SIGTRAP at
 launch), so Playwright's Chromium runs here under a memory cap of the same size on its real use instead:
 `systemd-run --user --scope -p MemoryMax=4G -p MemorySwapMax=0 node --test ...`; Edge and Chrome run in CI.
+
+## On the team laptop: `tools/route_builder.py` (RMP1-I)
+
+`python3 tools/route_builder.py` (VS Code: **Open the route builder**) serves THIS checkout's page — the modules from
+`src/`, put together by `build.py`'s own `page()` and `baked_data()` — on `127.0.0.1`, at this checkout's own port (the
+same every start: the browser keeps the page's draft per port; another free one when it is taken), opens the browser at
+`/<token>/`, and stays until Ctrl+C; a second start opens the running one (`build/route_builder.json`). The robots' facts and
+PREVIEW's engine come from `build/route_maker_site/` when this laptop built it, else from the published site, kept in
+`build/route_builder_cache/` (a cut, broken or refused download keeps the old; when they are the published site's and
+`src/robots/` or `include/` differ from that commit, or git cannot tell, the terminal and the Send card say "Careful").
+`tools/upload_auton.py` finds make and pros on PATH, in `PROS_TOOLCHAIN`, or where the PROS extension installed them (its
+PROS Terminal is the only terminal it sets them in). The page carries `<meta name="shulib-local">` (its
+token), so `app.mjs` takes `files_local.mjs`: no folder dialog, any browser.
+
+Every path starts with the token, `/<token>/…` (no cookie: a cookie would go to every `127.0.0.1` port):
+
+| Request | What |
+|---|---|
+| `GET /<token>/`, `/<token>/src/<module>`, `/<token>/engine/…` | the page, only the modules its graph imports, the engine; nothing else |
+| `GET`/`POST /<token>/api/file?path=src/team/…` | a team file's bytes (204: none); a write: a temp file beside it, then one replace (409 while a send runs) |
+| `POST /<token>/api/send?robot=one\|two` | runs `tools/upload_auton.py` (its own process group), streaming `{"line"}` … `{"done", "code"}` |
+| `GET /<token>/api/log` | `build/upload_auton.log` ("Show everything") |
+| `GET /<token>/api/ping` | this checkout's folder (a second start finds the running one) |
+
+A POST also needs the token in the `X-Shulib-Token` header (only the page's own script sets it); every request needs
+the `Host` `127.0.0.1:<port>` or `localhost:<port>`, and an `Origin`, if any, of the page itself — else 403. A path is
+refused unless, with `..` and symlinks resolved, it is a file under `src/team/`. One send at a time (a second: 409),
+owned by the helper to its end even when the tab closes; Ctrl+C, SIGTERM or a closed terminal stops the send's whole
+process group. Its tests: `python3 tools/route_builder.py
+self-test` (a stand-in checkout in `build/route_builder_selftest/`, upload_auton's fake make and pros; every OS row
+in CI), `test/files_local.test.mjs`, and `test/page/send_robot.page.test.mjs` (the helper against `stand-in`).
 
 ## The preview engine (RMP1-A2e)
 
@@ -194,7 +225,7 @@ native twin's record: that test fails, not skips, when either is missing.
 - **Only between the markers, only under `src/team/`, the file's own line endings kept, a hand edit never
   overwritten silently** — all in `region.mjs`, applied by `files.mjs` for every host. **The export into
   `skills_route.cpp` is READ BACK** (a file that reads back different is a red refusal, never a green).
-- **Export is never silent** (RMP1-F): one numbered step for this browser, then green (✓ written and checked,
+- **Export is never silent** (RMP1-F; on the page `route_builder.py` serves, Send to robot after it, RMP1-I): one numbered step for this browser, then green (✓ written and checked,
   downloaded, copied) or red with its reason and its fix; then the commands that build and upload, or
   `tools/upload_auton.py one|two`, which does both and prints ✓ or ✗ (`python3 tools/upload_auton.py self-test`:
   its cases against fake `make` and a fake `pros` that takes pros-cli's own grammar).
