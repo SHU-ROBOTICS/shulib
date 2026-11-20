@@ -78,6 +78,11 @@ until now by typing C++.
   the top of the file, the feel (`kFeel`) — in Edge or Chrome with the shulib folder connected; in Firefox it hands
   back the updated driver file you pick; or it copies them.
   How: [guide chapter 22](guide/22-making-your-first-route.md#the-drivers-buttons-and-the-driving-feel).
+- **The Controls tab, one step at a time** (2026-11-19): **1 · Buttons** — the controller drawn large, its labels
+  readable on a laptop, and one panel beside it for the button clicked — then **2 · Driving feel** — the style, the dead
+  zone and the curve first, the rest under **More settings**. Giving a free button a job also takes out the button
+  map's line that called it free, in the same click (it was an error and a second click). What it exports is the
+  same, byte for byte.
 - **The top bar fits every laptop screen** (fixed at the merge, 2026-11-17): from 1101 px up, PREVIEW and Export
   stay whole and apart; at 1600 px and below the folder button keeps only its icon (its words are on the Export page
   too), and at 1366 px and below the "Route builder" words and the "Robot one" chip are not drawn.
