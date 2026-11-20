@@ -48,13 +48,15 @@ still owes, until those facts are typed ([Chapter 21](21-adding-your-robot-by-ha
 
 ```sh
 rm -rf bin .d && make ROBOT=tank PROGRAM=autontest
-pros upload --slot 2 --name "shulib Auton Tester"
+pros upload --slot 6 --name "shulib Auton Tester"
 ```
 
 Or both in one command that says plainly whether it worked — `python3 tools/upload_auton.py two` (`one` for
-robot one; `python` on Windows), in the PROS terminal (VS Code: PROS, then Integrated Terminal). It needs Python 3
-([python.org](https://www.python.org/downloads/)); without it, use the two commands above. It prints **✓ BUILT** and
-**✓ UPLOADED to slot 2** with the route names to pick on the brain, or **✗** and the first real error in plain words:
+robot one; `python` on Windows), in the PROS terminal (VS Code: PROS, then Integrated Terminal) or any VS Code
+terminal: when `make` or `pros` is not on the PATH, it takes them from the PROS toolchain's own folder, as the PROS
+extension's build does. It needs Python 3 ([python.org](https://www.python.org/downloads/)); without it, use the two
+commands above. It prints **✓ BUILT** and
+**✓ UPLOADED to slot 6** with the route names to pick on the brain, or **✗** and the first real error in plain words:
 the facts still OWED, a compile error's file and line (inside the route builder's lines: re-export), or "plug the
 brain in with USB (not the controller)". Everything make and pros printed is in `build/upload_auton.log`. It has run
 against stand-ins for `make` and `pros` only: not yet against the real `pros`, or on Windows.
@@ -62,7 +64,7 @@ against stand-ins for `make` and `pros` only: not yet against the real `pros`, o
 `make` notices a changed `ROBOT=` or `PROGRAM=` word and starts fresh by itself: it deletes `bin/` and
 `.d/` and recompiles everything (it prints `shulib: the build changed …` when it does). Until it did,
 after building another program it recompiled nothing and linked **that** program again — and the
-upload put it in slot 2 under the tester's name. The `rm -rf bin .d` is now harmless, and it stays in
+upload put it in the tester's slot under the tester's name. The `rm -rf bin .d` is now harmless, and it stays in
 the line above for anyone on an older copy of this repository.
 
 (Slot 2, since the new "shulib Drive" retired "shulib Teleop" from it; until then the tester was

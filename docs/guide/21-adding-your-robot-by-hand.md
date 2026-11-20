@@ -126,8 +126,8 @@ the block reads them as `facts::…` (that is how the side toggles and the three
 | Bench Tests | `make ROBOT=one` | 3 | Stage A |
 | shulib Calibrate | `make ROBOT=one PROGRAM=calibrate` | 4 | Stage A |
 | shulib Drive | `make ROBOT=one PROGRAM=drive` | 1 | Stage A and B |
-| shulib Auton Tester | `make ROBOT=one PROGRAM=autontest` | 2 | Stage A and B |
-| shulib Competition | `make ROBOT=one PROGRAM=competition` | 6 | Stage A and B |
+| shulib Competition | `make ROBOT=one PROGRAM=competition` | 2 | Stage A and B |
+| shulib Auton Tester | `make ROBOT=one PROGRAM=autontest` | 6 | Stage A and B |
 | shulib Tune | `make ROBOT=one PROGRAM=tune` | 7 | Stage A and B |
 
 Each is uploaded like robot two's (`pros upload --slot 3 --name "Bench Tests"`, and so on —
@@ -368,16 +368,21 @@ the right wall's Quadrant while robot one works the red wall's
 | | Robot one | Robot two |
 |---|---|---|
 | Mechanisms | its region of `src/robots/mechanism_table.hpp` | robot one's region, word for word, `robot_one` → `robot_two` |
-| Facts | `src/robots/robot_one_facts.hpp` | `src/robots/robot_two_facts.hpp`: the same facts, names and stages — **every one OWED** until its builder reads it off robot two |
-| Drive cartridge | BLUE (typed) | UNSET until read off robot two |
-| Driver file | the builder's map | the same map |
+| Facts | `src/robots/robot_one_facts.hpp` | `src/robots/robot_two_facts.hpp`: the same facts, names and stages — **robot one's values** (the same build), but five wiring facts OWED until station 13 on robot two |
+| Drive cartridge | BLUE (typed) | BLUE (robot one's: the same build) |
+| Driver file | the builder's map | started as the same map; its buttons are its own |
 | Autons | the 40 in, the acceptance run, the team's routes | the same — the routes marked mirrored **mirrored** (one line) |
 | Calibration record | names `robot-one` | names `robot-two` |
 
-Each robot-two placeholder is robot one's own value for that fact, so the host suite runs robot two
-exactly as robot one. Until a fact is typed, every robot-two build that needs it refuses:
-`robot two: OWED -- the cascade's motor ports (src/robots/robot_two_facts.hpp)`. Bench Tests and Calibrate
-wait on its 17 Stage A facts, the other four programs on all 31 of Stage A and B. A robot-two fact is typed
+**Robot two takes robot one's numbers** (the team lead, 2026-11-20: "Use robot one's" — the same build): its
+ports, gears, cartridges, stall signatures, current caps, the cascade's rows and levels, its hold and homing
+volts and the pistons' stroke times are robot one's values, written `one::kCascadePorts.value()` so a
+re-measured robot one carries robot two with it. Bench Tests tile 1 confirms the ports on robot two. Five
+wiring facts stay OWED until station 13's quick pass on robot two confirms them ([Set up your robot
+first](23-set-up-your-robot-first.md#robot-two-the-quick-pass)): each side toggle's run direction, and which
+line level opens the claw, pushes the front toggle out and puts the ramp down. Until then robot two's Bench
+Tests and Calibrate build, and its Drive, Auton Tester, Competition and Tune refuse, one line each:
+`robot two: OWED -- the right side toggle's run direction (src/robots/robot_two_facts.hpp)`. A robot-two fact is typed
 like robot one's, keeping robot one's own PLACEHOLDER (`.placeholder` — it never changes, so typing robot
 one later cannot upset robot two) beside robot two's value:
 
@@ -386,10 +391,10 @@ inline constexpr auto kCascadePorts = typed(one::kCascadePorts.placeholder, Pair
     "the cascade's motor ports", "the team's builder, <date>, read off robot two");
 ```
 
-**A change to one robot is a change to both.** `test/robot_twin_test.cpp` fails the host suite when the two
-mechanism regions, the two facts files' names and stages, the two driver files (their controls, their feel
-and their header maps) or the two autons lists differ anywhere but where the table above says. Change a
-button in both driver files; add a mechanism to both regions.
+**A change to one robot's build is a change to both.** `test/robot_twin_test.cpp` fails the host suite when
+the two mechanism regions, the two facts files' names and stages, the two driver files' plumbing or the two
+autons lists differ anywhere but where the table above says: add a mechanism to both regions. Each robot's
+buttons, feel and header map are its own (the team lead, 2026-11-20): change a button on one robot only.
 
 Robot two's old build — two claw pivots on ports 6 and 7, a pneumatic claw on 3-wire A, and its measured
 drive table — is retired. The host suite keeps it as its example robot with claws

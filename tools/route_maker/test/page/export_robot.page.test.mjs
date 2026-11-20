@@ -121,11 +121,11 @@ test.describe('RMP1-F: export to the robot', { skip }, () => {
             const cmd = (what) => next.locator(`code[data-cmd="${what}"]`).textContent();
             const windows = await page.evaluate(() => /Windows/.test(navigator.userAgent));  // CI's Windows rows: `python`
             assert.equal(await cmd('the build command'), 'make ROBOT=one PROGRAM=autontest');
-            assert.equal(await cmd('the upload command'), 'pros upload --slot 2 --name "shulib Auton Tester"');
+            assert.equal(await cmd('the upload command'), 'pros upload --slot 6 --name "shulib Auton Tester"');
             assert.equal(await cmd('the one command'), robotCommands('one', { windows }).helper);
             assert.match(robotCommands('one', { windows }).helper, windows ? /^python tools/ : /^python3 tools/);
             assert.match(await next.textContent(), /In the PROS terminal, in your shulib folder.*needs Python 3, from python\.org; without it, use 1 and 2/);
-            assert.match(await next.textContent(), /On the brain: shulib Auton Tester \(slot 2\) → one of: skills, left 1 → RUN/);
+            assert.match(await next.textContent(), /On the brain: shulib Auton Tester \(slot 6\) → one of: skills, left 1 → RUN/);
             assert.match(await next.textContent(), /make ends with no line saying "error".*pros says "Finished uploading"/);
             await shot(page, `xr-written-${v.tag}`, true);
             await next.getByRole('button', { name: 'Robot two' }).click();
@@ -292,7 +292,7 @@ test.describe('RMP1-F: export to the robot', { skip }, () => {
         await drawer(page).locator('.xr-steps').getByRole('button', { name: 'Copy the code' }).click();
         const next = drawer(page).locator('.xr-next');
         await next.waitFor();
-        assert.match(await next.textContent(), /On the brain: shulib Auton Tester \(slot 2\) → skills → RUN/);
+        assert.match(await next.textContent(), /On the brain: shulib Auton Tester \(slot 6\) → skills → RUN/);
         assert.equal(await next.locator('code[data-cmd="the one command"]').textContent(), 'python tools/upload_auton.py one');
         await refuseCopies(page);
         const b = next.getByRole('button', { name: 'Copy the build command' });

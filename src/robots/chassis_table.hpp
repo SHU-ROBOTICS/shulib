@@ -102,9 +102,9 @@ struct ChassisTable {
 // ROBOT TWO -- robot one's TWIN (chunk ROB1-BT, 2026-11-16; the team lead, 2026-11-13: "IT IS LITERALLY
 // THE SAME ROBOT BUILD JUST A MIRRORED ROUTINE"). Its table is robot one's design (kRobotOneChassis,
 // below): shulib Calibrate DISCOVERS the drive ports, their directions, the sides, the IMU, the scale and
-// the track width. The one typed fact, the drive motors' CARTRIDGE, is UNSET until the builder reads it
-// off robot two (robot one's is BLUE) -- Calibrate refuses by name until then. test/robot_twin_test.cpp
-// holds the two tables equal but for the name, the cartridge and the provenance.
+// the track width. The one typed fact, the drive motors' CARTRIDGE, is robot one's BLUE: the same build (the
+// team lead, 2026-11-20, "Use robot one's"). test/robot_twin_test.cpp holds the two tables equal but for the
+// name, the cartridge and the provenance.
 // RETIRED: the old robot two -- the tank chassis with claws -- had the project's one measured, SIGNED
 // table (ports 11-20 with their signs, BLUE, the IMU on port 2; R3b-PROGRESS Session 2). It is kept,
 // byte for byte, as the host-test fixture test/retired_robot_two.hpp; no build reads it.
@@ -115,11 +115,11 @@ inline constexpr ChassisTable kRobotTwoChassis = {
     .leftCount = 0,
     .right = {},
     .rightCount = 0,
-    .cartridge = Cartridge::Unset,
+    .cartridge = Cartridge::Blue,
     .imuPort = 0,
     .measured = false,
     .signsMeasured = false,
-    .provenance = "nothing typed -- the cartridge is read off robot two; Calibrate discovers the rest",
+    .provenance = "the cartridge: robot one's BLUE, the same build (the team lead, 2026-11-20); Calibrate discovers the rest",
     .wheelDiameterIn = 0.0,
     .trackWidthIn = 0.0,
     .externalRatio = 0.0,

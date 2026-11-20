@@ -17,8 +17,7 @@
 // and is not the driver's to choose. How it runs — the controller, the call into the library's driver
 // loop — is src/common/driver_file.hpp, shared with robot two's file.
 //
-// [the map] — listed here and, word for word, in robot two's file (test/robot_one_driver_test.cpp pins it
-// against the code; test/robot_twin_test.cpp holds the two equal):
+// [the map] — robot one's (test/robot_one_driver_test.cpp pins it against the code; robot two's file has its own):
 // [control words one]
 //   left stick   up / down: drive forward / back (toward the calibration record's front).
 //                Left / right does nothing: a tank cannot strafe.

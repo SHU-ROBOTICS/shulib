@@ -154,9 +154,17 @@ inline constexpr int kApiMajor = 2;
 /// enumerator was added or moved, F10 untouched; every 2.8 program compiles and runs exactly as before (an
 /// unmirrored run through runAuton hashes byte-identical, tank and X-drive). Nothing to do.
 /// docs/changelog.md, API 2.9, lists it.
-inline constexpr int kApiMinor = 9;
+/// 10 = the coordinator, 2026-11-20 (the team lead's freeze exception, the day before the competition: the
+/// cascade "needs to go down to 60"), by the additive path of the mechanism declarations: `Arm::maxDownVolts`
+/// and `Lift::maxDownVolts` (and `PositionSpec::maxDownVolts`), appended after `unhomedVolts` — every command a
+/// position mechanism sends is at most that many volts DOWN (0 = the motor's 12 V, as before) — and the
+/// APPENDED refusals `PositionMaxDownVoltsIsNotIn0To12` and `PositionTheHomingPushIsPastMaxDownVolts`. No
+/// frozen member changed shape, no enumerator moved; a declaration without it runs exactly as before. ONE
+/// thing to do, as at 2.5: a `switch` over `mechanism::Refusal` that lists every value needs the two new
+/// cases. docs/changelog.md, API 2.10, lists it.
+inline constexpr int kApiMinor = 10;
 
 /// "major.minor", for session headers / logs that want one printable token.
-inline constexpr const char* kApiVersionString = "2.9";
+inline constexpr const char* kApiVersionString = "2.10";
 
 }  // namespace shulib

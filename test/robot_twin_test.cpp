@@ -8,7 +8,8 @@
 //   * the mechanism regions — a level renamed, a motor added, `Hold` turned into `Coast` on ONE robot (GM17);
 //   * the facts files — a fact missing, renamed, re-staged or out of order on one; a placeholder that is not
 //     robot one's own number for that fact;
-//   * the driver files — a button, the feel or the header's map changed on one robot only;
+//   * the driver files' plumbing (each robot's buttons, feel and header map are its own: the team lead,
+//     2026-11-20);
 //   * the chassis tables, the words, and the autons lists (robot two's = robot one's, its skills route mirrored).
 //   * the cascade's named LEVELS — a fact value, but held equal on both robots while the host suite runs the
 //     shared route on one robot's names (the last case says why).
@@ -147,58 +148,75 @@ TEST_CASE("twin: robot two's facts are robot one's facts -- the same names, stag
     CHECK(ids2.size() == n2);
 }
 
-TEST_CASE("twin: every robot-two fact is OWED until the builder reads it off robot two (but its six chosen settings: Calibrate's two thresholds and the autons' four drive settings)") {
-    // BUG CAUGHT: a robot-two fact typed by copying robot one's — a robot two that links on robot one's ports
-    // without anyone having looked at robot two. The ONLY typed ones are Calibrate's two thresholds: chosen, not
-    // measured, for the same 10-motor drive (the ROB1-BT merge, 2026-11-17). (The day the builder's robot-two
-    // answers are TYPED — the coordinator's G1-F edit — this case is re-pinned in the same change.)
+TEST_CASE("twin: robot two's build facts are robot one's VALUES (the same build); its five wiring facts stay OWED until station 13 on robot two") {
+    // BUG CAUGHT: a robot-two wiring fact (a side toggle's direction, a piston's open level) typed without anyone
+    // having watched robot two move — robot two's homing programs would then build unchecked; a build fact typed
+    // as a number that is not robot one's (the same build: the team lead, 2026-11-20, "Use robot one's"); robot one's
+    // camera (still owed on robot one) claimed as typed on robot two. (When station 13's answers are typed, the
+    // coordinator re-pins this case in the same change.)
     CHECK(two::kRobotTwoFactCount == one::kRobotOneFactCount);
-    CHECK_MESSAGE(two::kRobotTwoOwedCount == two::kRobotTwoFactCount - 6,
-                  "a robot-two fact is TYPED: re-pin this case with it (its value and its source, read off robot two)");
-    for (const auto& f : two::kRobotTwoFacts) {
+    const auto stillOwed = [](std::string_view n) {
+        return n == "the right side toggle's run direction" || n == "the left side toggle's run direction" ||
+               n == "the claw's line level that OPENS it" ||
+               n == "the front toggle's line level that pushes it OUT (open)" ||
+               n == "the ramp's line level that puts it DOWN" || n == "the AI Vision camera's port" ||
+               n == "where the AI Vision camera sits";
+    };
+    int owedHere = 0;
+    for (std::size_t i = 0; i < static_cast<std::size_t>(two::kRobotTwoFactCount); ++i) {
+        const auto& f = two::kRobotTwoFacts[i];
         CAPTURE(f.name);
-        const std::string_view n{f.name};
-        const bool threshold = n == "Calibrate's pulse yaw floor, degrees" ||
-                               n == "Calibrate's rest yaw rate, degrees per second" ||
-                               n == "the autons' top drive speed, in/s" || n == "the autons' top turn rate, rad/s" ||
-                               n == "the autons' heading correction gain" || n == "the autons' heading arrival, degrees";
-        CHECK(f.typed == threshold);
+        CHECK(f.typed == !stillOwed(f.name));
+        owedHere += f.typed ? 0 : 1;
+        if (f.typed) CHECK(one::kRobotOneFacts[i].typed);  // never a number robot one does not have
+    }
+    CHECK(owedHere == 7);
+    CHECK(two::kRobotTwoOwedCount == 7);
+    // the values: robot one's, fact for fact
+    CHECK(two::kCascadePorts.value().first == one::kCascadePorts.value().first);
+    CHECK(two::kCascadePorts.value().second == one::kCascadePorts.value().second);
+    CHECK(two::kRightTogglePort.value() == one::kRightTogglePort.value());
+    CHECK(two::kClawLine.value() == one::kClawLine.value());
+    CHECK(two::kCascadeHomingPushVolts.value() == one::kCascadeHomingPushVolts.value());
+    CHECK(two::kClawStrokeTime.value().value() == one::kClawStrokeTime.value().value());
+    for (std::size_t i = 0; i < shulib::mechanism::kMaxPresets; ++i) {
+        CAPTURE(i);
+        const char* a = two::lv(i).name;  // an unused slot's name is null
+        const char* b = one::lv(i).name;
+        CHECK(((a == nullptr && b == nullptr) || (a != nullptr && b != nullptr && std::string_view{a} == b)));
     }
     CHECK(two::kCalibratePulseYawFloorDeg.value() == one::kCalibratePulseYawFloorDeg.value());
     CHECK(two::kCalibrateRestYawRateDegPerS.value() == one::kCalibrateRestYawRateDegPerS.value());
-    // ...so robot two's Bench Tests and Calibrate wait on every Stage A fact, its other programs on every fact.
-    CHECK(two::owedFor(sb::Program::BenchTests) == 17);
-    CHECK(two::owedFor(sb::Program::Calibrate) == 17);
-    CHECK(two::owedFor(sb::Program::Drive) == 31);
-    CHECK(two::owedFor(sb::Program::Tune) == 31);
+    // ...so robot two's Bench Tests and Calibrate build now; its other programs wait on the five wiring facts.
+    CHECK(two::owedFor(sb::Program::BenchTests) == 0);
+    CHECK(two::owedFor(sb::Program::Calibrate) == 0);
+    CHECK(two::owedFor(sb::Program::Drive) == 5);
+    CHECK(two::owedFor(sb::Program::Tune) == 5);
 }
 
-TEST_CASE("twin: the driver files -- the controls, the feel and the header's map are robot one's, but for the robot's name") {
-    // BUG CAUGHT: a button changed on one robot only (a driver who learns one robot is wrong on the other); the
-    // feel tuned on one; the header's map (the students' plain-words copy, the route maker's `control words`)
-    // drifting from the twin's.
-    const std::string f1 = source_pins::readFile("src/team/robot_one_driver.hpp");
-    const std::string f2 = source_pins::readFile("src/team/robot_two_driver.hpp");
-    CHECK(asRobotTwo(code(between(f1, "// [driver file one]", "// [/driver file one]"))) ==
-          code(between(f2, "// [driver file two]", "// [/driver file two]")));
-    CHECK(code(between(f1, "// [feel one]", "// [/feel one]")) == code(between(f2, "// [feel two]", "// [/feel two]")));
-    CHECK(between(f1, "// [control words one]", "// [/control words one]") ==
-          between(f2, "// [control words two]", "// [/control words two]"));
+TEST_CASE("twin: the driver files' plumbing is robot one's, but for the robot's name -- each robot's buttons, feel and header map are its OWN") {
+    // BUG CAUGHT: robot two's file growing its own plumbing (another include, a second loop, a class) where only
+    // the team's three regions may differ, or a region's markers lost (the route builder writes between them).
+    // The team lead, 2026-11-20 ("can you relax that rule"): the buttons, the feel and the map are the team's to
+    // set on EACH robot; test/robot_two_driver_test.cpp checks robot two's against robot two's own declarations.
+    const auto outside = [](std::string t, const std::string& id) {
+        for (const std::string r : {"driver file", "feel", "control words"}) {
+            const std::string b = "// [" + r + " " + id + "]\n";
+            const std::string e = "// [/" + r + " " + id + "]\n";
+            CAPTURE(b);
+            REQUIRE(source_pins::count(t, b) == 1);
+            REQUIRE(source_pins::count(t, e) == 1);
+            const std::size_t i = t.find(b);
+            const std::size_t j = t.find(e);
+            REQUIRE(i < j);
+            t.erase(i, j + e.size() - i);
+        }
+        return t;
+    };
+    const std::string f1 = outside(source_pins::readFile("src/team/robot_one_driver.hpp"), "one");
+    const std::string f2 = outside(source_pins::readFile("src/team/robot_two_driver.hpp"), "two");
+    CHECK(asRobotTwo(code(f1)) == code(f2));
     CHECK(source_pins::count(code(f2), "using RobotTwoDriver = DriverFile<robot_two::kControls, robot_two::kFeel, robot_two::kLoop>;") == 1);
-    // ...and the two constants agree as values, not only as text.
-    CHECK(sb::robot_two::kControls.count == sb::robot_one::kControls.count);
-    for (std::size_t i = 0; i < sb::robot_one::kControls.count; ++i) {
-        CAPTURE(i);
-        const auto& a = sb::robot_one::kControls.all()[i];
-        const auto& b = sb::robot_two::kControls.all()[i];
-        CHECK(a.kind == b.kind);
-        CHECK(a.button == b.button);
-        CHECK(a.back == b.back);
-        CHECK(a.volts == b.volts);
-        CHECK(std::string_view{a.mechanismName} == b.mechanismName);
-    }
-    CHECK(sb::RobotTwoDriver::kLoop.rezeroButton == sb::RobotOneDriver::kLoop.rezeroButton);
-    CHECK(sb::RobotTwoDriver::kLoop.releaseBrakeMode == sb::RobotOneDriver::kLoop.releaseBrakeMode);
 }
 
 TEST_CASE("twin: the chassis tables are robot one's design -- robot two's drive UNSET until its own Calibrate, never robot one's measured numbers") {

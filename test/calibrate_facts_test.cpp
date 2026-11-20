@@ -437,7 +437,7 @@ TEST_CASE("CalibrateFacts F4: the typed ports are the boot's own description whe
         RobotId robot;
         const char* why;
     };
-    for (const Today& t : {Today{RobotId::RobotTwo, "cartridge byte 0"},  // ROB1-BT: the twin's, every field UNSET
+    for (const Today& t : {Today{RobotId::RobotTwo, "IMU port 0"},  // the twin's: robot one's cartridge (2026-11-20), the rest UNSET
                            Today{RobotId::BenchBot, "LEFT side has no ports"},
                            Today{RobotId::InventedXDrive, "cartridge byte 0"}}) {
         CAPTURE(static_cast<int>(t.robot));

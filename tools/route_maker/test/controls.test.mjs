@@ -480,7 +480,9 @@ test('a combined map row ("R1 / R2") moved to Left / Right keeps the team\'s wor
 });
 
 test('a map key names the buttons GM22\'s C++ reads in it: split at "/" and "," only (the page and the suite agree on every row)', () => {
-    assert.match(read('test/robot_one_driver_test.cpp'), /key\.find_first_of\("\/,", from\)/, 'GM22 splits at "/" and ","');
+    // both robots' GM22 cases read the map through test/driver_map_rows.hpp (2026-11-20: each robot's map its own)
+    assert.match(read('test/driver_map_rows.hpp'), /key\.find_first_of\("\/,", from\)/, 'GM22 splits at "/" and ","');
+    assert.match(read('test/robot_two_driver_test.cpp'), /driver_map::keyButtons\(key\)/, 'robot two\'s GM22 reads it the same way');
     assert.deepEqual(keyButtons('R1 / R2'), ['R1', 'R2']);
     assert.deepEqual(keyButtons('Left/Right'), ['Left', 'Right']);
     assert.deepEqual(keyButtons('B, X'), ['B', 'X']);

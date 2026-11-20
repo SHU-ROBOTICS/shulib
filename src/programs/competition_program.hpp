@@ -1,7 +1,7 @@
 #pragma once
 //
 // "shulib Competition" -- THE COMPETITION PROGRAM (chunk COMP-b, 2026-09-30), built with
-// `make ROBOT=tank PROGRAM=competition`, uploaded to slot 6 (slot 5 stays the team's own old-code
+// `make ROBOT=tank PROGRAM=competition`, uploaded to slot 2 (slot 5 stays the team's own old-code
 // fallback -- T4 Part 0).
 //
 // What it is, in one paragraph: the robot boots from its calibration record, the auton to run is

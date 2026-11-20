@@ -212,6 +212,17 @@ TEST_CASE("robot one tables (D5): the cascade is a two-motor Lift on a MEASURED 
 
 // ═══ T8 — the cascade on the host test plant ═══════════════════════════════════════════
 
+TEST_CASE("robot one tables (API 2.10): BOTH robots' cascades go down at most the ledger's kCascadeMaxDownVolts -- 7.2 V, 60 % of 12; up is unlimited") {
+    // BUG CAUGHT: the team lead's "it needs to go down to 60" (2026-11-20) lost from a declaration (the library
+    // would drive the cascade down at 12 V again), typed as another number, or a different limit on robot two.
+    CHECK(facts::kCascadeMaxDownVolts.typed);
+    CHECK(facts::kCascadeMaxDownVolts.value() == doctest::Approx(7.2));
+    CHECK(cascadeSpec().position.maxDownVolts == facts::kCascadeMaxDownVolts.value());
+    CHECK(sb::robot_two::cascade.spec().position.maxDownVolts == sb::robot_two_facts::kCascadeMaxDownVolts.value());
+    CHECK(sb::robot_two_facts::kCascadeMaxDownVolts.value() == facts::kCascadeMaxDownVolts.value());
+    CHECK(mech::specRefusal(cascadeSpec()) == mech::Refusal::None);  // its homing push (down) is within it
+}
+
 TEST_CASE("robot one tables (T8): on the host test plant the cascade HOMES DOWN under its cap onto its bottom row, then reaches and holds every level; the cap is on BOTH motors") {
     // BUG CAUGHT (GM18 is refused at build — a homing push UP); here: a home that never stalls (the
     // signature unreachable under the cap: the placeholders would fail the robot's first boot), a home that

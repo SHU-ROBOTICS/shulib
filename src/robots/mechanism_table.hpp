@@ -102,6 +102,7 @@ inline constexpr Lift cascade{
                 {facts::lv(2).name, facts::lv(2).at}, {facts::lv(3).name, facts::lv(3).at},
                 {facts::lv(4).name, facts::lv(4).at}, {facts::lv(5).name, facts::lv(5).at}},
     .unhomedVolts = units::Voltage{facts::kCascadeUnhomedVolts.value()},
+    .maxDownVolts = units::Voltage{facts::kCascadeMaxDownVolts.value()},
 };
 
 // THE SIDE TOGGLES (the builder, 2026-11-15): two GREEN motors, DIRECT (a power mechanism states no
@@ -164,8 +165,8 @@ inline constexpr MechanismTable kRobotOneMechanisms = mechanisms(
 // ═══ ROBOT TWO — robot one's TWIN (chunk ROB1-BT, 2026-11-16) ══════════════════════════════════
 // The same build: this region is robot one's, token for token, with `robot_one` -> `robot_two`
 // (test/robot_twin_test.cpp). Read robot one's region above for what each mechanism is. Its numbers come
-// from src/robots/robot_two_facts.hpp — every one OWED until the builder reads it off robot two, so every
-// robot-two build refuses, by name, until then.
+// from src/robots/robot_two_facts.hpp — robot one's values (the same build, 2026-11-20); its five wiring
+// facts stay OWED until station 13's quick pass on robot two.
 namespace robot_two {
 using namespace mechanism::words;
 namespace facts = robot_two_facts;
@@ -188,6 +189,7 @@ inline constexpr Lift cascade{
                 {facts::lv(2).name, facts::lv(2).at}, {facts::lv(3).name, facts::lv(3).at},
                 {facts::lv(4).name, facts::lv(4).at}, {facts::lv(5).name, facts::lv(5).at}},
     .unhomedVolts = units::Voltage{facts::kCascadeUnhomedVolts.value()},
+    .maxDownVolts = units::Voltage{facts::kCascadeMaxDownVolts.value()},
 };
 
 // THE SIDE TOGGLES (robot one's).

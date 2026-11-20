@@ -7,11 +7,13 @@
 // same names, order and stages (src/robots/robot_one_facts.hpp explains each one) — but its OWN values,
 // because each robot is wired and measured on its own.
 //
-// EVERY FACT IS OWED until the builder reads it off ROBOT TWO. Until then:
-//   * its placeholder is ROBOT ONE's number (`one::kCascadePorts.value()`), so the host test plant runs
-//     robot two exactly as robot one;
-//   * every robot-two build (`make ROBOT=tank PROGRAM=...`) REFUSES, one line per owed fact its program
-//     needs:  static assertion failed: robot two: OWED -- the cascade's motor ports (src/robots/robot_two_facts.hpp)
+// THE SAME BUILD (the team lead, 2026-11-20: "Use robot one's"): every build fact is ROBOT ONE'S VALUE
+// (`one::kX.value()`, so a re-measured robot one carries robot two with it), to be confirmed on robot two by
+// Bench Tests tile 1 (the ports) and station 13 (each mechanism's direction). Five wiring facts stay OWED until
+// station 13's quick pass on robot two confirms them: the side toggles' run directions and the three pistons'
+// open levels. Until then robot two's Bench Tests and Calibrate build; its Drive, Auton Tester, Competition and
+// Tune REFUSE, one line per owed fact:
+//     static assertion failed: robot two: OWED -- the right side toggle's run direction (src/robots/robot_two_facts.hpp)
 //
 // TO TYPE A FACT (the coordinator, from the builder's answer — never a guess):
 //     owed(one::kCascadePorts.value(), Stage::A, "the cascade's motor ports")
@@ -85,47 +87,61 @@ constexpr bool realSource(const char* source) {
                       ::shulib::bench::robot_one_facts::contains((fact).source, "same as the placeholder, checked"), \
                   "robot two: TYPED but still the placeholder -- " words)
 
-// ═══ THE FACTS — robot one's, in robot one's order, every one OWED ════════════════════════
+// ═══ THE FACTS — robot one's, in robot one's order: robot one's values but five (the same build) ═══
 
 // ── STAGE A — what is plugged where (every program) ──
-inline constexpr auto kNonDriveMotorPorts = owed(one::kNonDriveMotorPorts.value(), Stage::A,
-                                                 "every motor port the Devices screen lists that is not a drive motor");
+inline constexpr auto kNonDriveMotorPorts = typed(one::kNonDriveMotorPorts.placeholder, one::kNonDriveMotorPorts.value(), Stage::A,
+                                                 "every motor port the Devices screen lists that is not a drive motor",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kNonDriveMotorPorts, "every motor port the Devices screen lists that is not a drive motor");
-inline constexpr auto kCascadePorts = owed(one::kCascadePorts.value(), Stage::A, "the cascade's motor ports");
+inline constexpr auto kCascadePorts = typed(one::kCascadePorts.placeholder, one::kCascadePorts.value(), Stage::A, "the cascade's motor ports",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadePorts, "the cascade's motor ports");
 inline constexpr auto kCascadeDirections =
-    owed(one::kCascadeDirections.value(), Stage::A, "the cascade motors' directions");
+    typed(one::kCascadeDirections.placeholder, one::kCascadeDirections.value(), Stage::A, "the cascade motors' directions",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadeDirections, "the cascade motors' directions");
 inline constexpr auto kCascadeCartridge =
-    owed(one::kCascadeCartridge.value(), Stage::A, "the cascade motors' cartridge");
+    typed(one::kCascadeCartridge.placeholder, one::kCascadeCartridge.value(), Stage::A, "the cascade motors' cartridge",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadeCartridge, "the cascade motors' cartridge");
 inline constexpr auto kCascadeTeeth =
-    owed(one::kCascadeTeeth.value(), Stage::A, "the cascade's gear teeth, motor then spool");
+    typed(one::kCascadeTeeth.placeholder, one::kCascadeTeeth.value(), Stage::A, "the cascade's gear teeth, motor then spool",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadeTeeth, "the cascade's gear teeth, motor then spool");
 inline constexpr auto kCascadeStallAmps =
-    owed(one::kCascadeStallAmps.value(), Stage::A, "the cascade's starting stall signature, amps");
+    typed(one::kCascadeStallAmps.placeholder, one::kCascadeStallAmps.value(), Stage::A, "the cascade's starting stall signature, amps",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadeStallAmps, "the cascade's starting stall signature, amps");
 inline constexpr auto kCascadeStallRpm =
-    owed(one::kCascadeStallRpm.value(), Stage::A, "the cascade's starting stall signature, below this motor rpm");
+    typed(one::kCascadeStallRpm.placeholder, one::kCascadeStallRpm.value(), Stage::A, "the cascade's starting stall signature, below this motor rpm",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadeStallRpm, "the cascade's starting stall signature, below this motor rpm");
 inline constexpr auto kCascadeStallTime =
-    owed(one::kCascadeStallTime.value(), Stage::A, "the cascade's starting stall signature, lasting this long");
+    typed(one::kCascadeStallTime.placeholder, one::kCascadeStallTime.value(), Stage::A, "the cascade's starting stall signature, lasting this long",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadeStallTime, "the cascade's starting stall signature, lasting this long");
 inline constexpr auto kCascadeCapAmps =
-    owed(one::kCascadeCapAmps.value(), Stage::A, "the cascade's starting current cap per motor, amps");
+    typed(one::kCascadeCapAmps.placeholder, one::kCascadeCapAmps.value(), Stage::A, "the cascade's starting current cap per motor, amps",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadeCapAmps, "the cascade's starting current cap per motor, amps");
-inline constexpr auto kFlipperKind = owed(one::kFlipperKind.value(), Stage::A, "the flipper's kind");
+inline constexpr auto kFlipperKind = typed(one::kFlipperKind.placeholder, one::kFlipperKind.value(), Stage::A, "the flipper's kind",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kFlipperKind, "the flipper's kind");
 inline constexpr auto kSideTogglePorts =
-    owed(one::kSideTogglePorts.value(), Stage::A, "the side toggles' motor ports, either order");
+    typed(one::kSideTogglePorts.placeholder, one::kSideTogglePorts.value(), Stage::A, "the side toggles' motor ports, either order",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kSideTogglePorts, "the side toggles' motor ports, either order");
-inline constexpr auto kRightTogglePort = owed(one::kRightTogglePort.value(), Stage::A, "the right side toggle's port");
+inline constexpr auto kRightTogglePort = typed(one::kRightTogglePort.placeholder, one::kRightTogglePort.value(), Stage::A, "the right side toggle's port",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kRightTogglePort, "the right side toggle's port");
 inline constexpr auto kSideToggleCartridge =
-    owed(one::kSideToggleCartridge.value(), Stage::A, "the side toggles' cartridge");
+    typed(one::kSideToggleCartridge.placeholder, one::kSideToggleCartridge.value(), Stage::A, "the side toggles' cartridge",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kSideToggleCartridge, "the side toggles' cartridge");
 inline constexpr auto kSideToggleCapAmps =
-    owed(one::kSideToggleCapAmps.value(), Stage::A, "the side toggles' starting current cap per motor, amps");
+    typed(one::kSideToggleCapAmps.placeholder, one::kSideToggleCapAmps.value(), Stage::A, "the side toggles' starting current cap per motor, amps",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kSideToggleCapAmps, "the side toggles' starting current cap per motor, amps");
 // Calibrate's two thresholds: robot one's, for the twin's same 10-motor drive (robot one's ledger says why).
 inline constexpr auto kCalibratePulseYawFloorDeg =
@@ -149,31 +165,40 @@ ROBOT_TWO_CHECK(kDriveHeadingKp, "the autons' heading correction gain");
 inline constexpr auto kDriveHeadingSettleDeg = typed(one::kDriveHeadingSettleDeg.placeholder, 4.0, Stage::B,
     "the autons' heading arrival, degrees", "chosen, not measured -- the coordinator, 2026-11-17 (robot one's)");
 ROBOT_TWO_CHECK(kDriveHeadingSettleDeg, "the autons' heading arrival, degrees");
-inline constexpr auto kClawLine = owed(one::kClawLine.value(), Stage::A, "the claw's 3-wire port");
+inline constexpr auto kClawLine = typed(one::kClawLine.placeholder, one::kClawLine.value(), Stage::A, "the claw's 3-wire port",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kClawLine, "the claw's 3-wire port");
 inline constexpr auto kFlipperLine =
-    owed(one::kFlipperLine.value(), Stage::A, "the front toggle's 3-wire port (the flipper)");
+    typed(one::kFlipperLine.placeholder, one::kFlipperLine.value(), Stage::A, "the front toggle's 3-wire port (the flipper)",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kFlipperLine, "the front toggle's 3-wire port (the flipper)");
-inline constexpr auto kRampLine = owed(one::kRampLine.value(), Stage::A, "the ramp's 3-wire port");
+inline constexpr auto kRampLine = typed(one::kRampLine.placeholder, one::kRampLine.value(), Stage::A, "the ramp's 3-wire port",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kRampLine, "the ramp's 3-wire port");
 
 // ── STAGE B — how it moves (Drive, the Auton Tester, Competition, Tune) ──
 inline constexpr auto kCascadeRows =
-    owed(one::kCascadeRows.value(), Stage::B, "the cascade's measured rows, bottom stop to top stop");
+    typed(one::kCascadeRows.placeholder, one::kCascadeRows.value(), Stage::B, "the cascade's measured rows, bottom stop to top stop",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadeRows, "the cascade's measured rows, bottom stop to top stop");
 inline constexpr auto kCascadeLevels =
-    owed(one::kCascadeLevels.value(), Stage::B, "the cascade's levels, by name and stack height");
+    typed(one::kCascadeLevels.placeholder, one::kCascadeLevels.value(), Stage::B, "the cascade's levels, by name and stack height",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadeLevels, "the cascade's levels, by name and stack height");
-inline constexpr auto kCascadeHoldVolts = owed(one::kCascadeHoldVolts.value(), Stage::B, "the cascade's hold volts");
+inline constexpr auto kCascadeHoldVolts = typed(one::kCascadeHoldVolts.placeholder, one::kCascadeHoldVolts.value(), Stage::B, "the cascade's hold volts",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadeHoldVolts, "the cascade's hold volts");
-inline constexpr auto kCascadeHomingPushVolts = owed(one::kCascadeHomingPushVolts.value(), Stage::B,
-                                                     "the cascade's homing push, volts (negative = down)");
+inline constexpr auto kCascadeHomingPushVolts = typed(one::kCascadeHomingPushVolts.placeholder, one::kCascadeHomingPushVolts.value(), Stage::B,
+                                                     "the cascade's homing push, volts (negative = down)",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadeHomingPushVolts, "the cascade's homing push, volts (negative = down)");
 inline constexpr auto kCascadeHomingStallAmps =
-    owed(one::kCascadeHomingStallAmps.value(), Stage::B, "the cascade's homing stall signature, amps");
+    typed(one::kCascadeHomingStallAmps.placeholder, one::kCascadeHomingStallAmps.value(), Stage::B, "the cascade's homing stall signature, amps",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadeHomingStallAmps, "the cascade's homing stall signature, amps");
 inline constexpr auto kCascadeUnhomedVolts =
-    owed(one::kCascadeUnhomedVolts.value(), Stage::B, "the cascade's volts before it is homed");
+    typed(one::kCascadeUnhomedVolts.placeholder, one::kCascadeUnhomedVolts.value(), Stage::B, "the cascade's volts before it is homed",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadeUnhomedVolts, "the cascade's volts before it is homed");
 inline constexpr auto kRightToggleDirection =
     owed(one::kRightToggleDirection.value(), Stage::B, "the right side toggle's run direction");
@@ -190,13 +215,20 @@ ROBOT_TWO_CHECK(kFlipperOpenLevel, "the front toggle's line level that pushes it
 inline constexpr auto kRampDownLevel =
     owed(one::kRampDownLevel.value(), Stage::B, "the ramp's line level that puts it DOWN");
 ROBOT_TWO_CHECK(kRampDownLevel, "the ramp's line level that puts it DOWN");
-inline constexpr auto kClawStrokeTime = owed(one::kClawStrokeTime.value(), Stage::B, "the claw's stroke time");
+inline constexpr auto kClawStrokeTime = typed(one::kClawStrokeTime.placeholder, one::kClawStrokeTime.value(), Stage::B, "the claw's stroke time",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kClawStrokeTime, "the claw's stroke time");
 inline constexpr auto kFlipperStrokeTime =
-    owed(one::kFlipperStrokeTime.value(), Stage::B, "the front toggle's stroke time");
+    typed(one::kFlipperStrokeTime.placeholder, one::kFlipperStrokeTime.value(), Stage::B, "the front toggle's stroke time",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kFlipperStrokeTime, "the front toggle's stroke time");
-inline constexpr auto kRampStrokeTime = owed(one::kRampStrokeTime.value(), Stage::B, "the ramp's stroke time");
+inline constexpr auto kRampStrokeTime = typed(one::kRampStrokeTime.placeholder, one::kRampStrokeTime.value(), Stage::B, "the ramp's stroke time",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kRampStrokeTime, "the ramp's stroke time");
+inline constexpr auto kCascadeMaxDownVolts =
+    typed(one::kCascadeMaxDownVolts.placeholder, one::kCascadeMaxDownVolts.value(), Stage::B, "the cascade's most volts DOWN",
+          "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- chosen, not measured");
+ROBOT_TWO_CHECK(kCascadeMaxDownVolts, "the cascade's most volts DOWN");
 
 // ── RECORDED — gating no build (the camera: VIS1-B reads it) ──
 inline constexpr auto kCameraPort = owed(one::kCameraPort.value(), Stage::Recorded, "the AI Vision camera's port");
@@ -221,7 +253,8 @@ inline constexpr FactSummary kRobotTwoFacts[] = {
     summary(kCascadeHomingStallAmps), summary(kCascadeUnhomedVolts),  summary(kRightToggleDirection),
     summary(kLeftToggleDirection),    summary(kClawOpenLevel),        summary(kFlipperOpenLevel),
     summary(kRampDownLevel),          summary(kClawStrokeTime),       summary(kFlipperStrokeTime),
-    summary(kRampStrokeTime),         summary(kCameraPort),           summary(kCameraMount),
+    summary(kRampStrokeTime),         summary(kCascadeMaxDownVolts),  summary(kCameraPort),
+    summary(kCameraMount),
 };
 
 /// How many facts the ledger holds.

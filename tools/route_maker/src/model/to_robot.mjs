@@ -1,7 +1,7 @@
 // to_robot.mjs — AFTER EXPORT (RMP1-F): what was exported, and the commands that put it on a robot. Pure.
 
 /** The program that runs a route on the bench: its slot and name on the brain (the Makefile; guide 16). */
-export const TESTER = Object.freeze({ slot: 2, name: 'shulib Auton Tester' });
+export const TESTER = Object.freeze({ slot: 6, name: 'shulib Auton Tester' });
 
 /** Robot `which`'s ('one' | 'two') commands: build, upload, and tools/upload_auton.py (`python` on Windows). */
 export function robotCommands(which, { windows = false } = {}) {
