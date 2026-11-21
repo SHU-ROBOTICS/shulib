@@ -156,6 +156,9 @@ and judges neither 5 nor 8.
 
 **What you must do:** nothing. A program that counted the routine's `Info` lines counts one more per finished step.
 
+In the route builder's PREVIEW, a finished step stays quiet as before: its time and its green mark say it, and the
+new line is not repeated under it (fixed the same evening; it showed with this route builder's own engine).
+
 ## API 2.10
 
 ### 2026-11-20 — One task uploads everything
