@@ -98,6 +98,13 @@ A drive's speed, time limit and "how close" (on the right, under **Speed, time l
 The numbers on the field are the step numbers, at the spot where each step ends. Steps that end at the same spot
 share one: **3–5** is the curve's end, where the claw opens and the robot waits.
 
+**The green cross is your claw — put it on the pin**, not the square's edge: drag the cross itself (or switch on
+**Place by the claw** on the right and type its x and y), and the robot's centre follows behind it. The switch stays on
+for every drive until you switch it off; while it is on, the line under it shows the robot's centre. Backing up, the
+robot drives over the spot before its claw gets there: to grab a pin, drive forward.
+
+![Zoomed in on a drive before a Close claw step: the big green cross where the claw grabs, 1.232 in inside the robot's front edge; on the right, "The claw reaches (-5.732, -55.7)." and the Place by the claw switch](../assets/route-builder/claw.png)
+
 **Small moves.** **Straight** (**F**) drives forward a number of inches from where the robot is — type it; switch
 **Backwards** on to back up instead. The code is the point it reaches (`r.driveTo(…)` or `r.reverseTo(…)`), so it
 follows when you move a step before it. To place a point exactly, type its **x** and **y** on the right, or select it
@@ -622,6 +629,7 @@ one-click fix it offers it.
 | **+**, **-**, **0** | zoom in, out, fit the field |
 | **Space** + drag | pan |
 | **Alt** while placing or dragging | no snapping |
+| **Ctrl** while dragging a drive's point | place it by the claw: the green cross goes where you point (not snapped) |
 | **?** | the list in the page |
 
 Points snap to the half-tile grid (every 12 in) and flush against a wall; headings snap to 15°.

@@ -76,7 +76,7 @@ bot's, the host suite — is untouched by robot one's owed facts.
 |---|---|---|
 | **A** — what is plugged where | the cascade's motor ports, their directions (as the builder sees them), the cartridge, the gear teeth, the **starting** stall signature and current cap (chosen, not measured), every motor on the Devices screen that is not a drive motor, the flipper's kind; the side toggles' ports (and which is the right one), cartridge and starting cap; the three pistons' 3-wire letters | **all six programs** — Bench Tests included, because it powers what is declared |
 | **B** — how it moves | the cascade's measured rows (bottom stop, every level, top stop), its levels, its hold volts, its homing push and the homing's own stall signature, its volts before it is homed; which way each side toggle runs; which line level is each piston's open (or down) position, and each stroke time | every program **except** Bench Tests and Calibrate — today Drive, the Auton Tester, Competition and shulib Tune |
-| Recorded | the AI Vision camera's port and where it sits | none — written down for the camera's own chunk |
+| Recorded | the AI Vision camera's port and where it sits; where the claw grabs a pin (`kClawGrabInsetIn`, read by the route builder) | none — written down for the camera's own chunk and the route builder |
 
 Stage B is not needed by Bench Tests or Calibrate on purpose: Bench Tests is the tool that *measures*
 Stage B, so it must build on Stage A alone. Every other program needs it — the facts file lists every

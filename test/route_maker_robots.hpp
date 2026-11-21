@@ -33,7 +33,8 @@ namespace route_maker {
                            .ledgerLevel = [](std::size_t i) -> const char* {
                                return i < shulib::mechanism::kMaxPresets ? shulib::bench::robot_one_facts::lv(i).name : nullptr;
                            },
-                           .ledgerOwed = !shulib::bench::robot_one_facts::kCascadeLevels.typed};
+                           .ledgerOwed = !shulib::bench::robot_one_facts::kCascadeLevels.typed,
+                           .clawInsetIn = shulib::bench::robot_one_facts::kClawGrabInsetIn.value()};
     }
     if (id == "two") {
         // Robot one's twin (ROB1-BT): its cascade's levels are ITS facts ledger's (robot_two_facts::lv), as robot one's.
@@ -42,7 +43,8 @@ namespace route_maker {
                            .ledgerLevel = [](std::size_t i) -> const char* {
                                return i < shulib::mechanism::kMaxPresets ? shulib::bench::robot_two_facts::lv(i).name : nullptr;
                            },
-                           .ledgerOwed = !shulib::bench::robot_two_facts::kCascadeLevels.typed};
+                           .ledgerOwed = !shulib::bench::robot_two_facts::kCascadeLevels.typed,
+                           .clawInsetIn = shulib::bench::robot_two_facts::kClawGrabInsetIn.value()};
     }
     if (id == "x") {
         return RobotSource{.id = "x", .name = "robot x (test)", .table = &mech_fixture::robot_x::kRobotXMechanisms,

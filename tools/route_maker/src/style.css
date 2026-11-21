@@ -20,6 +20,7 @@
   --field-dim: rgba(255, 255, 255, 0);
   --accent-fill: rgba(122, 61, 184, .12); --accent-fill-strong: rgba(122, 61, 184, .26); --robot-fill: rgba(201, 48, 44, .28);
   --robot-two-fill: rgba(37, 99, 201, .28); --band-fill: rgba(151, 90, 0, .16);
+  --claw: #0b7a43;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -33,6 +34,7 @@
     --field-dim: rgba(10, 8, 16, .22);
     --accent-fill: rgba(166, 120, 224, .16); --accent-fill-strong: rgba(166, 120, 224, .32); --robot-fill: rgba(239, 107, 101, .32);
     --robot-two-fill: rgba(107, 156, 240, .32); --band-fill: rgba(231, 165, 59, .2);
+    --claw: #3ddc84;
     color-scheme: dark;
   }
 }
@@ -46,6 +48,7 @@
   --field-dim: rgba(10, 8, 16, .22);
   --accent-fill: rgba(166, 120, 224, .16); --accent-fill-strong: rgba(166, 120, 224, .32); --robot-fill: rgba(239, 107, 101, .32);
   --robot-two-fill: rgba(107, 156, 240, .32); --band-fill: rgba(231, 165, 59, .2);
+  --claw: #3ddc84;
   color-scheme: dark;
 }
 @media (prefers-reduced-motion: reduce) { :root { --motion-fast: 0ms; --motion: 0ms; } }
@@ -695,6 +698,17 @@ input.num.bad { border-color: var(--failed); }
 .field-svg .faded { opacity: .18; pointer-events: none; }
 .field-svg .faded .g-handle, .g-step.locked .g-handle { pointer-events: none; }
 .g-step.locked .g-handle { fill: var(--surface-2); stroke-dasharray: 3 3; cursor: default; }
+/* RMP1-O: the claw's cross; a drive's is a handle */
+.g-claw { pointer-events: none; }
+.g-claw line { stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.g-claw-arm { stroke: var(--claw); stroke-width: 3; }
+.g-claw-halo { stroke: var(--surface); stroke-width: 6; opacity: .85; }
+.g-claw.big .g-claw-arm { stroke-width: 4.5; }
+.g-claw.big .g-claw-halo { stroke-width: 8.5; }
+.g-claw-hit { fill: transparent; stroke: none; }
+.g-claw[data-handle] { pointer-events: all; cursor: grab; }
+.g-claw[data-handle]:hover .g-claw-hit { fill: var(--accent-fill-strong); }
+.field-svg .faded .g-claw, .g-step.locked .g-claw { pointer-events: none; }
 .focusing .g-twin, .focusing .g-twin-path, .focusing .g-mirror, .focusing .g-twin-label { opacity: .12; }
 .g-tip { position: absolute; z-index: 4; pointer-events: none; max-width: min(420px, 80%); padding: 4px 10px; border-radius: var(--radius-sm);
   background: var(--text); color: var(--surface); font-size: var(--t-xs); font-weight: 600; box-shadow: var(--shadow); white-space: nowrap;

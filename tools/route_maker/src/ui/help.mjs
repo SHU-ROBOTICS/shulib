@@ -30,6 +30,7 @@ export const SHORTCUTS = [
     ['+  /  -  /  0', 'Zoom in, out, fit the field'],
     ['Space + drag', 'Pan the field (any tool)'],
     ['Alt while dragging', 'No snapping'],
+    ['Ctrl while dragging a drive\'s point', 'Place it by the claw: the green cross (the claw) goes where you point, not snapped'],
     ['Shift on the heading knob', 'Turn by 1 degree instead of 15'],
     ['?', 'This list'],
 ];

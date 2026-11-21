@@ -183,7 +183,12 @@ struct RobotSource {
     /// The ledger's levels are still OWED (placeholders, not measured): each is described `"owed": true`, and the
     /// page shows "not measured yet" in place of its height — a placeholder is never shown as a fact.
     bool ledgerOwed = false;
+    /// RMP1-O: the claw's grab spot, inches inside the front edge (the facts ledger's kClawGrabInsetIn); none: no claw.
+    std::optional<double> clawInsetIn{};
 };
+
+/// The square the page draws for every robot (both 2026 robots are 15 in).
+inline constexpr double kFootprintIn = 15;
 
 /// The description (file banner), one JSON object, keys in a fixed order, ending in a newline.
 [[nodiscard]] inline std::string describe(const RobotSource& r) {
@@ -210,10 +215,15 @@ struct RobotSource {
         const auto image = shulib::competition::override2026::kSkillsMirror.reflection.apply(1.0_in, 0.0_in);
         j += "  \"skillsMirror\": {\"cos2a\": " + num(image.x.value()) + ", \"sin2a\": " + num(image.y.value()) + "},\n";
     }
-    j += "  \"drive\": {\"tank\": " + std::string{r.tank ? "true" : "false"} + ", \"footprintIn\": 15, \"maxSteerDeg\": "
+    j += "  \"drive\": {\"tank\": " + std::string{r.tank ? "true" : "false"} + ", \"footprintIn\": " + num(kFootprintIn) + ", \"maxSteerDeg\": "
          + num(cfg.tankSteer.maxSteer * kRadToDeg) + ", \"curve\": {\"maxStartOffDeg\": " + num(cfg.curve.maxStartOff * kRadToDeg)
          + ", \"lookAheadIn\": " + num(cfg.curve.lookAhead) + ", \"minSpacingIn\": " + num(shulib::motion::kCurveMinSpacing)
          + ", \"maxPoints\": " + std::to_string(shulib::motion::kMaxCurvePoints) + "}},\n";
+    // RMP1-O: the claw's spot from the centre (forward, left), inches. It assumes the tracking centre is the square's
+    // middle, 7.5 in behind the front edge (HA-260: unmeasured) -- d in off, every pin placed by the cross misses by d
+    if (r.clawInsetIn) {
+        j += "  \"clawSpot\": {\"forwardIn\": " + num(kFootprintIn / 2 - *r.clawInsetIn) + ", \"sideIn\": 0},\n";
+    }
     j += "  \"mechanisms\": [";
     const auto& t = *r.table;
     for (std::size_t i = 0; i < t.count; ++i) {

@@ -100,7 +100,7 @@ async function main() {
     // it, so it asks before replacing a file the page did not take.
     let folderBase;
     const ui = {
-        selected: null, point: null, tool: 'select', curveDraft: [], snap: true, focus: false, focusAt: null, here: null,
+        selected: null, point: null, tool: 'select', curveDraft: [], snap: true, focus: false, focusAt: null, here: null, byClaw: false,
         saveState: startState, coach: !store(COACH_KEY) && project.routes.every((r) => r.steps.length === 0),
         tab: store(TAB_KEY) === 'controls' ? 'controls' : 'route',
     };
@@ -200,6 +200,11 @@ async function main() {
                 hist = { ...hist, present: dragBase };
             }
             dragBase = null;
+            render();
+        },
+        /** RMP1-O: a drive's point is dragged and typed BY THE CLAW (the page's, not saved in the route). */
+        setByClaw(on) {
+            ui.byClaw = on;
             render();
         },
         fieldClick(p, ev) {
