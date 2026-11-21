@@ -520,7 +520,7 @@ test.describe('the Controls tab in a browser', { skip }, () => {
         assert.match(errs[0].words, /map row "\(start\)" names R1, R2/);
         const homing = async () => {  // the no-button sentence in the editor's start screen
             await page.getByRole('button', { name: 'Close (Esc)' }).click();
-            await page.locator('.ctl-editor .link-line', { hasText: 'homes by itself' }).click();
+            await page.locator('.ctl-editor .link-line', { hasText: 'finds its bottom by itself' }).click();
         };
         await homing();
         const start = errs[0].at;

@@ -2,7 +2,7 @@
 // no "Routine", no "precondition"). One place, so the step list, the inspector and the help say the same thing.
 
 import { fmt } from '../model/numbers.mjs';
-import { targetKind, unitOf, bottomOf } from '../model/lift.mjs';
+import { targetKind, unitOf, bottomOf, homeEnd, findWord } from '../model/lift.mjs';
 
 /** The toolbar's tools and the step kinds they add. */
 export const TOOLS = [
@@ -101,8 +101,13 @@ export function stepTitle(step, robot) {
         }
         case 'run': return [`${m}: run ${n(step.volts, ' V')}`, `for ${n(step.forS, ' s')}, then stops`];
         case 'startRun': return [`${m}: start ${n(step.volts, ' V')}`, `for ${n(step.forS, ' s')} · keeps going`];
-        case 'home': return [`${m}: home it`, `finds its zero · at most ${n(step.boundS, ' s')}`];
-        case 'startHome': return [`${m}: start homing`, `keeps going · at most ${n(step.boundS, ' s')}`];
+        case 'home':
+        case 'startHome': {  // RMP1-M D5, short: the step list keeps "bottom" in view at 1280 px ("find the bottom" elsewhere)
+            const end = homeEnd(robot && (robot.mechanisms || []).find((x) => x.ident === step.mechanism));
+            const find = end === 'zero' ? 'find its zero' : `find ${end}`;
+            return step.do === 'home' ? [`${m}: ${find}`, `then it knows where it is · at most ${n(step.boundS, ' s')}`]
+                : [`${m}: ${find} (start)`, `keeps going · at most ${n(step.boundS, ' s')}`];
+        }
         case 'waitUntilDone': return [`Wait until the ${m} is done`, `at most ${n(step.boundS, ' s')} more`];
         case 'wait': return [`Wait ${n(step.seconds, ' s')}`, 'the 57 s cut still ends it'];
         default: return [step.do, 'a step this route builder does not know'];
@@ -126,8 +131,7 @@ export function mechanismActions(m, levels = true) {
                 { words: `Move to _ ${u}`, icon: 'mechanism', step: step({ do: 'move', to: null }) },
                 ...(lift ? [{ words: 'Back to the bottom', icon: 'mechanism', step: step({ do: 'move', bottom: true }) }] : []),
                 ...(levels ? [{ words: 'Move to a level', icon: 'mechanism', step: step({ do: 'move' }) }] : []),
-                { words: lift ? 'Home it (find the bottom stop — do this first)' : 'Home it (find its zero — do this first)', icon: 'home',
-                  step: step({ do: 'home' }) },
+                { words: `${findWord(m, true)} (do this first)`, icon: 'home', step: step({ do: 'home' }) },
                 { words: 'Wait until it is done', icon: 'wait', step: step({ do: 'waitUntilDone' }) },
             ];
         }
@@ -146,11 +150,14 @@ export function mechanismActions(m, levels = true) {
 /** The words for each kind of mechanism. */
 export const KIND_LABEL = { arm: 'arm', lift: 'lift', pneumatic: 'pneumatic', power: 'motor', flywheel: 'flywheel' };
 
-/** The homing method in words. */
-export const HOMING_WORDS = {
-    stall: 'homes by pushing into its stop until it stalls',
-    switch: 'homes by its switch',
-    restsAtStop: 'rests on its stop when the program starts',
-    absolute: 'knows its angle from an absolute sensor',
-    never: 'is never homed (it only jogs)',
-};
+/** How `m` finds where it is, in words (RMP1-M D5: never "home"). */
+export function homingWords(m) {
+    const end = homeEnd(m);
+    return {
+        stall: `finds its ${end} by pushing gently onto its stop until it stalls`,
+        switch: `finds its ${end} by its switch`,
+        restsAtStop: 'rests on its stop when the program starts',
+        absolute: 'knows its angle from an absolute sensor',
+        never: 'never finds its zero (it only jogs)',
+    }[m.homing] || '';
+}

@@ -5979,3 +5979,299 @@ reach this run's files through `robotWords` (camera_view.mjs), the page test's n
 by mistake outside the worktree — the mutation driver's pid file, written by a relative path into the integrate
 worktree's `tools/route_maker/src/mut.pid` at 17:38 — was found at 18:04, its content checked (the driver's pid) and
 removed; the integrate worktree's `git status` was clean after.
+
+## RMP1-M — the Mechanisms tab: every mechanism on the robot, Test each one, "find the bottom" for "home"
+
+> Executor: Claude Opus 5.5 (subagent), worktree `.claude/worktrees/rmp1-m` (branch `rmp1-m`, from 52b79cb). Brief:
+> `docs/internal/chunks/RMP1-M-mechanisms-tab.md`. Started 2026-11-20 (log opened before any code). Scratch:
+> `.claude/coordinator/scratch/rmp1-m/`.
+
+- **Reading (done first):** RESUMING's standing rules, the RMP1-M brief, RMP1-K's brief; then RMP1-K's code
+  (check_route.mjs, run_log.mjs, run_view.mjs, route_builder.py's watch) and the Controls tab's driver-file reading.
+- **D2:** `test/route_maker_describe.hpp` writes each mechanism's `"wiring"` (motors `{port, reversed}`, lines,
+  and any bottom switch / angle sensor / piece sensor) from its table's `wire(...)` entry, and a piston's `"start"`;
+  `test/route_maker_robots.hpp` gives robots one and two a `wiringOwed` (by mechanism name, from each facts ledger's
+  `typed` flags; an unknown mechanism is described owed, and the suite fails on it). Robot two's toggles' directions are
+  owed today: `"reversed": null`. Fixtures x/y/z re-made. New suite case "RMP1-M: each mechanism's wiring is its robot's
+  facts" builds the expected wiring from the FACTS (an independent path from describe()'s table read).
+- **D3 model:** `check_route.mjs` gains `findWords`, `testRefusal`, `testSteps`, `mechanismTest` (named
+  "<mechanism> mechs" / "all mechs") and `testResults` (a card's tone from RMP1-K's run marks).
+- **D1/D3 UI:** `src/ui/mech_tab.mjs` (the tab; `robotWords(which)` the one local robot-name helper);
+  `run_view.mjs`'s check split into `confirmSend()` with a new `test(idents, robotId, onSend)` entry (the same screen,
+  Send, write-back); `controls_tab.mjs` exposes `jobsOf(id, ident)` and `buttonWord()` (one source for the controller's
+  and the card's button words); app.mjs: the third tab.
+- **D5:** one word source — `lift.mjs` `homeEnd(m)` ('bottom' | 'top' | 'zero', from `homeAt` against `range`)
+  and `findWord(m, cap)` ("find the bottom"); `check_route.mjs` `findWords` ("finds its bottom"). Changed where a person
+  reads it: the step list's titles, the M menu, the badges ("find bottom"), the inspector's fix buttons, home card and
+  homing hint (`homingWords(m)` replaces `HOMING_WORDS`), RC20/RC25/RCL1's words, the Controls tab's action words,
+  button words and refusals, the check's "what will move" words, a toast; the help gains the one explanation.
+  NOT changed: export.mjs's comments and calls, `defaultWords` (the driver file's comments: exported C++),
+  library_words.mjs (the library's own refusal text, quoted), the robot's `NOT_HOMED`, data keys, the "Home / End" key.
+  Six node tests' expected words updated to the new words (check_route, checks ×3, mech_steps ×2, named_routes).
+- **Node tests (`date` 15:52 EST):** `test/mech_tab.test.mjs` (9 cases): each kind's test route, an owed port refused, Test every,
+  the run's lines onto the cards, the card words, and a D5 sweep over every word the page builds for every fixture
+  mechanism (menu, step list, badges, checks, controls, the check's words) — no `home`/`homes`/`homed`/`homing`.
+- **Page (`date` 15:58–16:20 EST):** `test/page/mech_tab.page.test.mjs` (stand-in checkout with the real driver files
+  copied in, the helper, the fake pros and terminal): every card of robot one in the table's order, each card's ports
+  equal to the site's own robots.json; robot two's owed toggle direction said as owed; the Controls tab's cascade
+  buttons on the card; Test → the "what will move" dialog, NOTHING uploaded before its Send, then Send, write-back, the
+  watch, and the card green from the robot's lines; a card's route opens the Route tab at that step; an owed port: Test
+  says why, no Send, nothing uploaded; Test every names the claw it leaves out; the Route tab (the find step selected),
+  the M menu, the Controls tab and the help: no `home`/`homes`/`homed`/`homing` in the visible text (the robot's log fold
+  and the keys table aside). A third tab pushed the LOCAL page's top bar (with Send) past 1280 px: found by the full page
+  run (page.test's 1101 px case on the site form) and a new fit test; fixed in CSS — at ≤1440 px the tabs drop their
+  icons, at ≤1280 px the top bar's separators go. Measured (Chromium, the Route tab with Send): the bar was
+  1220 px wide before RMP1-M (already past 1101 and 1180 — not this chunk's), 1272 with the third tab, ~1209 now; the new
+  test pins 1280 / 1366 / 1440 / 1536 on every tab.
+- **D5 in the page tests:** page.test, controls, mech_steps, named_routes and run_view pinned the old words ("Home it",
+  "Home it at the start", "homes by itself", "the cascade homes, …"): updated to the new ones. `test/helpers.mjs`'s
+  `ledgerRobot()` ("shaped like robot one") gains robot one's `homeAt: 0` — without it the page said "find its zero" for
+  the fixture's cascade; node 274/274 unchanged by it otherwise.
+- **Docs:** guide 22 — a new short section "The mechanisms on the robot" (one picture, `mechanisms.png`; Test; the one
+  "Find the bottom" explanation) and every page word it quoted ("Home it", "Home it at the start", the badges' "home",
+  the check's "homes", the Controls tab's job words, the checks table's "Home first" row) moved to the page's words;
+  `docs/route-builder.md` (the tab, one sentence; "how each one finds its bottom"); the changelog's 2.11 (what people
+  see); the route builder README (RMP1-M paragraph, `mech_tab.mjs` in the layout); `test/README.md` (describe's wiring);
+  `tools/docs_video/make_a_route` beat m07's words and `record.mjs`'s click (`/^Find the bottom/`) — the VIDEO itself is
+  not re-recorded (for the coordinator).
+- **Mutants (16:08–16:16 EST by the logs' own clocks; driver `scratch/rmp1-m/mutate.py`: each file backed up beside it, mutated, every
+  dependent rebuilt — the site for a page mutant, `shulib_tests` + `shulib_route_maker` + the site for a C++ one —, its
+  tests run capped (node/suite `ulimit -v 4 GiB` + `timeout`; Chromium under `systemd-run … MemoryMax=6G`), restored in a
+  `finally` and on SIGTERM / SIGHUP / SIGINT with its timestamp bumped, then rebuilt again; logs `mut-<name>.log`).
+  Every one RED:
+  N1 a lift test that moves before finding its bottom (`testSteps` puts the find after the first move) — node: 4 cases;
+  N2 a card with the wrong port (`portWords` shows motor 1's port for every motor) — node D1 + the page's ports-per-card;
+  N3 "home" shown (`stepTitle` home → "home it") — node D5 sweep + the page's no-"home" sweep;
+  N4 an owed port sent (`testRefusal` ignores null ports) — node + the page's owed-port case;
+  N5 a card always green (`testResults` never red) — node run-lines case;
+  P1 a Test that skips the "what will move" dialog (`confirmSend` sends at once for a test) — the page: "nothing sent
+  before Send";
+  E1 an export golden touched (`export.mjs`'s home comment) — node "the goldens are FRESH";
+  C1 the description writes mechanism 0 with mechanism 1's wiring — suite: robots/x|y|z.json fixtures + "RMP1-M: each
+  mechanism's wiring…" (cascade; robot one has no null port); C2 the facts ledger's owed marks ignored — suite: both
+  toggles and robot two's `"reversed": null`.
+  The first C1/C2 attempt was VOID, not counted: its build stopped at the doc gates (the briefing, generated before the
+  first build, said "not built" once a suite binary existed) and the suite ran the old binary. Fixed by regenerating the
+  briefing after a clean build, and the driver builds `shulib_tests/fast` / `shulib_route_maker/fast` (the targets
+  alone: the doc gates' briefing check would run a MUTANT suite binary, uncapped, on the restore's build); re-run RED.
+- **Pictures (shots done 16:23 EST):** the page shots (`scratch/rmp1-m/shots.sh`: Chromium — the tab, the check, the
+  controls; Firefox — the RMP1-J ones, PREVIEW's mechanisms, the route, as they were made) → `scratch/rmp1-m/to_docs.py`
+  (1200 × 750, 256 colours; `controls.png` a raw 1440 × 900 as it was): NEW `mechanisms.png`; re-made because they showed
+  the old words: `check.png`, `run-check.png`, `mechanism-home-card.png`, `mechanism-badges.png`, `preview-mechanisms.png`,
+  `route.png`, `route-dark.png`, `controls.png`. Read each: one idea per screen; the tab at 1440 and 1280 (light/dark)
+  with nothing crowded, nothing past the window. This worktree has no preview engine (no `emcc`): PREVIEW is GREYED in
+  the re-made `route.png` / `route-dark.png` / `mechanism-home-card.png` / `mechanism-badges.png` (was live), and
+  `time-suggestion.png` (needs the engine) is NOT re-made — it still shows "cascade: start homing". Also still showing
+  the old words, not re-made here: `preview.png`, `preview-failed.png` (already deferred by the coordinator), the
+  controls-tab and make-a-route videos.
+- **Prose review (grepped, hits read, 16:20–16:25 EST):** (1) `grep -rn -i "home it\|Home it\|homes it\|start homing\|\"home\"\|homes by itself\|the cascade homes"` over docs/
+  (less internal/ and api/), README.md, tools/ and test/README.md → guide 22's quotes of the page (fixed, above); the
+  cookbook (06, 07, 08), guides 11, 16, 18, 21 — the LIBRARY's and the driver file's own words (`homeOnPress`,
+  `startHome`, the `[delete-able] home it at the first driver start` comment): not the page's, NOT changed (D5: the C++
+  and its comments stay); the changelog's older entries (history, not rewritten). (2) `grep -rn "two tabs\|Route and
+  Controls\|beside Route\|Route or the Controls\|robots\.json\|route_maker_describe\|describe --robot"` → guide 22's
+  Controls paragraph (still true: "beside Route"), `test/README.md` (describe: wiring added), the route builder README
+  (added), `docs/route-builder.md` (the tab added; "how each one homes" → "finds its bottom"). (3) The new section's
+  anchor `#the-mechanisms-on-the-robot` is the heading's. Not touched, deliberately: guide 17 / where-your-code-goes
+  (no tab, no home word), `.vscode/tasks.json` (no new task), route_builder.py (D2 needs nothing there: its facts-differ
+  warning already covers `src/robots` and `include`, where the wiring comes from).
+- **Gates on the final tree (`date` 16:25–16:50 EST; runner `scratch/rmp1-m/gates/gates.sh`, logs beside it):** briefing
+  generated with the suite binary removed, host build (0 warnings), briefing regenerated after; the bounded suite
+  **green — 3,912 cases / 3,777,681 assertions** (+1 case: RMP1-M's wiring); `src_build_gate.py check` **PASS (14
+  builds)** (self-test not needed: no src/ or Makefile change); the ARM header gate over all 260 lines OK; the CI greps
+  (PROS-free, sim-free, LF) hold; api_doc_tool check-fresh / check-examples / self-test / check-coverage /
+  check-removability OK (no `///` comment changed: docs/api not regenerated); doc_staleness_audit self-test and audit
+  clean; briefing `check` current; node **274 / 274**; route_builder self-test **142 OK**; upload_auton self-test **55
+  OK**; the site rebuilt 16:44:59 immediately before the page suites; page suites **Chromium 121 pass / 8 skipped / 0
+  fail**, **Firefox 125 / 4 / 0** (the Firefox run in the runner was OOM-killed at 8 s by its 6 GB scope with every file
+  in parallel — not counted; re-run one file at a time in the same scope, 16:45–16:50). The skips: the engine's and the
+  shots-only cases (no preview engine here), none of RMP1-M's. No helper or browser process left running.
+- **Stopped here: uncommitted, for the coordinator.** Owed on the robot: Test has run only against the stand-in pros
+  (fake upload, fake terminal replaying lines); the first real Test (robot one, the cascade) is the coordinator's with
+  the team lead's OK.
+
+### RMP1-M review findings and their disposition
+
+> Three reviewers (correctness, tests, docs) returned 24 findings; the builder (Claude Opus 5.5, subagent, same
+> worktree) re-checks each one, fixes it at the root or says why not, and re-runs every gate. Opened before any fix.
+
+Each finding re-checked against the code before it was touched (dates EST, 2026-11-20).
+
+1. **BLOCKER (correctness + tests, the same finding twice): a Test sent again was ticked green by the EARLIER run.**
+   Real: `readRun` took the newest run of that name in the watch, and the watch keeps every run across a send. Fixed at
+   the root in `mech_tab.mjs`: the send records where the watch stands (`pending.watch`, `pending.after` = its run
+   count); `readRun` reads only a run pushed after that (or any run of a watch opened since), and only one whose boot
+   line named the robot the test was sent to (`run_log.mjs` now keeps each run's `robot`, from the boot line before it).
+   Each new run gets its own time (a run number restarts at 1 at every boot, so the number no longer keys the time).
+   The card no longer deletes its last result at Send: while the test is out it shows "Waiting for the robot's run…",
+   and its last result comes back if nothing reaches the robot (finding 5). Page case: Test, run (green) → the robot
+   only boots → Test again: "Waiting…", neither green nor red, the RUN hint shown → robot TWO's brain runs a test of
+   that name → still waiting → the robot runs it → green, with the new time.
+2. **MAJOR: robot two's Test was a send that cannot build (five Stage-B facts owed), and its pistons' owed levels were
+   shown as known.** Real (`robot_two_facts.hpp`: the Auton Tester needs Stage B; `kClawOpenLevel` /
+   `kFlipperOpenLevel` / `kRampDownLevel` owed). Fixed at the root, from the facts ledger: `robots.json` gains each
+   robot's `testerOwed` (the names of the facts its Auton Tester needs that are still owed: `needs(AutonTester, …)`
+   over `kRobotOneFacts` / `kRobotTwoFacts`, the build's own rule), and a piston's `wiring.levels` (each position's line
+   levels; `null` while its level fact is owed, and its `start` `null` then too — the unpowered position is not known).
+   The page refuses every Test to such a robot in words ("This robot's Auton Tester does not build until 5 facts are
+   typed (station 13's quick pass), the first: …. Nothing is sent."), says it once at the top of the tab, and a piston
+   card says "which position is which not known yet". RMP1-K's own Check / Send to robot two are NOT changed (they
+   already end in upload_auton's red OWED card): for the coordinator, whether they should refuse up front the same way.
+3. **minor: an owed SENSOR port did not stop Test.** Real. `testRefusal` refuses a null `homeSwitch`, `angleSensor` or
+   `pieceSensor` too. Node case for each.
+4. **minor + docs MAJOR (the same finding): a `robots.json` older than the tab (no `wiring`) read as "the builders'
+   answer" and the log said route_builder.py needed nothing.** Real: the published site's robots.json has no `wiring`.
+   Fixed: a missing `wiring` is told apart from an owed null — `OLD_FACTS` ("This page's robot facts were made before
+   the Mechanisms tab, so they have no ports: nothing is sent. Tell the coordinator: the route builder's site needs
+   rebuilding."), said once at the top of the tab and on each card's Ports row, never "the builders' answer"; and
+   `route_builder.py`'s `FACTS_FROM` now also diffs the describe tool's own files (`test/route_maker_main.cpp`,
+   `route_maker_describe.hpp`, `route_maker_robots.hpp`, the two field-number headers, `src/build_selection.hpp`), so a
+   change to what robots.json holds raises the facts-differ warning like a changed fact (self-test case added). The
+   earlier log line "route_builder.py (D2 needs nothing there …)" was WRONG: corrected here. A LOCAL build older than
+   the tab is not diffed (route_builder.py trusts this laptop's build, as before): the page's OLD_FACTS line covers it.
+   **Before the team uses the tab: rebuild `build/route_maker_site` in the tree the helper serves, or republish.**
+5. **minor: the card was cleared before anything was written; a refused write or a failed build left it waiting.**
+   Real. `confirmSend` calls `onSend` only after the first write succeeded and `onEnd(end)` when the send has ended
+   (`send_panel.start` now returns its end row); the tab drops the pending test when it did not upload. Page case: a
+   region-less file ("Not written") and a refused build (the fake OWED) each leave the card's last result as it was.
+6. **minor: a result from another day showed only its time.** Real. `whenWords`: the time today, else "Nov 19, 4:59 PM".
+7. **minor: the "unknown mechanism is owed (the suite fails on it)" guard did not.** Real. The macro became
+   `wiringOwedOf(name, WiringTyped)` (`route_maker_robots.hpp`), and a `static_assert` over BOTH team tables fails the
+   build for a mechanism it does not know; the `value_or({true, true})` behind it is unreachable.
+8. **minor: a home switch always labelled "bottom switch".** Real. Named for the end it finds (`homeEnd`).
+9. **minor: test names collided with RMP1-K's check names.** Real (a route "cascade" checks as "cascade mechs"). Both
+   ways refused in words: `mechanismTest` when any route's check has the test's name, `checkRoute` when its check
+   name is a Mechanisms-tab test's (`testName`, one source).
+10. **tests MAJOR (+ docs minor, the same): no test wrote an owed port as null.** Real. New suite cases: fixture robot x
+    described with its lift, hood and intake owed (`"port": null`, `"homeSwitch": null`, `[null, null]` lines,
+    `"levels": null`, `"start": null`, the placeholder numbers nowhere in those lines), robot y with ports owed and
+    directions typed; `wiringOwedOf` flag by flag (each of twelve typed flags owed alone flips exactly its mechanisms'
+    ports or directions); both robots' typed flags against their ledgers; each robot's `testerOwed` against the ledger.
+11. **tests MAJOR: robot two's Test was never pressed.** Page case: today's robot two refuses (both Test and Test every,
+    no `[data-check]`, nothing uploaded); with `testerOwed: []` the dialog offers exactly `data-check="two"`, "Send the
+    test to robot two".
+12. **tests minor: a STOPPED step → red, untested.** Node case (the routine's STOPPED line): red in the robot's words,
+    the steps after it amber.
+13. **tests minor: the route's keys, Ctrl+Z / Ctrl+Y off on the tab, untested.** Page case: with an undo AND a redo
+    pending on the Route tab, Delete, Backspace, the arrows, Ctrl+D, Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z change nothing on the
+    Mechanisms tab; back on the Route tab its redo and undo still work.
+14. **tests minor: the D5 toast unchecked.** page.test reads it after "Find the bottom at the start": no home word,
+    "find where it is".
+15. **tests minor: the build refusal and a never-homed ARM, unexercised.** Node case (a never-homed arm); page case (no
+    shared route file: robot two's Test says its build does not take the routes, nothing offered).
+16. **tests minor: the gate runner's exit codes were tail's; C1/C2's re-runs not in mutants.log; P1's catch misnamed.**
+    Real. The review's runner (`scratch/rmp1-m/review-gates/gates.sh`) uses pipefail and runs page files one at a time;
+    mutants.log gains the C1/C2 re-run verdicts (16:16, RED, from their own logs). P1 was caught by a TIMEOUT waiting for
+    the dialog's Send button (mech_tab.page.test.mjs:179), not by "nothing sent before Send" (:180, never reached): the
+    page case now checks the file and the uploads BEFORE reading the button, and P1 is re-run (below).
+17. **docs MAJOR: three guide 22 pictures still said "start homing" / "1 home".** Real. `mechanism-menu.png`,
+    `mechanism-actions.png`, `mechanism-height.png` re-made from this tree's shots (below).
+18. **docs MAJOR: the departures from the brief were not in this log.** Added below ("Where RMP1-M departs from the
+    brief").
+19. **docs minor: guide 22's intro said "three parts".** Four, with the new part linked.
+20. **docs minor: robot two's pistons' owed levels unsaid.** Fixed with finding 2.
+21. **docs minor: "an owed port as null" not tested on the C++ side.** Fixed with finding 10.
+22. **docs minor: the changelog and the README overstated "never shows home".** Reworded to "wherever the page itself
+    says it", naming what keeps its words (the driver file's own comments the Controls tab shows and exports — exported
+    C++ —, the library's quoted refusals, `NOT_HOMED`). `docs/route-builder.md`'s team-laptop row gains **Test**.
+23. **docs minor: (a) the step list cut "find the botto…"; (b) PREVIEW greyed in re-made pictures; (c) the prose log
+    missed docs_figures; (d) a wrong fixture comment.** (a) Real: the step list's titles are now short, "cascade: find
+    bottom" and "cascade: find bottom (start)" (the badge's words; "find the bottom" stays everywhere else). (b) Real and
+    NOT fixable here: this worktree has no preview engine (no `emcc`); the re-made `route.png`, `route-dark.png`,
+    `mechanism-home-card.png`, `mechanism-badges.png` (and now the three RMP1-J pictures) show PREVIEW greyed — **for the
+    coordinator: re-make them in a tree with the engine**. (c) Ruled below (prose review). (d) Real: the fixture is
+    "shaped like robot one; its right toggle's direction owed (robot two's today)".
+
+#### Where RMP1-M departs from the brief (review finding 18: the builder's report is not kept, this log is)
+
+1. **Test every mechanism leaves out what it cannot test**, and names each with why in the dialog ("Not tested: …");
+   the brief says it "does all of them".
+2. **A flywheel, and a lift or arm that never finds its zero, are refused by Test** (a route cannot spin a flywheel yet;
+   a never-homed one cannot be moved by a route): "test it with its button(s) in Drive".
+3. **An owed motor DIRECTION alone is not a refusal** (a run one way then the other is the same test either way round)
+   — but since the review, ANY Test to a robot whose Auton Tester does not build (an owed Stage-B fact) is refused:
+   today that is every robot-two Test.
+4. **A step done but UNCONFIRMED turns the card GREEN** ("Worked (UNCONFIRMED: nothing on the robot can confirm it)":
+   a piston, which has no sensor). **For the team lead:** green is "every step done as far as the robot can tell"; amber
+   would mark every piston test forever.
+5. **A card's last result is kept in this browser only** (localStorage), shown with its day when not today.
+6. **D2 is written by `test/route_maker_describe.hpp` (and `route_maker_robots.hpp` for what is owed)**, not
+   `test/route_maker_main.cpp` as the brief names: main only calls describe().
+7. **The test's numbers:** a motor ±6 V for 0.5 s each way; each move at most 3 s; the find at most 3 s (RMP1-K's).
+   A lift or arm with no measured level goes to the middle of its range; an owed level is never a target.
+8. **A piston's test ends at its start (unpowered) position**; with its levels owed (start null), at its first.
+9. **The step list says "cascade: find bottom" / "cascade: find bottom (start)"** (short, the badge's words) where the
+   brief's example was "cascade: find the bottom": the longer one was cut to "find the botto…" at 1440 px (review).
+   "Find the bottom" stays everywhere else.
+10. **A test's name is refused when a route's check has it** (and a check's when a test has it) — review finding 9.
+11. **The tab tells an old robots.json (no `wiring`) from an owed fact**, and the facts-differ warning diffs the
+    describe tool too — review finding 4.
+
+#### Prose review (the review's grep, 17:26 EST, hits read and ruled)
+
+`grep -rn -i "home it\|homes it\|start homing\|homes by itself\|the cascade homes\|homing the cascade"` over docs/ (less
+internal/ and api/), README.md, tools/ and test/README.md: guides 11, 16, 18, 21, cookbook 06–08 and
+hardware-assumptions — the LIBRARY's words and docs (`homeOnPress`, `startHome`, the driver file's `[delete-able] home it
+at the first driver start`): not the page's, unchanged (D5). `tools/docs_figures/controller_map.py:102` ("the cascade
+homes") and `skills_toggle_route.py:150` ("the cascade homes on the way"): figures of the LIBRARY's docs (the driver
+control and skills cookbook chapters), not the page: unchanged, and now recorded (review finding 23c).
+`route_maker/src/model/controls.mjs:69-70` (`defaultWords`: the driver file's comments, exported C++) and `export.mjs:297`
+(an exported comment): unchanged by design, and the README / changelog now say so. Two CODE comments quoted the old page
+words (`mech_steps.mjs:214` "home while the first leg drives", `checks.mjs:606` "Home it first"): brought to the page's
+words. The changelog's older entries: history, not rewritten. The words this review added (the changelog's 2.11 entry,
+guide 22's intro and Test paragraph, route-builder.md's row, the two READMEs) re-read for the D5 rule and for the
+robot-name rule (no robot named outside `robotWords` in the new page code).
+
+#### The review's mutants (17:24–17:34 EST; driver `scratch/rmp1-m/mutate2.py`, logs `review-mutants/mut-<name>.log`)
+
+Each file backed up under `review-mutants/`, mutated, every dependent rebuilt (the site for a page mutant;
+`shulib_tests/fast` + `shulib_route_maker/fast` + the site for a C++ one), its tests run capped (node / suite
+`ulimit -v 4 GiB` + `timeout`; Chromium under `systemd-run … MemoryMax=6G`, one file, a name pattern), restored in a
+`finally` and on SIGTERM / SIGHUP / SIGINT with its timestamp bumped, then rebuilt again; every log read for WHICH
+assertion failed. **All 29 RED** (the C++ static_assert one refused at compile, its own message):
+R1 the stale run read (page "sent again": the "Waiting" never came, the old run ticked it); R2 another robot's run read
+(page: "another robot's run never ticks it"); R3 the card waiting before the write (page "never reaches": ok expected
+after "Not written"); R4 the send's end ignored (page "never reaches": after the refused build); R5 the time only (node);
+T1 robot two's owed Auton Tester ignored (node + page); J2 a test offered to every robot (page: exactly `two`); J3 the
+build refusal removed (page, the no-shared-route checkout); L1 a piston's owed levels unsaid (node + page); S1 an owed
+sensor sent; O1 an old robots.json blamed on the builders; J5 a never-homed arm not refused; K1 / K2 a test and a check
+sharing a name (each way); J1 a STOPPED step not red; W1 "bottom switch" on a top-finding lift (all node); J17 the
+route's keys on the tab, J18 its undo, J19 its redo (page "never edits"); J11 the toast says "home" (page.test "an
+error stands"); F1 the facts-differ warning blind to the describe tool (route_builder self-test); C3 an owed port
+written as its number, C4 an owed line as its letter, C5 the cascade's ports never owed, C6 a piston's levels never
+owed, C7 `testerOwed` always empty, C9 a piston's start written though its levels are owed (suite: the new RMP1-M
+cases); C8 a team mechanism `wiringOwedOf` does not know ("ramps"): the build stops at the new static_assert; P1
+(re-run) a Test that skips the "what will move" dialog — now caught by "nothing sent before Send"
+(mech_tab.page.test.mjs:199), the assertion meant to catch it. The first C3 / C4 runs were VOID, not counted: the
+mutant left `owed` unused and -Werror refused the build before any test ran; re-run with `(owed && false)`, RED.
+
+#### The review's pictures (shots 17:36–17:56 EST; `scratch/rmp1-m/review-shots/`)
+
+`shots.sh` (Chromium: mech_tab and run_view page files; Firefox: mech_steps, mechanisms, page; one file at a time,
+pipefail): Chromium 23 pass / 3 skipped / 0 fail, Firefox 54 / 1 / 0. Read at 1440 and 1280, light and dark: robot two's
+tab now says ONE thing at its top ("This robot's Auton Tester does not build until 5 facts are typed …") and that notice
+is its one highlight (Test every mechanism is no longer primary there — found reading the first shot, fixed in
+`mech_tab.mjs`, pinned by the robot-two page case; re-shot `shots2/`, 10 / 0); its cards say each owed fact in one
+line. The step list keeps "bottom" in view: "cascade: find bottom" whole at 1440, "cascade: find bottom (…" at 1280.
+`to_docs.py` → re-made (1200 × 750, 256 colours): `mechanisms.png`, `check.png`, `run-check.png`,
+`preview-mechanisms.png`, `mechanism-home-card.png`, `mechanism-badges.png`, `route.png`, `route-dark.png`, and NOW
+`mechanism-menu.png`, `mechanism-actions.png`, `mechanism-height.png` (they said "start homing" / "1 home"; each read:
+"cascade: find bottom (…", the badge "1 find bottom"). PREVIEW is greyed in all of them but `mechanisms.png` /
+`check.png` / `run-check.png` (no engine here) — for the coordinator, with `time-suggestion.png`, `preview.png`,
+`preview-failed.png` and the two videos, which still show the old words. About 20 other guide 22 pictures were not
+re-made and still show the two-tab top bar (Route | Controls): recorded here (review finding 17), not re-made.
+
+#### Gates on the review's final tree (17:57–18:26 EST; `scratch/rmp1-m/review-gates/gates.sh` with pipefail, logs beside it)
+
+Briefing generated with the suite binary removed; host build (0 warnings); briefing regenerated after; the bounded suite
+**green — 3,915 cases / 3,777,976 assertions** (+3: RMP1-M's owed-path, `wiringOwedOf` and `testerOwed` cases);
+`src_build_gate.py check` **PASS (14 builds)** (self-test not needed: no src/ or Makefile change); the ARM header gate
+over all 260 lines OK; the CI greps (PROS-free, sim-free, LF) hold; api_doc_tool check-fresh / check-examples /
+self-test / check-coverage / check-removability OK (the `///` comments changed are in test/ headers, outside docs/api);
+doc_staleness_audit self-test and audit clean; briefing `check` current; node **281 / 281**; route_builder self-test
+**144 OK**; upload_auton self-test **55 OK**; the site rebuilt 18:18:12 right before the page suites; page suites one
+file at a time, **Firefox 129 pass / 4 skipped / 0 fail**, **Chromium 125 / 8 / 0** (133 each: +4, the review's page
+cases; the skips are the engine's and the shots-only cases, none of RMP1-M's). Every exit code is the command's own
+(pipefail). No helper or browser of this run left running (one Chromium seen at 18:26 is rmp1-o's review, by its cwd).
+**Stopped here: uncommitted, for the coordinator.** Owed: the first real Test on robot one; re-making the PREVIEW-greyed
+pictures in a tree with the engine; rebuilding `build/route_maker_site` (or republishing) before the team opens the tab.

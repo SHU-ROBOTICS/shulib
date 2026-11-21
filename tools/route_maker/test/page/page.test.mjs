@@ -219,7 +219,7 @@ async function readyRoute(page) {
     await clickField(page, -12, -60.3);  // snaps to the half-tile grid
     await typeIn(page, 'startH', 90);
     await answerTogether(page, false);
-    await mech(page, 'cascade', 'Home it');
+    await mech(page, 'cascade', 'Find the bottom');
     await typeIn(page, 'boundS', 2);
     await page.keyboard.press('d');
     await clickField(page, 0, -36);
@@ -314,7 +314,7 @@ test.describe('the route builder in a browser', { skip }, () => {
         }
     });
 
-    test('an error stands: Export LISTS it, one click from its step -- no code, no page error (a wait with no seconds, a fresh level move, "Home it first")', async () => {
+    test('an error stands: Export LISTS it, one click from its step -- no code, no page error (a wait with no seconds, a fresh level move, "Find the bottom first")', async () => {
         const p = await openPage('site');
         const { page } = p;
         await useLevels(page);
@@ -347,14 +347,17 @@ test.describe('the route builder in a browser', { skip }, () => {
         assert.match(await page.locator('.drawer .banner.error').textContent(), /Fix these \d errors first/);
         await closeDrawer(page);
         // the home card's fix (RMP1-J D6) leaves the home's time EMPTY: still listed, never a dead button
-        await page.getByRole('button', { name: 'Home it at the start' }).click();
+        await page.getByRole('button', { name: 'Find the bottom at the start' }).click();
+        const said = await page.locator('.toast', { hasText: 'Type its time limit' }).last().textContent();  // RMP1-M D5: its toast too
+        assert.doesNotMatch(said, /\bhom(e|es|ed|ing)\b/i);
+        assert.match(said, /find where it is/);
         await openExport(page);
         assert.match(await page.locator('.drawer .banner.error').textContent(), /Step 1: Type the most time this may take/);
         await closeDrawer(page);
         assert.deepEqual(await p.done(), [], 'no page error on the way');
     });
 
-    test('a route built by clicking -- start, drive, curve, a cascade level with "home it first" -- and exported', async () => {
+    test('a route built by clicking -- start, drive, curve, a cascade level with "find the bottom first" -- and exported', async () => {
         const p = await openPage('site');
         const { page } = p;
         await useLevels(page);
@@ -408,7 +411,7 @@ test.describe('the route builder in a browser', { skip }, () => {
         // its time limit takes the keyboard AT ONCE (asked in the click's own task): a deferred focus once landed after
         // the next keys, so a redo pressed then was typed into the box instead (RMP1-B's verifier)
         assert.equal(await page.evaluate(() => {
-            [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Home it at the start').click();
+            [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Find the bottom at the start').click();
             return document.activeElement.getAttribute('name');
         }), 'boundS');
         r = await route(page);
@@ -862,11 +865,11 @@ test.describe('the route builder in a browser', { skip }, () => {
             const rc25 = (await issues(page)).filter((x) => x.code === 'RC25');
             assert.equal(rc25.length, 1);
             // RMP1-J D6: ONE card, one click -- not the rule's two fixes
-            assert.ok(await page.getByRole('button', { name: 'Home it at the start' }).isVisible());
-            assert.equal(await page.getByRole('button', { name: 'Home it first' }).count(), 0);
+            assert.ok(await page.getByRole('button', { name: 'Find the bottom at the start' }).isVisible());
+            assert.equal(await page.getByRole('button', { name: 'Find the bottom first' }).count(), 0);
             await settle(page);
             await shot(page, `home-it-first-${v.tag}`);
-            await page.getByRole('button', { name: 'Home it at the start' }).click();
+            await page.getByRole('button', { name: 'Find the bottom at the start' }).click();
             await settle(page);
             await shot(page, `inline-error-${v.tag}`);  // the home just added: its time limit empty and marked, typed by the student
             await page.locator('.field-svg').focus();
@@ -893,7 +896,7 @@ test.describe('the route builder in a browser', { skip }, () => {
                 await page.keyboard.press('Escape');  // back to the list
                 return out;
             };
-            assert.deepEqual(await entries('cascade'), ['Move the cascade', 'Home it']);
+            assert.deepEqual(await entries('cascade'), ['Move the cascade', 'Find the bottom']);
             assert.deepEqual(await entries('claw'), ['Close claw', 'Open claw']);
             assert.deepEqual(await entries('ramp'), ['Ramp up', 'Ramp down']);
             await page.waitForFunction(() => !document.querySelector('.toast'), null, { timeout: 15000 });

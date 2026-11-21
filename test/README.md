@@ -75,7 +75,10 @@ The route builder (`tools/route_maker/`, a web page) has two halves of tests, an
 - **`shulib_route_maker`** (`route_maker_main.cpp`, its own CMake target, not part of `shulib_tests`) —
   `describe --robot one|two|x|y|z` writes a robot's description from its REAL table (`route_maker_describe.hpp`;
   the declaration's C++ name read from the line its `.name` recorded — a relative file name since RMP1-A2e's prefix
-  map, so opened from this build's source tree, whatever the working directory) and `curves` re-makes CV1's table.
+  map, so opened from this build's source tree, whatever the working directory; since RMP1-M each mechanism's
+  `wiring` from its `wire(...)` entry (a piston's line levels too) and each robot's `testerOwed`, a fact the facts
+  ledger still owes written `null` — the suite's "RMP1-M: …" cases build the expected from the facts, describe a fixture
+  robot with owed ports, and pin `wiringOwedOf` flag by flag) and `curves` re-makes CV1's table.
   It links `route_maker_no_team_autons.cpp` in place of `src/team/` (the engine runs the builder's route, never the
   team's autons; so does the module). After a
   change that moves either, re-make the committed file and READ the diff:

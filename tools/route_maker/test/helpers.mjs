@@ -24,7 +24,7 @@ export function ledgerRobot() {
         ...x,
         id: 'one',
         name: 'robot one',
-        mechanisms: [{ name: 'cascade', ident: 'cascade', kind: 'lift', units: 'in', homing: 'stall', range: [0, 40],
+        mechanisms: [{ name: 'cascade', ident: 'cascade', kind: 'lift', units: 'in', homing: 'stall', homeAt: 0, range: [0, 40],
                        presets: [{ name: 'floor', value: 0, ledger: 0 }, { name: 'L1', value: 8, ledger: 1 },
                                  { name: 'L2', value: 16, ledger: 2 }] }],
     };

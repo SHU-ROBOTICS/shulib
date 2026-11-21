@@ -105,7 +105,7 @@ test('D1: the team\'s routes\' C++ is unchanged by the check beside them; the ch
 test('D1: one screen of words — what moves, mechanism by mechanism, in the order each first moves', () => {
     const c = checkRoute(route(EVERY), X);
     assert.equal(checkWords(c.route, X),
-        'the lift homes, goes to low, homes, goes to 18 in; the arm goes to score; the hood goes to up; the intake runs 0.8 s at 8 V, runs 0.4 s at -6 V');
+        'the lift finds its bottom, goes to low, finds its bottom, goes to 18 in; the arm goes to score; the hood goes to up; the intake runs 0.8 s at 8 V, runs 0.4 s at -6 V');
     const two = checkRoute(route([{ do: 'set', mechanism: 'hood', position: 'up' }, { do: 'set', mechanism: 'hood', position: 'down' }]), X);
     assert.equal(checkWords(two.route, X), 'the hood goes to up, then down');
 });

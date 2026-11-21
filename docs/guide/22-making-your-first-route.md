@@ -18,8 +18,9 @@ claw — and the page checks every step against the library's own rules as you g
 export it into the robot's code. Every line it writes is commented in plain words; it is your route, and you
 should be able to explain every line of it.
 
-This chapter is in three parts: [your first route](#your-first-route), step by step;
-[the driver's buttons and the driving feel](#the-drivers-buttons-and-the-driving-feel) — the **Controls** tab; and
+This chapter is in four parts: [your first route](#your-first-route), step by step;
+[the driver's buttons and the driving feel](#the-drivers-buttons-and-the-driving-feel) — the **Controls** tab;
+[the mechanisms on the robot](#the-mechanisms-on-the-robot) — the **Mechanisms** tab; and
 [the reference](#the-reference) — every kind of step, every check, the shortcuts, and the project file.
 
 The route and the buttons in the pictures are examples of **how to click**, not choices for the robot: where robot
@@ -145,7 +146,7 @@ Press **Mechanism** (**M**). The menu shows robot one's mechanisms, one row each
 ![The Mechanism menu's first step: robot one's six mechanisms, one row each — Cascade, Right toggle, Left toggle, Claw, Flipper, Ramp — each with its kind](../assets/route-builder/mechanism-menu.png)
 
 Click one, and what it does replaces the list, each a large button: the claw's **Close claw** and **Open claw**, a
-toggle's **Run it**, the cascade's **Move the cascade** and **Home it**. **‹ Back** or **Esc** goes back to the list;
+toggle's **Run it**, the cascade's **Move the cascade** and **Find the bottom**. **‹ Back** or **Esc** goes back to the list;
 **Esc** again closes it. **Up**, **Down** and **Enter** work too. The new step goes after the selected one.
 
 ![The claw picked: its two buttons, Close claw and Open claw, with ‹ Back above them](../assets/route-builder/mechanism-actions.png)
@@ -164,7 +165,7 @@ in robot one's facts, so renaming a level never breaks the route. A project made
 opens as it was: the step says *up 6 in → 18 in*, its own box edits it, and **Make it a height** turns it into "to 18
 in" — the same C++ line; only its comment now says *to 18 in*.
 
-**Wait here, or keep driving.** A move, a home or a run has two choices: **Wait here until it is done**, or **Keep
+**Wait here, or keep driving.** A move, a find-the-bottom or a run has two choices: **Wait here until it is done**, or **Keep
 driving while it moves**. Keeping on, the step says where the route waits for it: at a later **Wait for it** step (the
 menu offers it once a step before starts that mechanism). If a later step uses the mechanism again first, **Wait for it
 before step N** is one click away. If nothing waits, the library stops it when the route ends: **Wait for it at the
@@ -173,19 +174,20 @@ end** is one click away.
 **Its time limit** is the most the step may take. The page never makes one up: type it, or run PREVIEW and use the
 time PREVIEW measured (step 6).
 
-**Home it first.** The cascade only knows where its bottom is once it has been **homed** — pushed gently down until
-it stalls on its stop. A move before that stops the whole route (`NOT_HOMED`), so the first height move in a route
-that never homes the cascade is red, with ONE card above its details: **Home it at the start**. One click adds the
-home at the start (it runs while the first leg drives) and a **Wait for it** before the move.
+**Find the bottom first.** The cascade only knows its height once it has **found the bottom** — pushed gently down
+until it stalls on its stop (the help, **?**, says why). A move before that stops the whole route (`NOT_HOMED`), so
+the first height move in a route that never finds the bottom is red, with ONE card above its details: **Find the bottom
+at the start**. One click adds it at the start (it runs while the first leg drives) and a **Wait for it** before the
+move.
 
-![The first cascade move of a route with no home: the card "The cascade must find its bottom first", its one button Home it at the start](../assets/route-builder/mechanism-home-card.png)
+![The first cascade move of a route that never finds the bottom: the card "The cascade must find the bottom first", its one button Find the bottom at the start](../assets/route-builder/mechanism-home-card.png)
 
 **On the field**, each mechanism step is a badge where the robot is when it starts: its number, its icon and one word
 (*5 close*, *4 12 in*). Click a badge to select its step. At the start, the badges sit beside the robot, so the robot
 and its heading knob still drag. A step that keeps driving draws a light band along the path
 to the step that waits for it. Hide, lock and focus (step 10) work on the badges too.
 
-![The field with mechanism badges: 1 home beside the start robot; 3 wait, 4 12 in and 5 close stacked where the drive ends](../assets/route-builder/mechanism-badges.png)
+![The field with mechanism badges: 1 find bottom beside the start robot; 3 wait, 4 12 in and 5 close stacked where the drive ends](../assets/route-builder/mechanism-badges.png)
 
 ![A five-step route, ready to export: the steps on the left, the plan on the field, the selected drive on the right](../assets/route-builder/route.png)
 
@@ -286,7 +288,7 @@ menu (its name in the top bar); under **On the robot**:
 **Check the mechanisms.** One screen says what will move. The robot stays where it is: clear the mechanisms' paths,
 then **Send the check to robot one**.
 
-![Check the mechanisms of "skills": the cascade homes, goes to 6 in, then 18 in; the claw goes to closed, then open; the right toggle runs 0.8 s at 8 V. The robot stays where it is. Send the check to robot one](../assets/route-builder/check.png)
+![Check the mechanisms of "skills": the cascade finds its bottom, goes to 6 in, then 18 in; the claw goes to closed, then open; the right toggle runs 0.8 s at 8 V. The robot stays where it is. Send the check to robot one](../assets/route-builder/check.png)
 
 On the brain: **shulib Auton Tester** → **skills mechs** → **RUN**. Each mechanism step runs to its end, one after
 another. When the upload ends, `src/team/skills_route.cpp` holds only your routes again, so a **shulib Competition**
@@ -463,16 +465,16 @@ The picture is the V5 controller. Each button's label says its job; a **dashed**
 drive's re-zero button. Click a button (or its label) and the panel beside the controller (under it, in a narrow
 window) shows that one job — its button (both, for a pair) is the only one highlighted on the controller (a button
 with a problem stays red). **Esc** or **×** closes it. With nothing clicked, the panel lists your mechanisms and their
-buttons, and says in a sentence any job that needs no button ("The cascade homes by itself when driver control
-starts").
+buttons, and says in a sentence any job that needs no button ("The cascade finds its bottom by itself when driver
+control starts").
 
 - **Give a free button a job:** click it, pick the mechanism, then pick the job. Each job says exactly what it picks
   (**Move while held: Up up, Down down**; **Go to "open" on one press**). Then finish it in the panel — the volts of a
   hold (12 is full power), the level and its time limit, or the second button of a pair when its partner is taken.
 - **Change a job:** click the button. The panel shows the mechanism, what it does, its button, its volts or time
   limit, and **Make X free** (both buttons of a pair: **Make R1 and R2 free**).
-- **A job with no button:** click the mechanism in the panel's list — "home it when driver control starts", or
-  "autons only".
+- **A job with no button:** click the mechanism in the panel's list — "find the bottom when driver control starts",
+  or "autons only".
 - **The words:** the comment on its line and its row in the button map at the top of the file are yours to
   reword (in the panel, under **Its words in the file**). Change what a control does and both become the page's words
   again (**Ctrl+Z** brings yours back); move it to another button and yours are kept.
@@ -482,16 +484,16 @@ starts").
 | Mechanism | What a button can do |
 |---|---|
 | a motor (robot one's side toggles) | run while held — one button forward and one back, or one button, one way |
-| an arm or a lift (the cascade) | move while held (one button up, one down); go to a level on one press; home it on one press; home it when driver control starts (no button) |
+| an arm or a lift (the cascade) | move while held (one button up, one down); go to a level on one press; find the bottom on one press; find the bottom when driver control starts (no button) |
 | a piston (the claw, the flipper, the ramp) | each press flips it; go to one position on one press |
 | a flywheel | each press spins it up to a named speed or stops it; spin up to a speed on one press |
 | any | autons only: no button in driver control |
 
 **What the page refuses** — what the build refuses, in plain words, with the build's own name beside them:
-a button doing two jobs (`button_B_does_two_jobs`), a hold's volts not above 0 or above 12, a level or a home with
-no time limit, a level the mechanism does not have, a mechanism with no button (choose "autons only" if that is
-meant), a control on the re-zero button, more than 24 controls, and an arm or lift that must be homed with no way to
-home it in driver control. It also asks for what is not finished yet — a button, a level, or the second button
+a button doing two jobs (`button_B_does_two_jobs`), a hold's volts not above 0 or above 12, a level or a
+find-the-bottom with no time limit, a level the mechanism does not have, a mechanism with no button (choose "autons
+only" if that is meant), a control on the re-zero button, more than 24 controls, and an arm or lift that must find the
+bottom with no way to do it in driver control. It also asks for what is not finished yet — a button, a level, or the second button
 of a pair it does not choose for you. Export lists them, each with **Go there**. The button map at the top of the
 file is written from the same choices: each control's rows sit where its buttons are, in the code's order. Its
 words are yours. Give a free button a job and a map line calling it free (the d-pad FREE line, once Up has a job)
@@ -553,6 +555,29 @@ then **Drive**; run it again for **Competition**. Without VS Code: `python3 tool
 `python3 tools/upload_auton.py one competition` (`two` for robot two; `python` on Windows). Each says **✓ UPLOADED**
 or **✗** with the first real error; the build is the final judge of every line.
 
+## The mechanisms on the robot
+
+The **Mechanisms** tab (top bar, beside **Controls**) shows every mechanism on robot one (or **robot two**), one card
+each: what it is, its ports (and which way each motor turns), its buttons, its levels, and the routes that use it —
+click a route to open it at its first step on that mechanism. A fact the builders have not sent yet says so ("not known
+yet"), never a guess.
+
+![The Mechanisms tab, robot one: six cards — the cascade (a lift: 0 to 20 in; ports 10 and 1; R1 up, R2 down; no levels yet; the skills route), the two side toggles, the claw, the flipper and the ramp — each with Test, and Test every mechanism at the top right](../assets/route-builder/mechanisms.png)
+
+**Test** moves that one mechanism on the robot while the robot stays where it is: the cascade finds the bottom, goes to
+each level (with none yet, the middle of its travel), then back to the bottom; a motor runs one way, then the other; a
+piston goes to each position, then back to where it starts. The screen of **Check the mechanisms** (step 7) says what
+will move first; **Send the test to robot one**, then on the brain **shulib Auton Tester** → **cascade mechs** →
+**RUN**. The card turns green, with the time, when the robot says every step worked (amber: done, but not as asked;
+red: in the robot's own words). **Test every mechanism** does them all in one run (**all mechs**). Like the check, the
+test is only on the brain. Testing needs the route builder opened from VS Code. While a fact the robot's **Auton
+Tester** needs is still owed (robot two's, until station 13's quick pass), the tab says so at the top and Test sends
+nothing: that program would not build.
+
+**Find the bottom.** The motors count turns from wherever they were at power-up, so the robot does not know the
+cascade's height until it pushes gently down onto its bottom stop and calls that 0 in. The page calls this **find the
+bottom**; the code calls it `home()`.
+
 ## The reference
 
 ### The steps
@@ -565,7 +590,7 @@ or **✗** with the first real error; the build is the final judge of every line
 | Back up | **B**, click | the same, backwards (its back turned to the point first) | `r.faceAway(x, y);` `r.reverseTo(x, y);` |
 | Turn | **T**, click | turns in place to face a point, its back to a point, or to a heading | `r.face(x, y)` / `r.faceAway(x, y)` / `r.turnTo(h)` |
 | Curve | **C**, click 1–16 points, Enter | one smooth path through the points (forwards or backwards) | `r.curveTo({...})` / `r.reverseCurveTo({...})` |
-| Mechanism | **M** → the mechanism → what it does | a lift to a height in inches, or to its bottom (an arm in degrees), or to a level — one control, the bar; a pneumatic's position (its own button); a motor for a time; a home. A move, a home or a run waits until it is done, or keeps driving | `r.move(cascade.to(18_in), t)`, `r.move(arm.to(90), t)`, `r.startMove(...)`, `r.set(claw["open"])`, `r.run(...)`, `r.home(...)` |
+| Mechanism | **M** → the mechanism → what it does | a lift to a height in inches, or to its bottom (an arm in degrees), or to a level — one control, the bar; a pneumatic's position (its own button); a motor for a time; find the bottom. A move, a find-the-bottom or a run waits until it is done, or keeps driving | `r.move(cascade.to(18_in), t)`, `r.move(arm.to(90), t)`, `r.startMove(...)`, `r.set(claw["open"])`, `r.run(...)`, `r.home(...)` |
 | Wait for it | **M** → the mechanism → **Wait for it** | waits for the mechanism's last step (offered once a step before starts it) | `r.waitUntilDone(m, t)` |
 | Wait | **P** | a pause in seconds — the run's own wait, so the 57 s cut still ends it | `r.then([&] { return ctx.guard.pause(t) ... })` |
 
@@ -599,10 +624,10 @@ one-click fix it offers it.
 | The start | there is no start, a number of it is missing (a `route_maker.json` edited by hand: the list shows `?` for it, and the robot is drawn once you type it), or it is through a wall |
 | Turn first (tank) | a drive is not turned first and starts more than 15° off its line (amber from 0.5°) |
 | The curve | the library refuses it: its first point is behind the robot, two points are closer than 1 in, a point doubles back (amber: a bend tighter than the robot can follow) |
-| Home first | a cascade (or any arm or lift homed by a stall or a switch) is moved before a FINISHED home on every way the route can go (the first such move of a route with no home shows one card for it: **Home it at the start**) |
+| Find the bottom first | a cascade (or any arm or lift that finds its bottom by a stall or a switch) is moved before it has FINISHED finding the bottom on every way the route can go (the first such move of a route that never does shows one card for it: **Find the bottom at the start**) |
 | Wait for it | nothing before it starts that mechanism, or a skip can pass over the step that does |
 | Levels and positions | the mechanism, the level or the position is not on the robot (or the mechanism has no levels yet) |
-| Heights | no height yet; a "go up" or "go down" (a project made before) where the page cannot know the height (nothing homed it or moved it to a height before: **Home it first**, or pick a height on the bar); or a height past the travel (one click: only as far as the top, or back to the bottom) |
+| Heights | no height yet; a "go up" or "go down" (a project made before) where the page cannot know the height (nothing found its bottom or moved it to a height before: **Find the bottom first**, or pick a height on the bar); or a height past the travel (one click: only as far as the top, or back to the bottom) |
 | Both robots together? | a mirrored route has no answer yet (**Yes, at the same time** / **No, one at a time**, one click) |
 | Too close | answered **Yes**: the two robots' squares come closer than 6 in at the start or on a step — the step, the moment and both places said, both squares outlined |
 | Time limits | a time limit is empty or not above 0; volts outside -12 to 12 |

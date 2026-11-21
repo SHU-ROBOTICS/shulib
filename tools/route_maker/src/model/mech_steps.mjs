@@ -34,7 +34,7 @@ export function menuActions(m, actions, route, at) {
         if (out.has(key) || (d === 'waitUntilDone' && !started)) {
             continue;
         }
-        const words = { move: `Move the ${m.name}`, home: 'Home it', run: 'Run it', waitUntilDone: 'Wait for it' }[d] || a.words;
+        const words = { move: `Move the ${m.name}`, home: a.words.replace(/ \(do this first\)$/, ''), run: 'Run it', waitUntilDone: 'Wait for it' }[d] || a.words;
         out.set(key, { words, icon: a.icon === 'mechanism' ? kindIcon(m) : a.icon, step: d === 'move' ? { mechanism: m.ident, do: 'move' } : a.step });
     }
     return [...out.values()];
@@ -211,7 +211,7 @@ export function measureEmptyLimits(route) {
 
 /**
  * D6: step `i` is the FIRST height move of an arm or a lift that must find its zero (stall or switch) in a route that
- * never homes it: the one-click fix (today's "home while the first leg drives"), else null.
+ * never homes it: the one-click fix (today's "Find the bottom while the first leg drives"), else null.
  */
 export function homeCard(route, robot, i) {
     const step = route.steps[i];

@@ -103,7 +103,7 @@ test.describe('RMP1-J in a browser', { skip }, () => {
         await page.locator('.field-svg').focus();
         await page.keyboard.press('m');
         await page.locator('.mech-menu [data-mech="cascade"]').click();
-        assert.deepEqual(await menuWords(page, '.menu-item.big'), ['Move the cascade', 'Home it']);
+        assert.deepEqual(await menuWords(page, '.menu-item.big'), ['Move the cascade', 'Find the bottom']);
         await page.locator('.mech-menu .menu-back').click();
         assert.equal(await page.locator('.mech-menu .mech-row').count(), 6, '"‹ Back" shows the list again');
         await page.locator('.mech-menu [data-mech="rightToggle"]').click();
@@ -179,7 +179,7 @@ test.describe('RMP1-J in a browser', { skip }, () => {
         r.mechanisms[0].presets[2].owed = true;
         await useRobot(page, r);
         await add(page, 'cascade', 'Move the cascade');
-        await page.locator('.pane.right .home-card').getByRole('button', { name: 'Home it at the start' }).click();
+        await page.locator('.pane.right .home-card').getByRole('button', { name: 'Find the bottom at the start' }).click();
         await page.locator('.step[data-step="2"]').click();
         assert.equal(await page.locator('.pane.right .hbar-tick').count(), 2, 'floor and L1: an owed level has no mark (never a placeholder shown)');
         const tick = await page.locator('.pane.right .hbar-tick').nth(1).boundingBox();
@@ -197,7 +197,7 @@ test.describe('RMP1-J in a browser', { skip }, () => {
         await add(page, 'cascade', 'Move the cascade');
         assert.deepEqual((await route(page)).steps, [{ do: 'move', mechanism: 'cascade' }], 'no height and no time invented');
         assert.equal(await page.locator('.pane.right .home-card').count(), 1);
-        assert.match(await page.locator('.pane.right .home-card').textContent(), /^The cascade must find its bottom first\.Home it at the start/);
+        assert.match(await page.locator('.pane.right .home-card').textContent(), /^The cascade must find the bottom first\.Find the bottom at the start/);
         assert.equal(await page.locator('.pane.right .issue', { hasText: 'HOMED' }).count(), 0, 'the card stands for the home rule');
         // the bar: a click a quarter of the way up its 0-20 in travel is 5 in
         const bar = await page.locator('.pane.right [data-hbar]').boundingBox();
@@ -208,7 +208,7 @@ test.describe('RMP1-J in a browser', { skip }, () => {
         assert.match(await page.locator('.pane.right [data-heights]').textContent(), /^not known → 18 in$/);
         await page.locator('.pane.right [data-level="bottom"]').click();
         assert.deepEqual((await route(page)).steps[0], { do: 'move', mechanism: 'cascade', bottom: true });
-        await page.locator('.pane.right .home-card').getByRole('button', { name: 'Home it at the start' }).click();
+        await page.locator('.pane.right .home-card').getByRole('button', { name: 'Find the bottom at the start' }).click();
         const r = await route(page);
         assert.deepEqual(r.steps, [{ do: 'startHome', mechanism: 'cascade' }, { do: 'waitUntilDone', mechanism: 'cascade' },
                                    { do: 'move', mechanism: 'cascade', bottom: true }], 'today\'s "home while the first leg drives"');
@@ -315,7 +315,7 @@ test.describe('RMP1-J in a browser', { skip }, () => {
         await typeIn(page, 'x', -36);
         await typeIn(page, 'y', -36);
         await add(page, 'cascade', 'Move the cascade');
-        await page.locator('.pane.right .home-card').getByRole('button', { name: 'Home it at the start' }).click();
+        await page.locator('.pane.right .home-card').getByRole('button', { name: 'Find the bottom at the start' }).click();
         assert.deepEqual((await route(page)).steps.map((s) => s.do), ['startHome', 'driveTo', 'waitUntilDone', 'move']);
         assert.match(await hint().textContent(), /^Run PREVIEW to get a suggestion\.$/);
         assert.equal(await page.locator('.pane.right .issue', { hasText: 'Type the most time' }).count(), 0, 'an empty limit: its marked box, no issue box beside it');
@@ -394,7 +394,7 @@ test.describe('RMP1-J in a browser', { skip }, () => {
             await typeIn(page, 'y', -36);
             await add(page, 'cascade', 'Move the cascade');
             await shot(page, `rmp1j-home-card-${v.tag}`, true);
-            await page.locator('.pane.right .home-card').getByRole('button', { name: 'Home it at the start' }).click();
+            await page.locator('.pane.right .home-card').getByRole('button', { name: 'Find the bottom at the start' }).click();
             for (const k of [0, 2, 3]) {  // the time limits typed: a route with no red step
                 await page.locator(`.step[data-step="${k}"]`).click();
                 await typeIn(page, 'boundS', 2);
