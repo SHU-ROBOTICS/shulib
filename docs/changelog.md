@@ -16,6 +16,66 @@
 
 ## API 2.11
 
+### 2026-11-20 — Robot two's programs build: its wiring is robot one's
+
+> Written when it was decided (the team lead: "Use White Bot's"). **No library change:** robot two's facts file.
+
+**What changed:** robot two's five wiring facts (each side toggle's direction, which line opens the claw, pushes the
+front toggle out and puts the ramp down) are robot one's values — the same build — so its Drive, Auton Tester,
+Competition and Tune build. Each says it is not yet watched on robot two.
+
+**What you must do:** run shulib Calibrate on robot two first (its Drive refuses until the card has its record), then
+press each button once in Drive: one that runs a mechanism backwards is a fact to re-type for robot two.
+
+### 2026-11-20 — The route builder: "Leave gently" after a drop
+
+> Written when it landed, for the team lead's skills route ("even 8 inchs a sec is too fast"). **No library change:**
+> the route builder only.
+
+**What changed:** a **Back up** step has one new switch, first in its details: **Leave gently**. On, the robot waits
+½ s, then backs out at 5 in/s; both numbers are under the switch (a wait up to 2 s, 2 to 20 in/s). A Back up clicked
+with **B** usually turns its back to the point first, at the robot's own turn speed, between the wait and the slow
+back-out: for a straight back-out, use **Straight** with **Backwards** on. A Back up added right after the claw opens
+(waits between are fine), or a Straight step switched to Backwards there, starts with it on, and its card shows a
+small *gently* tag; any other Back up starts off (after the front toggle too), and opening a saved route changes
+nothing. A slower top speed typed in the step's own settings wins; switching it off gives the step back as it was. A
+back-up too long to finish at that speed inside its time limit is refused, in words. The code is the page's own Wait,
+then the Back up at that top speed, and PREVIEW runs exactly that.
+
+**What you must do:** switch it on where you want it, then **Send to robot** (or export and upload) again. PREVIEW of
+a step with it on, and the claw's switch-on by itself, need this route builder's preview engine and robot facts: a
+laptop that takes them from the published site gets them at its next release (until then PREVIEW refuses that step by
+name, and the switch starts off: switch it on). A project saved with it on opens only in this route builder or newer.
+
+### 2026-11-20 — Robot one's claw: the right way round, and closed from power-up
+
+> Written when it was fixed, with the team lead. **No library change:** robot one's facts and mechanism table.
+
+**What changed:** the claw's "open" and "closed" were swapped: the route's `claw["closed"]` left it open, and it sat
+open at power-up (its line LOW opens it — typed from the builder's words on 11-15, never watched until now). Now LOW
+opens it, and the claw **starts and is made safe CLOSED** (its line HIGH) in every program, from power-up (the team
+lead: "it needs to close on start up"; a preload in it is optional) — the one piston that does not start unpowered. Robot two's
+claw follows (its level is still owed by its builders).
+
+**What you must do:** upload everything to robot one again. Keep fingers clear of the claw when a program starts.
+
+### 2026-11-20 — The route builder shows where the claw is
+
+> Written when it was built (chunk RMP1, run RMP1-O). **No library change — no API change:** the route builder's
+> page, and one recorded fact in each robot's facts file (`kClawGrabInsetIn`, gating no build). The exported C++ is
+> byte-for-byte what it was: a step still holds the robot's centre.
+
+**What you can now do (additive):** see the claw on the field — a green cross on every robot drawn (the start, each
+drive's end, robot two's mirrored start, PREVIEW's robot), 1.232 in inside the front edge, centred (the team lead's
+measure, 2026-11-20); a big one where the selected step grabs or drops. Put the cross on the pin: drag the cross
+itself, or hold **Ctrl** while dragging a drive's point, or switch on **Place by the claw** and type the claw's x and
+y — the robot's centre is worked out back along the drive. A drive step says **The claw reaches (x, y)**.
+
+**What changed (not breaking):** robots.json gains `clawSpot` (`forwardIn`, `sideIn`) for both robots.
+
+**What you must do:** re-place each drive that ends at a pin or a drop: drag its green cross onto the pin (a drive
+placed by the square's front edge is 1.232 in short; one placed by its centre, 6.268 in).
+
 ### 2026-11-20 — Robot one's cascade holds still
 
 > Written when it was fixed, on robot one with the team lead. **No library change:** robot one's mechanism table.
@@ -27,6 +87,45 @@ forth on the string's slack. Both robots' cascades now hold on gains tuned on ro
 were re-uploaded to robot one with it.
 
 **What you must do:** upload everything to each robot again (VS Code: **Upload everything to robot one**).
+
+### 2026-11-20 — See what the camera sees, in the route builder
+
+> Written when it was built (chunk RMP1, run RMP1-N). **No library change — no API change:** nothing under
+> `include/shulib/` or `src/` moved; only the route builder's page did.
+
+**What you can now do (additive):** watch **shulib Drive** with **Watch the robot** (the route builder on the team
+laptop) and, on a robot with an AI Vision sensor, the **Camera** tab beside **Run** shows what the camera sees, ten times
+a second: one line in words (*Sees: AprilTag 3, redBluePin (87 %), colour 2*) over the camera's picture, each AprilTag
+boxed with its number, each object with its score and the name the camera's model gives it (*class 0* when the camera
+reports none), each colour with its number. A picture greys as soon as the camera stops reporting it (*last seen 2 s
+ago*). Open Watch the robot before starting Drive: the camera's port, its object names and *no AI Vision sensor* are
+printed only as Drive starts. A program that prints nothing about a camera shows no tab. It reads robot one's real
+camera lines of 2026-11-20 (AprilTags 2, 3, 15, 24, 28 and 31; the model's object 0; no names); it has not yet run live
+beside a robot.
+
+### 2026-11-20 — The route builder's Mechanisms tab: every mechanism on the robot, and Test
+
+> Written when it was built. **The route builder and its host tool only — additive; no robot code, no library change.**
+
+**What you can now do (additive):**
+
+- **The Mechanisms tab** (beside Route and Controls) shows every mechanism on robot one or two, one card each: what it
+  is, its ports and which way each motor turns, its buttons, its levels and the routes that use it (a click opens the
+  route at its first step on that mechanism). A port, a motor's direction or which piston position is which, not sent
+  by the builders yet, says "not known yet".
+- **Test** on a card (on the team laptop, `python3 tools/route_builder.py`) moves that one mechanism while the robot
+  stays where it is — the same "what will move" screen and Send as **Check the mechanisms**; on the brain it is
+  `<mechanism> mechs` (**Test every mechanism**: `all mechs`), and `src/team/skills_route.cpp` is written back without
+  it. The card turns green, amber or red from the robot's own lines (only a run after that Send, on that robot), with
+  the time. A mechanism whose port is not known yet is not sent, nor is any test to a robot whose Auton Tester does not
+  build yet (robot two today, until station 13's quick pass). Like the check, run only against stand-ins for `pros` so
+  far.
+- **"Find the bottom"** replaces "home" wherever the page itself says it (the menu, the steps, the badges, the checks,
+  the Controls tab's words); the help says once what it means. The exported C++ is unchanged (`home()` /
+  `startHome()`), and so are the words that are C++ or the robot's: the driver file's own comments the Controls tab
+  shows and exports, the library's quoted refusals and the robot's `NOT_HOMED`.
+
+**What you must do:** nothing.
 
 ### 2026-11-20 — See the mechanisms work: each step says when it is done
 
@@ -56,6 +155,9 @@ said: never upload over slot 8. Slot 5 is the PROS button's build (API 2.10). Th
 and judges neither 5 nor 8.
 
 **What you must do:** nothing. A program that counted the routine's `Info` lines counts one more per finished step.
+
+In the route builder's PREVIEW, a finished step stays quiet as before: its time and its green mark say it, and the
+new line is not repeated under it (fixed the same evening; it showed with this route builder's own engine).
 
 ## API 2.10
 

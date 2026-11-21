@@ -64,7 +64,10 @@ WANTED = {1: "shulib Drive", 2: "shulib Competition", 3: "Bench Tests", 4: "shul
 LEFT_ALONE = {5: ("the PROS button's build (optional)", "optional, never judged"),
               8: ("the team's old code", "never touched by shulib")}
 UNPLUGGED = "The brain's USB was unplugged (or the brain turned off): plug the BRAIN in, then Watch the robot again."
-FACTS_FROM = ("src/robots", "include")  # what the robots' descriptions are built from (test/route_maker_main.cpp)
+# what the robots' descriptions are built from: the facts and the library, and (RMP1-M) the describe tool itself -- a change to
+# what robots.json holds (the Mechanisms tab's ports) differs as surely as a changed fact
+FACTS_FROM = ("src/robots", "src/build_selection.hpp", "include", "test/route_maker_main.cpp", "test/route_maker_describe.hpp",
+              "test/route_maker_robots.hpp", "test/override_field_obstacles.hpp", "test/mirrored_pair_numbers.hpp")
 
 
 def preferred_port(root):
@@ -1326,6 +1329,8 @@ def self_test():
         git = work / "git"
         (git / "src/robots").mkdir(parents=True)
         (git / "src/robots/robot_two_facts.hpp").write_text("kLift = 1;\n", encoding="utf-8")
+        (git / "test").mkdir()
+        (git / "test/route_maker_describe.hpp").write_text("// ports\n", encoding="utf-8")
         run = lambda *a: subprocess.run(["git", "-C", str(git), "-c", "user.name=t", "-c", "user.email=t@t", *a],  # noqa: E731
                                         capture_output=True, text=True, timeout=60)
         os.environ["PATH"] = saved_env.get("PATH", "")  # this computer's git (Windows finds a program on OUR PATH only)
@@ -1338,6 +1343,10 @@ def self_test():
             check("the facts' commit, this checkout's robots unchanged: nothing to say", facts_differ(git, head) is None, head)
             (git / "src/robots/robot_two_facts.hpp").write_text("kLift = 2;\n", encoding="utf-8")
             check("a robot's facts changed since: said", "differ" in (facts_differ(git, head) or ""))
+            (git / "src/robots/robot_two_facts.hpp").write_text("kLift = 1;\n", encoding="utf-8")
+            check("the facts back as they were: nothing to say", facts_differ(git, head) is None)
+            (git / "test/route_maker_describe.hpp").write_text("// ports and wiring\n", encoding="utf-8")  # RMP1-M: what robots.json holds
+            check("the describe tool changed since (what robots.json holds): said", "differ" in (facts_differ(git, head) or ""))
             check("a commit this checkout does not have: said", facts_differ(git, "0123456789") is not None)
         finally:
             os.environ["PATH"] = made["env"]["PATH"]

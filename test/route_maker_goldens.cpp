@@ -84,6 +84,9 @@ namespace rm_gl22 { RM_ON(mech_fixture::robot_x)
 namespace rm_gl23 { RM_ON(mech_fixture::robot_x)
 #include "goldens/route_maker/gl23_pair_near_the_diagonal.cpp"
 }
+namespace rm_gl24 { RM_ON(mech_fixture::robot_x)
+#include "goldens/route_maker/gl24_leave_gently.cpp"
+}
 namespace rm_smoke_one { RM_ON(shulib::bench::robot_one)
 #include "goldens/route_maker/smoke_robot_one.cpp"
 }
@@ -122,6 +125,7 @@ constexpr Golden kGoldens[] = {
     {"gl21_lift_heights", "x", &rm_gl21::skillsRoute},
     {"gl22_small_moves", "x", &rm_gl22::skillsRoute},
     {"gl23_pair_near_the_diagonal", "x", &rm_gl23::skillsRoute},
+    {"gl24_leave_gently", "x", &rm_gl24::skillsRoute},  // its FIRST route (the lines' route)
     {"smoke_robot_one", "one", &rm_smoke_one::skillsRoute},
     {"smoke_robot_two", "two", &rm_smoke_two::skillsRoute},
 };

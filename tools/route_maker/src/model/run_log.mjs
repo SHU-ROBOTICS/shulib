@@ -13,6 +13,7 @@
 // garbled (an em dash in pieces too): it is read only when it matches, never half-read. Pure: no DOM.
 
 import { fmt } from './numbers.mjs';
+import { isGentle } from './gently.mjs';
 
 const RTN = /\[RTN\] routine '(.*?)'(?::)? (.*)$/;
 const ATS = /\[ATS\] run (\d+): (.*)$/;
@@ -69,7 +70,8 @@ export function readLine(w, raw) {
         const number = Number(a[1]);
         const s = START.exec(a[2]);
         if (s) {
-            w.runs.push({ number, name: s[1], steps: {}, open: {}, live: false, verdict: null, endAction: null, summary: null, end: null, ended: false });
+            w.runs.push({ number, name: s[1], robot: w.robot, steps: {}, open: {}, live: false, verdict: null, endAction: null, summary: null, end: null,
+                          ended: false });  // robot: the boot line's, when one was read (RMP1-M: a test's run is its robot's)
             return w;
         }
         const run = w.runs.findLast((r) => r.number === number);  // this boot's run N (each boot counts from 1 again)
@@ -198,10 +200,11 @@ export function pageMarks(run, calls) {
 }
 
 /** The verb the brain's log gives each of `route`'s library steps, in order (export.mjs writes one call per step, two for
- *  a turned-first drive; a mechanism step is named by its mechanism, a wait by its seconds). */
+ *  a turned-first drive, a wait first for Leave gently; a mechanism step is named by its mechanism, a wait by its seconds). */
 export function routeVerbs(route, robot) {
     const name = (ident) => (((robot && robot.mechanisms) || []).find((m) => m.ident === ident) || { name: ident }).name;
-    return route.steps.flatMap((st) => {
+    return route.steps.flatMap((st) => [...(isGentle(st) ? [`wait ${fmt(st.gentlyWaitS)} s`] : []), ...verbsOf(st)]);
+    function verbsOf(st) {
         switch (st.do) {
             case 'driveTo':
             case 'reverseTo':
@@ -215,7 +218,7 @@ export function routeVerbs(route, robot) {
             default:
                 return [st.mechanism !== undefined ? name(st.mechanism) : st.do];
         }
-    });
+    }
 }
 
 /** Null when `run` could be of `verbs` (routeVerbs()), else the words: the robot ran another version of the route. */

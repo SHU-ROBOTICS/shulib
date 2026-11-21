@@ -76,7 +76,7 @@ bot's, the host suite — is untouched by robot one's owed facts.
 |---|---|---|
 | **A** — what is plugged where | the cascade's motor ports, their directions (as the builder sees them), the cartridge, the gear teeth, the **starting** stall signature and current cap (chosen, not measured), every motor on the Devices screen that is not a drive motor, the flipper's kind; the side toggles' ports (and which is the right one), cartridge and starting cap; the three pistons' 3-wire letters | **all six programs** — Bench Tests included, because it powers what is declared |
 | **B** — how it moves | the cascade's measured rows (bottom stop, every level, top stop), its levels, its hold volts, its homing push and the homing's own stall signature, its volts before it is homed; which way each side toggle runs; which line level is each piston's open (or down) position, and each stroke time | every program **except** Bench Tests and Calibrate — today Drive, the Auton Tester, Competition and shulib Tune |
-| Recorded | the AI Vision camera's port and where it sits | none — written down for the camera's own chunk |
+| Recorded | the AI Vision camera's port and where it sits; where the claw grabs a pin (`kClawGrabInsetIn`, read by the route builder) | none — written down for the camera's own chunk and the route builder |
 
 Stage B is not needed by Bench Tests or Calibrate on purpose: Bench Tests is the tool that *measures*
 Stage B, so it must build on Stage A alone. Every other program needs it — the facts file lists every
@@ -368,7 +368,7 @@ the right wall's Quadrant while robot one works the red wall's
 | | Robot one | Robot two |
 |---|---|---|
 | Mechanisms | its region of `src/robots/mechanism_table.hpp` | robot one's region, word for word, `robot_one` → `robot_two` |
-| Facts | `src/robots/robot_one_facts.hpp` | `src/robots/robot_two_facts.hpp`: the same facts, names and stages — **robot one's values** (the same build), but five wiring facts OWED until station 13 on robot two |
+| Facts | `src/robots/robot_one_facts.hpp` | `src/robots/robot_two_facts.hpp`: the same facts, names and stages — **robot one's values** (the same build), its five wiring facts too (not yet watched on robot two) |
 | Drive cartridge | BLUE (typed) | BLUE (robot one's: the same build) |
 | Driver file | the builder's map | started as the same map; its buttons are its own |
 | Autons | the 40 in, the acceptance run, the team's routes | the same — the routes marked mirrored **mirrored** (one line) |
@@ -377,12 +377,12 @@ the right wall's Quadrant while robot one works the red wall's
 **Robot two takes robot one's numbers** (the team lead, 2026-11-20: "Use robot one's" — the same build): its
 ports, gears, cartridges, stall signatures, current caps, the cascade's rows and levels, its hold and homing
 volts and the pistons' stroke times are robot one's values, written `one::kCascadePorts.value()` so a
-re-measured robot one carries robot two with it. Bench Tests tile 1 confirms the ports on robot two. Five
-wiring facts stay OWED until station 13's quick pass on robot two confirms them ([Set up your robot
-first](23-set-up-your-robot-first.md#robot-two-the-quick-pass)): each side toggle's run direction, and which
-line level opens the claw, pushes the front toggle out and puts the ramp down. Until then robot two's Bench
-Tests and Calibrate build, and its Drive, Auton Tester, Competition and Tune refuse, one line each:
-`robot two: OWED -- the right side toggle's run direction (src/robots/robot_two_facts.hpp)`. A robot-two fact is typed
+re-measured robot one carries robot two with it. Bench Tests tile 1 confirms the ports on robot two. Its five
+wiring facts — each side toggle's run direction, and which line level opens the claw, pushes the front toggle out
+and puts the ramp down — are robot one's too (the team lead, 2026-11-20: "Use White Bot's"), each source saying it
+is not yet watched on robot two: if a button runs one of them backwards, station 13's quick pass on robot two
+([Set up your robot first](23-set-up-your-robot-first.md#robot-two-the-quick-pass)) says which, and that fact is
+typed with robot two's own value. Every robot-two program builds. A robot-two fact is typed
 like robot one's, keeping robot one's own PLACEHOLDER (`.placeholder` — it never changes, so typing robot
 one later cannot upset robot two) beside robot two's value:
 

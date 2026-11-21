@@ -13,6 +13,23 @@ const MOVES = new Set(['move', 'startMove']);
 export const unitOf = (m) => (m && m.kind === 'arm' ? 'deg' : 'in');
 const positional = (m) => m && (m.kind === 'arm' || m.kind === 'lift');
 
+/** RMP1-M D5: where `m`'s home is — 'bottom' (its home is the bottom of its travel), 'top', or 'zero' (between, or not
+ *  known): the page says "find the bottom", never "home". */
+export function homeEnd(m) {
+    if (!m || !m.range || !Number.isFinite(m.homeAt)) {
+        return 'zero';
+    }
+    return m.homeAt <= m.range[0] ? 'bottom' : m.homeAt >= m.range[1] ? 'top' : 'zero';
+}
+
+/** RMP1-M D5: a home, as a person says it — "find the bottom" ("find the top"; "find its zero" between), never "home";
+ *  `cap`: "Find the bottom". The help says once what it means. */
+export function findWord(m, cap = false) {
+    const e = homeEnd(m);
+    const w = e === 'zero' ? 'find its zero' : `find the ${e}`;
+    return cap ? `F${w.slice(1)}` : w;
+}
+
 /** The bottom of `m`'s travel on the stored grid, never below it (the build refuses a target past the travel). */
 export function bottomOf(m) {
     const lo = m.range[0];

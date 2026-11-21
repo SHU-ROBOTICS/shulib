@@ -107,12 +107,17 @@ export function ownersOf(rec, names = []) {
     });
 }
 
-/** The library's own lines for page step `i`: the routine's lines naming its steps, and its failed steps' sentences. */
+/** API 2.11's tick for a step that ended well (`routine 'x': step N (verb) done in S s[, at …]`, or `started in` for a
+ *  START form): the step's mark and its time already say it, so a done step still quotes nothing. */
+const TICK = /^routine '[^']*': step \d+ \([^)]*\) (?:done|started) in \d+(?:\.\d+)? s(?:, at .*)?$/;
+
+/** The library's own lines for page step `i`: the routine's lines naming its steps (never a done tick), and its
+ *  failed steps' sentences. */
 function libraryLines(rec, p, mine) {
     const out = [];
     if (p.lib) {
         for (const l of rec.lines) {
-            const m = l.sub === 'RTN' && /\bstep (\d+) \(/.exec(l.text);
+            const m = l.sub === 'RTN' && !TICK.test(l.text) && /\bstep (\d+) \(/.exec(l.text);
             if (m && Number(m[1]) >= p.lib[0] && Number(m[1]) <= p.lib[1]) {
                 out.push(l.text);
             }

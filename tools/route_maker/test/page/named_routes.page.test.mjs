@@ -350,7 +350,7 @@ test.describe('RMP1-C in a browser', { skip }, () => {
         };
         await add('cascade', 'Move the cascade');
         assert.ok((await errorsOf(page)).some((x) => x.code === 'RC25'), 'a move with no home: home it first');
-        await page.locator('.pane.right .home-card').getByRole('button', { name: 'Home it at the start' }).click();
+        await page.locator('.pane.right .home-card').getByRole('button', { name: 'Find the bottom at the start' }).click();
         await typeIn(page, 'boundS', 3);
         await page.locator('.step[data-step="1"]').click();
         await typeIn(page, 'boundS', 3);

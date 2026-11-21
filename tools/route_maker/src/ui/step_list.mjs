@@ -9,6 +9,7 @@
 import { h, icon, askText, openMenu } from './dom.mjs';
 import { stepIcon, stepTitle, startTitle } from './words.mjs';
 import { isHidden, isLocked, sectionsOf, indicesOf } from '../model/step_view.mjs';
+import { isGentle } from '../model/gently.mjs';
 
 /** A small button on a card or a section's row (its click never selects the card). */
 const act = (label, ic, on, fn) => h('button', { class: `step-act${on ? ' on' : ''}`, type: 'button', 'aria-label': label, title: label,
@@ -100,7 +101,8 @@ export function renderStepList(el, app) {
         h('span', { class: 'step-icon' }, icon(stepIcon(step))),
         h('span', { class: 'step-main' },
             h('div', { class: 'step-title', title }, step.label ? h('span', { class: 'step-label' }, `${step.label}: `) : null, title),
-            h('div', { class: 'step-sub' }, hidden ? 'Hidden on the field · ' : '', locked ? 'Locked · ' : '', sub),
+            h('div', { class: 'step-sub' }, hidden ? 'Hidden on the field · ' : '', locked ? 'Locked · ' : '',
+              isGentle(step) ? h('span', { class: 'gently', title: 'Leave gently: waits, then backs out slowly' }, 'gently') : null, sub),  // RMP1-P
             pv ? h('div', { class: 'step-run', title: [pv.words, ...pv.library, pv.placeholder].filter(Boolean).join('\n') },
                    icon(pv.state === 'ok' ? 'check' : pv.state === 'skipped' ? 'minus' : pv.state === 'cut' ? 'warn' : 'error'),
                    h('span', {}, pv.state === 'ok' ? `Done in ${(pv.t1 - pv.t0).toFixed(2)} s` : pv.words),

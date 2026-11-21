@@ -30,6 +30,7 @@ export const SHORTCUTS = [
     ['+  /  -  /  0', 'Zoom in, out, fit the field'],
     ['Space + drag', 'Pan the field (any tool)'],
     ['Alt while dragging', 'No snapping'],
+    ['Ctrl while dragging a drive\'s point', 'Place it by the claw: the green cross (the claw) goes where you point, not snapped'],
     ['Shift on the heading knob', 'Turn by 1 degree instead of 15'],
     ['?', 'This list'],
 ];
@@ -51,6 +52,8 @@ export function openHelp(app) {
         h('p', {}, 'Build your routes on the real field (the skills route and any other you name: the Route button at the top): place robot one\'s start, add steps, and export the C++. Everything is in inches, degrees and seconds; 0 degrees faces the right wall and 90 faces blue. The dashed path is the PLAN — where the library is told to go.'),
         h('p', {}, 'A red mark is something the robot would refuse; its fix is one click away. Nothing is invented for you: a time limit stays empty until you type it.'),
         h('p', {}, 'The Controls tab: click a button on the controller to give it a job, or a used one to change it; the driving feel is its step 2. Ctrl+Z / Ctrl+Shift+Z undo and redo there too, and Ctrl+E exports the driver file\'s three parts.'),
+        h('p', {}, 'The Mechanisms tab: every mechanism on the robot — its ports, its buttons, its levels, the routes that use it — and Test, which moves it on the robot while the robot stays where it is.'),
+        h('p', { id: 'help-find' }, h('strong', {}, 'Find the bottom: '), 'the motors count turns from wherever they were at power-up, so the robot does not know the cascade\'s height until it pushes gently down onto its bottom stop and calls that 0 in. Do it before any move to a height.'),
         h('table', { class: 'keys' }, h('tbody', {}, SHORTCUTS.map(([k, w]) => h('tr', {}, h('td', {}, h('kbd', { class: 'k' }, k)), h('td', {}, w))))),
         h('div', { class: 'row', style: 'margin-top:16px' },
           h('button', { class: 'btn', onclick: () => { close(); app.showCoach(); } }, 'Show "your first route" again')));

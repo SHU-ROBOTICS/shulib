@@ -359,7 +359,7 @@ test('D7: a relative step from an UNKNOWN height is refused with "Home it first"
 test('D7, D8: the mechanism menu -- a lift: up / down / to / the bottom / home / wait (a level only when it has one); a pneumatic: one button per position', () => {
     const words = (m, levels) => mechanismActions(m, levels).map((a) => a.words);
     assert.deepEqual(words(LIFT, false), ['Go up _ in', 'Go down _ in', 'Move to _ in', 'Back to the bottom',
-                                          'Home it (find the bottom stop — do this first)', 'Wait until it is done']);
+                                          'Find the bottom (do this first)', 'Wait until it is done']);
     assert.ok(words(LIFT, true).includes('Move to a level'));
     assert.deepEqual(words(ARM, true).slice(0, 3), ['Turn up _ deg', 'Turn down _ deg', 'Move to _ deg']);
     assert.ok(!words(ARM, true).includes('Back to the bottom'));

@@ -20,11 +20,12 @@
 // Pure: no DOM, no file API.
 
 import { plannedPoses, MOTION_KINDS, MECHANISM_KINDS, CARE_MOTION_FIELDS, STEP_KINDS, ROUTE_NAME } from './route.mjs';
+import { gentlyProblems, isGentle, gentlyPatch } from './gently.mjs';
 import { CurvePath, checkCurve, curveCheckWords, CurveVerdict, kMaxCurvePoints } from './curve.mjs';
 import { squareCorners, dist, wrapDeg } from './geometry.mjs';
 import { libraryWords, tankNotSteeredWords } from './library_words.mjs';
 import { fmt, round3 } from './numbers.mjs';
-import { plannedHeights, targetKind, moveTarget, bottomOf, unitOf } from './lift.mjs';
+import { plannedHeights, targetKind, moveTarget, bottomOf, unitOf, homeEnd } from './lift.mjs';
 import { tooClose, startAwayFromLine } from './pair.mjs';
 import { otherAutons, routeCap } from './project.mjs';
 import { obstacleIssues } from './obstacles.mjs';
@@ -311,6 +312,10 @@ export function checkRoute(route, robots, field, ctx = {}) {
     route.steps.forEach((s, i) => {
         const p = plan[i];
         const nmb = (v) => Number.isFinite(v);
+        const leg = p && p.from && p.to ? dist(p.from.x, p.from.y, p.to.x, p.to.y) : NaN;
+        for (const [code, f, words] of gentlyProblems(s, leg)) {  // RMP1-P: Leave gently's bounds and time (page rules)
+            out.push(issue(code, 'error', i, f, words, f === 'gentlyWait' ? libraryWords('guardPause') : ''));
+        }
         // care: the motion options are validated finite and >= 0 by the library; 0 = the robot's own.
         if (s.care) {
             for (const f of CARE_MOTION_FIELDS) {
@@ -532,7 +537,7 @@ export function checkRoute(route, robots, field, ctx = {}) {
                     }
                 }
                 if ((s.do === 'move' || s.do === 'startMove') && mech.homing === 'never') {
-                    out.push(issue('RC25', 'error', i, 'mechanism', `${cap(rname)}'s ${mech.name} is never homed, so it can never move `
+                    out.push(issue('RC25', 'error', i, 'mechanism', `${cap(rname)}'s ${mech.name} never finds its zero, so it can never move `
                         + 'to a level (it only jogs).', '', { robot: robot.id }));
                 }
                 if (s.do === 'set' && s.position === undefined) {
@@ -542,8 +547,8 @@ export function checkRoute(route, robots, field, ctx = {}) {
                                    libraryWords('noPosition'), { robot: robot.id }));
                 }
                 if ((s.do === 'home' || s.do === 'startHome') && mech.homing === 'never') {
-                    out.push(issue('RC20', 'error', i, 'mechanism', `${cap(rname)}'s ${mech.name} is declared never homed: it has no `
-                        + 'way to find its zero.', libraryWords('homeNever'), { robot: robot.id }));
+                    out.push(issue('RC20', 'error', i, 'mechanism', `${cap(rname)}'s ${mech.name} has no way to find its zero (its robot `
+                        + 'file says it never does).', libraryWords('homeNever'), { robot: robot.id }));
                 }
             }
         }
@@ -578,21 +583,23 @@ export function checkRoute(route, robots, field, ctx = {}) {
                 const notHomed = states.find((st) => st.homed[s.mechanism] === 'no');
                 const running = states.find((st) => st.homed[s.mechanism] === 'running');
                 const failed = states.find((st) => st.homed[s.mechanism] === 'failed');
-                const how = mech.homing === 'stall' ? 'by pushing into its stop until it stalls' : 'by its switch';
+                const how = mech.homing === 'stall' ? 'by pushing gently onto its stop until it stalls' : 'by its switch';
+                const end = homeEnd(mech);  // RMP1-M D5: "find the bottom", never "home"
+                const find = end === 'zero' ? 'find its zero' : `find the ${end}`;
                 if (running) {
-                    out.push(issue('RC25', 'error', i, 'mechanism', `The ${mech.name} is still homing here: a move now REPLACES the home and `
-                        + `stops the route (NOT_HOMED). Wait for the ${mech.name}'s home before this move.`, '',
+                    out.push(issue('RC25', 'error', i, 'mechanism', `The ${mech.name} is still finding its ${end} here: a move now REPLACES `
+                        + `that and stops the route (NOT_HOMED). Wait for the ${mech.name} to ${find} before this move.`, '',
                     { robot: robot.id, fix: { kind: 'waitForHome', stepIndex: i, mechanism: s.mechanism } }));
                 } else if (notHomed) {
                     const all = states.every((st) => st.homed[s.mechanism] === 'no');
-                    out.push(issue('RC25', 'error', i, 'mechanism', `The ${mech.name} finds its zero only when it is HOMED (${how}); `
-                        + `${all ? 'nothing before this step homes it' : `on ${rname}, if ${notHomed.via}, the home is passed over`}, so `
-                        + 'this move stops the route (NOT_HOMED). Home it first.', '',
+                    out.push(issue('RC25', 'error', i, 'mechanism', `The ${mech.name} does not know where it is until it has found its ${end} `
+                        + `(${how}); ${all ? 'nothing before this step does that' : `on ${rname}, if ${notHomed.via}, that step is passed over`}, so `
+                        + `this move stops the route (NOT_HOMED). ${cap(find)} first.`, '',
                     { robot: robot.id, fix: { kind: 'homeFirst', stepIndex: i, mechanism: s.mechanism },
                       alsoFix: { kind: 'homeWhileDriving', stepIndex: i, mechanism: s.mechanism } }));
                 } else if (failed) {
-                    out.push(issue('RC25', 'warn', i, 'mechanism', `If the ${mech.name}'s home fails (${failed.via}), this move runs on an `
-                        + 'un-homed mechanism and stops the route (NOT_HOMED).', '', { robot: robot.id }));
+                    out.push(issue('RC25', 'warn', i, 'mechanism', `If the ${mech.name} fails to find its ${end} (${failed.via}), this move `
+                        + 'does not know where it is and stops the route (NOT_HOMED).', '', { robot: robot.id }));
                 }
             }
         });
@@ -601,7 +608,7 @@ export function checkRoute(route, robots, field, ctx = {}) {
     out.push(...pairIssues(route, plan, primary, field));
     out.push(...obstacleIssues(route, plan, robots, field, issue));  // RMP1-H: the goals and the Loaders
 
-    // A relative move on a mechanism nothing homed: RC25 says so and offers "Home it first" — RCL1 would say it twice.
+    // A relative move on a mechanism nothing homed: RC25 says so and offers "Find the bottom first" — RCL1 would say it twice.
     const homeRule = new Set(out.filter((x) => x.code === 'RC25' && x.level === 'error').map((x) => x.stepIndex));
     for (let k = out.length - 1; k >= 0; --k) {
         if (out[k].code === 'RCL1' && out[k].notHomed && homeRule.has(out[k].stepIndex)) {
@@ -640,8 +647,8 @@ function liftIssues(s, i, m, robot, before) {
     if ((tk === 'up' || tk === 'down') && before === null) {
         const homes = m.homing === 'stall' || m.homing === 'switch';
         return [issue('RCL1', 'error', i, tk, `${cap(tk)} ${fmt(s[tk])} ${u} from where? Where the ${m.name} is here is not known: `
-            + `nothing before this step ${homes ? 'homes it or ' : ''}moves it to a ${u === 'deg' ? 'angle' : 'height'}. `
-            + `${homes ? 'Home it first, or pick' : 'Pick'} a height instead: click its bar.`, '',
+            + `nothing before this step ${homes ? `finds its ${homeEnd(m)} or ` : ''}moves it to a ${u === 'deg' ? 'angle' : 'height'}. `
+            + `${homes ? `${homeEnd(m) === 'zero' ? 'Find its zero' : `Find the ${homeEnd(m)}`} first, or pick` : 'Pick'} a height instead: click its bar.`, '',
         { robot: robot.id, notHomed: homes, fix: homes ? { kind: 'homeFirst', stepIndex: i, mechanism: s.mechanism } : null })];
     }
     const target = moveTarget(s, m, before);
@@ -735,8 +742,10 @@ export function applyFix(route, fix, addStep, updateStep) {
         case 'moveStart':
             return { ...route, start: fix.start };
         case 'detour': {  // RMP1-H: a point beside the structure first; both legs turned first (the corner)
-            const r = addStep(route, { do: route.steps[fix.stepIndex].do, x: fix.x, y: fix.y, faceFirst: true }, fix.stepIndex);
-            return updateStep(r, fix.stepIndex + 1, { faceFirst: true });
+            const was = route.steps[fix.stepIndex];
+            const g = isGentle(was) ? { gentlyWaitS: was.gentlyWaitS, gentlySpeedInPerS: was.gentlySpeedInPerS } : {};  // RMP1-P: Leave gently goes first
+            const r = addStep(route, { do: was.do, x: fix.x, y: fix.y, faceFirst: true, ...g }, fix.stepIndex);
+            return updateStep(r, fix.stepIndex + 1, { faceFirst: true, ...(isGentle(was) ? gentlyPatch(false) : {}) });
         }
         case 'liftPatch':
             return updateStep(route, fix.stepIndex, { up: undefined, down: undefined, to: undefined, bottom: undefined, preset: undefined, ...fix.patch });

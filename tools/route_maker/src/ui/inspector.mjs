@@ -4,16 +4,19 @@
 // route's name. Nothing here invents a number: an empty time limit stays empty until the student types one, or clicks
 // the one PREVIEW measured (RMP1-J D4).
 // RMP1-G: under the title, one line each when it applies — "2 of 3 here" (a click on a crowded spot), hidden, locked.
+// RMP1-O: a drive step says where its claw reaches; "Place by the claw" types (and drags) the claw's point instead.
 
 import { h, icon, mount } from './dom.mjs';
-import { parseTyped, fmt } from '../model/numbers.mjs';
-import { stepTitle, stepIcon, KIND_LABEL, HOMING_WORDS } from './words.mjs';
+import { parseTyped, fmt, round3 } from '../model/numbers.mjs';
+import { stepTitle, stepIcon, KIND_LABEL, homingWords } from './words.mjs';
 import { ROUTE_NAME, startPose, MECHANISM_KINDS } from '../model/route.mjs';
-import { targetKind, unitOf, bottomOf, plannedHeights } from '../model/lift.mjs';
+import { targetKind, unitOf, bottomOf, plannedHeights, findWord } from '../model/lift.mjs';
 import { heightPatch, barPick, asHeight, waitsFor, WAIT_PAIR, limitOf, limitHint, limitWords, homeCard } from '../model/mech_steps.mjs';
 import { reflect } from '../model/pair.mjs';
+import { isBackUp, isGentle, gentleSpeed, GENTLY, gentlyPatch } from '../model/gently.mjs';
 import { isHidden, isLocked } from '../model/step_view.mjs';
 import { touchOnPurpose } from './field_obstacles.mjs';
+import { clawSpotOf, clawAt, centreForClaw, clawLeg } from '../model/claw.mjs';
 
 /**
  * A number with its unit. Empty means "nothing typed" (the step keeps its hole, and the checks ask for it);
@@ -54,8 +57,9 @@ function select(label, value, options, onSet, name) {
 
 function issueBox(issue, app) {
     const fixes = [];
-    const fixWords = { faceFirst: 'Turn to face it first', homeFirst: 'Home it first', homeWhileDriving: 'Home it while the first leg drives',
-                       waitForHome: 'Wait for the home first', faceCurveStart: issue.fix && issue.fix.away ? 'Turn its back to the first point first' : 'Turn to face the first point first',
+    const mech = issue.fix && ((app.robot() || {}).mechanisms || []).find((x) => x.ident === issue.fix.mechanism);  // RMP1-M D5
+    const fixWords = { faceFirst: 'Turn to face it first', homeFirst: `${findWord(mech, true)} first`, homeWhileDriving: `${findWord(mech, true)} while the first leg drives`,
+                       waitForHome: 'Wait for it first', faceCurveStart: issue.fix && issue.fix.away ? 'Turn its back to the first point first' : 'Turn to face the first point first',
                        nameSkills: 'Name it "skills"', together: 'Yes, at the same time' };
     for (const f of [issue.fix, issue.alsoFix]) {
         if (f) {
@@ -108,6 +112,27 @@ function failSection(step, i, app) {
         h('label', { class: 'fld' }, h('span', {}, 'Label (a name a skip can land on)'),
           h('input', { class: 'txt', type: 'text', value: step.label || '', name: 'label', 'aria-label': 'Label', maxlength: 29,
                        onchange: (e) => app.update(i, { label: e.target.value.trim() === '' ? undefined : e.target.value.trim() }) })));
+}
+
+/** RMP1-P: a Back up's first control -- "Leave gently": wait, then back out slowly; its two numbers under it when on. */
+function leaveGently(step, i, app, issuesOf) {
+    if (!isBackUp(step)) {
+        return null;
+    }
+    const on = isGentle(step);
+    const w = on ? step.gentlyWaitS : GENTLY.waitS;
+    const v = on ? gentleSpeed(step) : GENTLY.speedInPerS;
+    const said = (x, u) => (x === 0.5 ? '½' : Number.isFinite(x) ? fmt(x) : '?') + u;
+    const turn = step.do === 'reverseTo' && step.faceFirst ? 'turns at its own speed, ' : '';
+    const hole = (k) => (x) => app.update(i, { [k]: x === undefined ? null : x });  // emptied: still on, the check asks
+    return h('div', { class: 'section gently' },
+        toggle('Leave gently', `waits ${said(w, ' s')}, ${turn}then backs out slowly (${said(v, ' in/s')})`, on,
+               (x) => app.update(i, gentlyPatch(x)), 'leaveGently'),
+        on ? h('div', { class: 'field-row' },
+            numField('Wait first', step.gentlyWaitS, 's', hole('gentlyWaitS'),
+                     { placeholder: '0.5', bad: issuesOf('gentlyWait').length > 0, name: 'gentlyWait' }),
+            numField('Back out at', step.gentlySpeedInPerS, 'in/s', hole('gentlySpeedInPerS'),
+                     { placeholder: '5', bad: issuesOf('gentlySpeed').length > 0, name: 'gentlySpeed' })) : null);
 }
 
 // ── RMP1-J: a mechanism step, one idea at a time — the home card (D6), where it goes (D2), wait or keep driving (D3),
@@ -205,10 +230,9 @@ function limitLine(step, i, app, current, use) {
 
 /** D6: the first height move of a mechanism the route never homes — one card, one click (today's fix). */
 function homeCardBox(card, app) {
-    const lift = card.m.kind === 'lift';
     return h('div', { class: 'home-card', role: 'status' }, h('span', { class: 'ic' }, icon('home')),
-        h('div', {}, h('strong', {}, `The ${card.m.name} must find its ${lift ? 'bottom' : 'zero'} first.`),
-          h('div', { class: 'row' }, h('button', { class: 'btn primary', type: 'button', onclick: () => app.fix(card.fix) }, 'Home it at the start'),
+        h('div', {}, h('strong', {}, `The ${card.m.name} must ${findWord(card.m)} first.`),
+          h('div', { class: 'row' }, h('button', { class: 'btn primary', type: 'button', onclick: () => app.fix(card.fix) }, `${findWord(card.m, true)} at the start`),
             h('small', {}, 'while the first leg drives'))));
 }
 
@@ -219,7 +243,7 @@ function mechanismFields(step, i, app, issues) {
     const out = [select('Mechanism', step.mechanism, [...(m ? [] : [[step.mechanism, `${step.mechanism} (not on this robot)`]]),
         ...mechs.map((x) => [x.ident, `${x.name} (${KIND_LABEL[x.kind] || x.kind})`])], (v) => app.update(i, { mechanism: v }), 'mechanism')];
     if (m && (step.do === 'home' || step.do === 'startHome')) {
-        out.push(h('p', { class: 'hint' }, `The ${m.name} ${HOMING_WORDS[m.homing] || ''}.`));
+        out.push(h('p', { class: 'hint' }, `The ${m.name} ${homingWords(m)}.`));
     }
     if ((step.do === 'move' || step.do === 'startMove') && m && (m.kind === 'arm' || m.kind === 'lift')) {
         out.push(heightControl(step, i, app, m, issues));
@@ -276,6 +300,49 @@ function viewLines(step, i, st, app) {
     ];
 }
 
+// ── RMP1-O: the claw ──
+
+/** Where the robot's claw is at the end of step `i` (null: no claw, or no pose). */
+function clawEnd(i, app) {
+    const spot = clawSpotOf(app.robot());
+    const to = app.plan()[i] && app.plan()[i].to;
+    return spot && to && [to.x, to.y, to.headingDeg].every(Number.isFinite) ? clawAt(to, spot) : null;
+}
+
+/** One line: where the claw reaches (or, placing by the claw, where the centre is). */
+function clawLine(step, i, app) {
+    const c = clawEnd(i, app);
+    if (!c) {
+        return null;
+    }
+    const byClaw = app.state().byClaw && (step.do === 'driveTo' || step.do === 'reverseTo');
+    // backing, the claw trails: the robot's body crosses the spot first, so a pin there is pushed, not grabbed
+    const back = ['reverseTo', 'reverseCurveTo', 'backward'].includes(step.do) ? ', after the robot backs over it (to grab, drive forward)' : '';
+    return h('p', { class: 'hint claw-line', 'data-claw-line': '' }, byClaw
+        ? `The robot's centre: (${fmt(step.x)}, ${fmt(step.y)}).` : `The claw reaches (${fmt(c.x)}, ${fmt(c.y)})${back}.`);
+}
+
+/** The claw's x and y, typed: the step's centre computed back along its leg (a refusal in words). */
+function clawPoint(step, i, app) {
+    const c = clawEnd(i, app);
+    const leg = clawLeg(step, app.plan()[i]);
+    if (!c || !leg) {
+        return null;
+    }
+    const said = h('small', { class: 'not-a-number', role: 'alert', hidden: true });
+    const set = (k) => (v) => {
+        const r = v === undefined ? null : centreForClaw({ ...c, [k]: v }, leg.from, clawSpotOf(app.robot()), leg);
+        if (r && r.refused) {
+            said.textContent = r.refused;
+            said.hidden = false;
+        } else if (r) {
+            app.update(i, { x: r.x, y: r.y });
+        }
+    };
+    return [h('div', { class: 'field-row' }, numField('Claw x', round3(c.x), 'in', set('x'), { name: 'clawX' }),
+        numField('Claw y', round3(c.y), 'in', set('y'), { name: 'clawY' })), said];
+}
+
 /** Render the inspector into `el`. */
 export function renderInspector(el, app) {
     const st = app.state();
@@ -323,7 +390,11 @@ export function renderInspector(el, app) {
     switch (step.do) {
         case 'driveTo':
         case 'reverseTo':
-            body.push(point());
+            body.push((st.byClaw && clawPoint(step, i, app)) || point(), clawLine(step, i, app));
+            if (clawSpotOf(app.robot())) {
+                body.push(toggle('Place by the claw', 'drag or type the claw\'s point (or hold Ctrl while dragging)', !!st.byClaw,
+                                 (v) => app.setByClaw(v), 'byClaw'));
+            }
             if (app.robot() && app.robot().drive && app.robot().drive.tank) {
                 body.push(toggle(step.do === 'reverseTo' ? 'Turn its back to the point first' : 'Turn to face it first',
                                  `a tank steers back onto its line only within ${fmt(app.robot().drive.maxSteerDeg)} deg`, !!step.faceFirst,
@@ -338,7 +409,8 @@ export function renderInspector(el, app) {
             body.push(h('div', { class: 'field-row one' }, numField(step.do === 'forward' ? 'Drive forward' : 'Back up', step.inches, 'in',
                 (v) => app.update(i, { inches: v }), { placeholder: 'type it', bad: !Number.isFinite(step.inches), name: 'inches' })));
             body.push(h('p', { class: 'hint' }, q ? `Straight ${step.do === 'forward' ? 'on' : 'back'} from where the robot is, to (${fmt(q.x)}, ${fmt(q.y)}): `
-                + 'the point the code drives to. Move a step before it and this follows.' : 'Straight on from where the robot is (the step before it).'));
+                + 'the point the code drives to. Move a step before it and this follows.' : 'Straight on from where the robot is (the step before it).'),
+                clawLine(step, i, app));
             body.push(toggle('Backwards', 'the robot\'s back leads', step.do === 'backward', (v) => app.update(i, { do: v ? 'backward' : 'forward' }), 'backwards'));
             body.push(careSection(step, i, app, issuesOf));
             break;
@@ -368,7 +440,8 @@ export function renderInspector(el, app) {
                 h('td', {}, numField('nose', p.headingDeg, '°', (v) => setPt(k, { headingDeg: v }), { placeholder: 'any' })),
                 h('td', {}, h('button', { class: 'btn icon ghost', 'aria-label': `Remove point ${k + 1}`, disabled: pts.length <= 1,
                                           onclick: () => app.update(i, { points: pts.filter((_, j) => j !== k) }) }, icon('trash'))))))));
-            body.push(h('p', { class: 'hint' }, 'Drag a point on the field. "nose" is the way the robot faces there (empty: the library picks the smooth way).'));
+            body.push(h('p', { class: 'hint' }, 'Drag a point on the field. "nose" is the way the robot faces there (empty: the library picks the smooth way).'),
+                clawLine(step, i, app));
             body.push(toggle('Backwards', 'the robot\'s back leads; every heading is still its nose', step.do === 'reverseCurveTo',
                              (v) => app.update(i, { do: v ? 'reverseCurveTo' : 'curveTo' }), 'backwards'));
             body.push(careSection(step, i, app, issuesOf));
@@ -387,6 +460,7 @@ export function renderInspector(el, app) {
         viewLines(step, i, st, app),
         top.map((x) => issueBox(x, app)),
         card ? homeCardBox(card, app) : null,
+        leaveGently(step, i, app, issuesOf),  // RMP1-P
         body,
         touchOnPurpose(step, i, app),  // RMP1-H
         failSection(step, i, app),

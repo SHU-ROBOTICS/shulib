@@ -4,11 +4,13 @@
 //   * Watch the robot (D2): the brain's own lines (run_log.mjs) mark the step list — done, started, stopped (the robot's
 //     words), failed and carried on, skipped — with one summary line coloured by the robot's own verdict, the END estimate
 //     on the field (a LIVE one only), and the raw lines folded; an edit to the route after its run clears its marks;
-//   * What is on robot one (D5): each slot against the wanted table.
+//   * What is on robot one (D5): each slot against the wanted table;
+//   * RMP1-M: Test one mechanism (or every one) from the Mechanisms tab — the same screen, Send and write-back.
 // One idea per screen; the one highlighted button is the next thing to do.
 
 import { h, s, icon, mount } from './dom.mjs';
-import { checkRoute as buildCheck, checkName, checkWords } from '../model/check_route.mjs';
+import { cameraCard } from './camera_view.mjs';
+import { checkRoute as buildCheck, checkName, checkWords, mechanismTest, isCheckName } from '../model/check_route.mjs';
 import { newWatch, readLine, summaryWords, runTone, pageMarks, routeVerbs, runDiffers } from '../model/run_log.mjs';
 import { libraryCalls, exportRegion } from '../model/export.mjs';
 import { checkRoute as issuesOf } from '../model/checks.mjs';
@@ -151,9 +153,12 @@ export function createRunView(app, { local, fieldSvg }) {
         mount(el,
             h('div', { class: `rk-status ${tone}` },
               icon(tone === 'bad' ? 'error' : tone === 'warn' ? 'warn' : tone === 'ok' ? 'check' : 'play'), h('strong', { id: 'rk-summary' }, head)),
+            cameraCard(watch, raw, mode),  // RMP1-N: the Camera tab, only when the robot prints [CAM] lines
             how ? h('p', { class: 'rk-how' }, how) : null,
             run && run.end && !run.end.live ? h('p', { class: 'rk-how', id: 'rk-notlive' }, 'Its END estimate was NOT LIVE (the robot does not trust it): not drawn.') : null,
-            other ? h('p', { class: 'rk-how' }, `This run is of "${other}": switch to that route to see its steps.`) : null,
+            other ? h('p', { class: 'rk-how' }, isCheckName(other) && !app.routes().some((r) => checkName(r, app.robot()) === other)
+                ? `This run is a test of the mechanisms ("${other}"): the Mechanisms tab ticks its cards.`
+                : `This run is of "${other}": switch to that route to see its steps.`) : null,
             check && !differs ? h('p', { class: 'rk-how' }, 'A check of this route\'s mechanisms: its mechanism steps are marked.') : null,
             differs ? h('p', { class: 'rk-why', id: 'rk-differs' }, differs) : null,
             fold,
@@ -231,40 +236,52 @@ export function createRunView(app, { local, fieldSvg }) {
     /** Check the mechanisms: the one screen that says what will move, then Send. */
     function check() {
         const route = app.route();
-        const robot = app.robot();
-        const d = dialog(`Check the mechanisms of "${route.name}"`);
-        const c = buildCheck(route, robot, app.routes());
+        confirmSend(`Check the mechanisms of "${route.name}"`, buildCheck(route, app.robot(), app.routes()), app.robot());
+    }
+    /** RMP1-M D3: test mechanisms `idents` (null: every one) of robot `robotId` — the same screen, Send and write-back;
+     *  `onSend(route)` once it is written, `onEnd(end)` when its send has ended (the send panel's end, or nothing). */
+    function test(idents, robotId, { onSend, onEnd } = {}) {
+        const t = mechanismTest(idents, app.baked.robots[robotId], app.routes());
+        const one = idents && idents.length === 1 && app.baked.robots[robotId].mechanisms.find((m) => m.ident === idents[0]);
+        confirmSend(one ? `Test the ${one.name}` : 'Test every mechanism', t, app.baked.robots[robotId], { only: robotId, left: t.left, onSend, onEnd });
+    }
+    function confirmSend(title, c, robot, { only = null, left = [], onSend = () => {}, onEnd = () => {} } = {}) {
+        const d = dialog(title);
         const errs = c.route ? [...app.issues().filter((x) => x.level === 'error'), ...app.otherErrors(),
                                 ...issuesOf(c.route, robotsFor(c.route), app.field(), { routes: [...app.routes(), c.route], index: app.routes().length })
                                     .filter((x) => x.level === 'error')] : [];
-        if (!c.route || errs.length) {
-            mount(d.body, h('p', { class: 'rk-why' }, c.route ? `Fix the routes' errors first (Export lists them): ${errs[0].words}` : c.why));
+        const to = only ? [only] : sendRobots();
+        if (!c.route || errs.length || !sendRobots().includes(to[0])) {
+            mount(d.body, h('p', { class: 'rk-why' }, !c.route ? c.why : errs.length ? `Fix the routes' errors first (Export lists them): ${errs[0].words}`
+                : `Robot ${to[0]}'s build does not take the routes yet: nothing is sent.`));
             return;
         }
         const words = checkWords(c.route, robot).split('; ');
-        const go = sendRobots().map((r, k) => h('button', { class: `btn${k === 0 ? ' primary' : ''}`, 'data-check': r, onclick: () => send(r) },
-            icon('send'), `Send the check to robot ${r}`));
+        const go = to.map((r, k) => h('button', { class: `btn${k === 0 ? ' primary' : ''}`, 'data-check': r, onclick: () => send(r) },
+            icon('send'), `Send the ${only ? 'test' : 'check'} to robot ${r}`));
         mount(d.body,
             h('p', {}, 'On the brain it is ', h('strong', {}, `"${c.route.name}"`), '. It moves:'),
             h('ul', { class: 'rk-moves' }, words.map((w) => h('li', {}, w))),
             h('p', { class: 'rk-safe' }, icon('warn'), 'The robot stays where it is — clear the mechanisms\' paths.'),
+            left.length ? h('p', { class: 'hint', id: 'rk-left' }, `Not tested: ${left.map((x) => x.why).join(' ')}`) : null,
             h('div', { class: 'row' }, go));
         go[0].focus();
         async function send(robotId) {
             go.forEach((b) => { b.disabled = true; });
             const files = app.files();
-            const out = await files.exportToFile([...app.routes(), c.route], app.project(), { robot });
+            const out = await files.exportToFile([...app.routes(), c.route], app.project(), { robot: app.robot() });
             if (!out.ok) {
                 mount(d.body, h('p', { class: 'rk-why' }, `Not written: ${out.words}`));
                 return;
             }
+            onSend(c.route);
             app.setProject(out.project, 'exported');
             await app.saveQuietly().catch(() => false);
             mount(d.body, h('p', {}, `Sending "${c.route.name}" to robot ${robotId}…`), app.sendPanel.element,
                 h('p', { class: 'hint' }, 'When the upload ends, the check comes out of src/team/skills_route.cpp again.'));
-            await app.sendPanel.start(robotId);
+            const end = await app.sendPanel.start(robotId);
             // The check is the brain's alone: the team's file is written back without it, however the send ended.
-            const back = await files.exportToFile(app.routes(), app.project(), { robot }).catch((e) => ({ ok: false, words: e.message }));
+            const back = await files.exportToFile(app.routes(), app.project(), { robot: app.robot() }).catch((e) => ({ ok: false, words: e.message }));
             if (back.ok) {
                 app.setProject(back.project, 'exported');
                 await app.saveQuietly().catch(() => false);
@@ -275,6 +292,7 @@ export function createRunView(app, { local, fieldSvg }) {
             if (!back.ok) {
                 app.toast(said, 'error');
             }
+            onEnd(end);
         }
     }
 
@@ -303,5 +321,5 @@ export function createRunView(app, { local, fieldSvg }) {
             h('p', { class: 'hint' }, 'Read-only: nothing on the brain was changed.'));
     }
 
-    return { element: el, markCard, watch: startWatch, stopWatch, check, slots, state: () => ({ watch, mode, said }) };
+    return { element: el, markCard, watch: startWatch, stopWatch, check, test, slots, state: () => ({ watch, mode, said }) };
 }

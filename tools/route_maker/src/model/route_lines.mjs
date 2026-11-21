@@ -14,6 +14,7 @@
 //   step do=curveTo p=0,-50 p=12,-36,90 skipTo=finish
 //   step do=move mech=cascade preset=L2 bound=2
 //   step do=moveTo mech=cascade to=18 bound=2  (RMP1-C D7: up / down / to / the bottom, as the height the export writes)
+//   step do=reverseTo x=-40 y=-55.7 face=0 speed=5 wait=0.5  (RMP1-P: Leave gently -- the wait, then the back-up)
 //
 // A "drive forward / back up N in" step (D9) is the driveTo / reverseTo the export writes, its point from the plan.
 // Pure: no DOM, no file API. It THROWS on a route it cannot express (the checks refuse those first).
@@ -21,6 +22,7 @@
 import { fmt } from './numbers.mjs';
 import { CARE_MOTION_FIELDS, MOTION_KINDS, plannedPoses } from './route.mjs';
 import { plannedHeights, targetKind, moveTarget } from './lift.mjs';
+import { isGentle, capped } from './gently.mjs';
 
 /** The line format's version (the runner refuses another). */
 export const LINES_VERSION = 1;
@@ -133,11 +135,17 @@ export function routeLines(route, robot) {
             default:
                 throw new Error(`route lines: the engine cannot run a "${step.do}" step`);
         }
-        const care = step.care || {};
+        if (isGentle(step)) {
+            need(step.gentlySpeedInPerS, 'Leave gently\'s speed');
+        }
+        const care = capped(step).care || {};  // RMP1-P: a gentle back-up's own speed
         for (const f of MOTION_KINDS.has(step.do) ? CARE_MOTION_FIELDS : []) {  // as the export: a motion's only
             if (care[f] !== undefined && care[f] !== 0) {
                 w.push(`${CARE_KEY[f]}=${fmt(care[f])}`);
             }
+        }
+        if (isGentle(step)) {
+            w.push(`wait=${fmt(need(step.gentlyWaitS, 'Leave gently\'s wait'))}`);
         }
         if (step.label) {
             w.push(`label=${enc(step.label)}`);

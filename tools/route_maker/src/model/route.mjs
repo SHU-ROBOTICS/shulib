@@ -23,6 +23,7 @@
 //   home / startHome      {mechanism, boundS}         r.home / r.startHome (an arm or a lift)
 //   waitUntilDone         {mechanism, boundS}         r.waitUntilDone
 //   wait                  {seconds}                   the run guard's pause (never r.pause: it cannot be cut)
+// RMP1-P: a Back up (reverseTo / backward) may carry `gentlyWaitS` and `gentlySpeedInPerS` -- "Leave gently" (gently.mjs).
 // and on EVERY step: `label` (a name a skip can land on), `touches` (RMP1-H: the ids of field structures it touches on
 // purpose -- page-only, silences their "too close"), and `care` — {timeoutS, maxSpeedInPerS, maxTurnDegPerS,
 // toleranceIn, toleranceDeg} on a motion (0 or absent = the robot's own), and `onFail`: "stop" (the default,
@@ -55,8 +56,8 @@ export const MECHANISM_KINDS = new Set(['move', 'startMove', 'set', 'run', 'star
 export const CARE_MOTION_FIELDS = Object.freeze(['timeoutS', 'maxSpeedInPerS', 'maxTurnDegPerS', 'toleranceIn', 'toleranceDeg']);
 /** Every field a step of THIS builder carries (D3: a file with any other is from a newer builder, refused). */
 export const STEP_KEYS = Object.freeze(['label', 'do', 'x', 'y', 'faceFirst', 'headingDeg', 'points', 'inches', 'mechanism', 'preset',
-                                        'up', 'down', 'to', 'bottom', 'position', 'volts', 'forS', 'boundS', 'seconds', 'care',
-                                        'touches', 'view']);
+                                        'up', 'down', 'to', 'bottom', 'position', 'volts', 'forS', 'boundS', 'seconds', 'gentlyWaitS',
+                                        'gentlySpeedInPerS', 'care', 'touches', 'view']);
 /** Every field of a step's `care` this builder knows. */
 export const CARE_KEYS = Object.freeze([...CARE_MOTION_FIELDS, 'onFail']);
 /** Every field of a curve point. */
@@ -82,7 +83,7 @@ export function newRoute(name = 'skills') {
     };
 }
 
-const NUMBER_FIELDS = ['x', 'y', 'inches', 'up', 'down', 'to', 'boundS', 'volts', 'forS', 'seconds'];
+const NUMBER_FIELDS = ['x', 'y', 'inches', 'up', 'down', 'to', 'boundS', 'volts', 'forS', 'seconds', 'gentlyWaitS', 'gentlySpeedInPerS'];
 
 /** True for a value that means "nothing typed": absent, null (JSON's form of a lost number) or empty. */
 const blank = (v) => v === undefined || v === null || v === '';
@@ -117,7 +118,7 @@ export function normalizeStep(step) {
     }
     out.do = step.do;
     const order = ['x', 'y', 'faceFirst', 'headingDeg', 'points', 'inches', 'mechanism', 'preset', 'up', 'down', 'to', 'bottom',
-                   'position', 'volts', 'forS', 'boundS', 'seconds'];
+                   'position', 'volts', 'forS', 'boundS', 'seconds', 'gentlyWaitS', 'gentlySpeedInPerS'];
     for (const k of order) {
         if (step[k] === undefined) {
             continue;
@@ -126,8 +127,8 @@ export function normalizeStep(step) {
             const v = round3(Number(step[k]));
             if (!Number.isNaN(v) && step[k] !== null && step[k] !== '') {
                 out[k] = v;  // an empty or unreadable number is left OUT: the checks ask for it by name
-            } else if (TARGET_KEYS.includes(k)) {
-                out[k] = null;  // "go up _ in" before the number is typed: WHICH move it is stays (the checks ask for it)
+            } else if (TARGET_KEYS.includes(k) || k.startsWith('gently')) {
+                out[k] = null;  // "go up _ in" (or Leave gently) before the number is typed: it stays (the checks ask for it)
             }
         } else if (k === 'headingDeg') {
             const v = round3(wrapDeg(round3(Number(step[k]))));
