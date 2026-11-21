@@ -812,3 +812,28 @@ input.num.bad { border-color: var(--failed); }
 .rk-slots tr.bad .rk-mark { color: var(--failed); font-weight: 700; }
 .rk-slots tr.first { background: var(--error-soft); }
 /* ── end Mechanism check and run view (RMP1-K) ── */
+
+/* ── The Camera tab (RMP1-N) ── Watch the robot: one sentence over the camera's picture. The picture is dark in both
+   themes (a camera's view); with Camera picked, the run's lines step aside (all but the buttons, and the status while it
+   is red or the watch is not live: "Sending to the robot…", "Stopped watching."). */
+.cam-tabs { align-self: flex-start; }
+.run-view:has(> .cam[data-tab="camera"]) > :not(.cam, .row, .rk-status) { display: none; }
+.run-view:has(> .cam[data-tab="camera"][data-mode="live"]) > .rk-status:not(.bad) { display: none; }
+.cam-body { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-2); }
+.cam-sees { margin: 0; font-size: var(--t-lg); font-weight: 600; overflow-wrap: anywhere; }
+.cam-age { display: block; font-size: var(--t-sm); font-weight: 450; color: var(--text-muted); }
+.cam-edge { margin: 0; font-size: var(--t-sm); color: var(--text-muted); }
+.cam-frame { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; border-radius: var(--radius-sm);
+  outline: 1px solid var(--border); outline-offset: -1px; }
+.cam-bg { fill: #14121b; }
+.cam-box rect { fill: none; stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.cam-box text { font-family: var(--font-ui); font-weight: 700; paint-order: stroke; stroke: #14121b; stroke-width: 3px; }
+.cam-box[data-kind="tag"] rect { stroke: #ffd24d; }
+.cam-box[data-kind="tag"] text { fill: #ffd24d; }
+.cam-box[data-kind="obj"] rect { stroke: #5cd0ff; }
+.cam-box[data-kind="obj"] text { fill: #5cd0ff; }
+.cam-box[data-kind="col"] rect { stroke: #ff8ad8; }
+.cam-box[data-kind="col"] text { fill: #ff8ad8; }
+.cam-frame.stale .cam-box rect { stroke: #77737f; }
+.cam-frame.stale .cam-box text { fill: #77737f; }
+/* ── end The Camera tab (RMP1-N) ── */

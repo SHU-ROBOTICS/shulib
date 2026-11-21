@@ -302,6 +302,14 @@ colour, and the robot's END estimate (when it is LIVE) is the dashed square on t
 A program built before API 2.11 marks the steps when the run ends. Change the route after a run and its marks are
 cleared. **Show the robot's log** has every line, and each watch is saved in `build/robot_runs/` for the coordinator.
 
+**Camera.** Watching **shulib Drive** on a robot with an AI Vision sensor, the **Camera** tab beside **Run** draws what
+the camera sees, ten times a second — each AprilTag with its number, each object with its score, each colour with its
+number, said in one line above — and greys it when the camera stops reporting it. Open **Watch the robot** before you
+start Drive: the camera's port and its model's object names are printed only as Drive starts. Without a name an object
+shows its number, `class 0` (on 2026-11-20 the camera printed no names).
+
+![The Camera tab: "Sees: AprilTag 3, redBluePin (87 %), colour 2", the tag boxed in yellow with its 3, the Pin boxed in blue with its name and score, the colour boxed in pink with its number](../assets/route-builder/camera.png)
+
 **What is on robot one.** Each slot against what should be there: the first wrong one is red, with its fix. It only
 reads. (In VS Code: **Terminal → Run Task → What is on robot one**.)
 

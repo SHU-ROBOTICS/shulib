@@ -1387,13 +1387,16 @@ own site (the Source lines below).
   edge (from camera's view)" and "top edge"; api.vex.com's `originX/Y`).
   *Source:* `include/shulib/hal/vision_frames.hpp` (`Detection`, `kVisionImageWidthPx`/`HeightPx`),
   `include/shulib/vision/camera_geometry.hpp` (its frames), `include/shulib/hal/pros/ai_vision.hpp` (the
-  copy out of the packed record).
+  copy out of the packed record), and the route builder's Camera tab, `tools/route_maker/src/model/camera_log.mjs`
+  (its 320 x 240 picture, an object's or colour's box from its left and top edges — RMP1-N).
   *Confidence:* reasoned.
   *Settle (Step 0.2):* a Pin moved left and right, up and down — the numbers move the stated way; a box
   at the image's edge reads 0 / 319 / 239.
   *Blast radius if wrong:* a flipped axis flips every bearing or every elevation — and the host camera model
-  SHARES this belief (it is the one thing its independence cannot catch), so no host test can see it.
-  **Contained:** two constants and the adapter's one copy.
+  SHARES this belief (it is the one thing its independence cannot catch), so no host test can see it. The
+  Camera tab draws its boxes misplaced, or past its picture (it then says so in one line).
+  **Contained:** two constants and the adapter's one copy (the Camera tab's own 320 x 240 is pinned to those
+  constants by `tools/route_maker/test/camera_log.test.mjs`).
 
 - [ ] **HA-194 — the camera's optics are 74 x 63 degrees, the axis square to the housing's back face.**
   *Claim:* a 74-degree by 63-degree field of view over 320 x 240 — two focal lengths, 212.3 and 195.8 px, never

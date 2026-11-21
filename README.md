@@ -135,8 +135,9 @@ current state, so here it is, third heading from the top:
   from. **It has run on robot two (2026-09-24): one run stopped on its own consistency check and
   one finished with no log captured, so its recorded reproduction run is still owed.** Every
   threshold in it is an invented first guess, proven against the host test plant.
-- The vision/AprilTag corrector exists, but **no camera has ever been pointed at a tag by this
-  project**, and the library deliberately ships **no map of where the tags are** — that is your
+- The vision/AprilTag corrector exists, but **it has never run on a real camera's tags** (a camera
+  first reported tags to this project on 2026-11-20, as ids and boxes in shulib Drive's trace), and
+  the library deliberately ships **no map of where the tags are** — that is your
   input, and nobody here can cite one. Its accuracy claims are simulation claims
   ([chapter 14](docs/guide/14-what-it-cannot-do-yet.md) states exactly what was measured and on
   what). No no-code routine authoring either — routines are written in C++ today.

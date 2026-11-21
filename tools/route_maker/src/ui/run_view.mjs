@@ -8,6 +8,7 @@
 // One idea per screen; the one highlighted button is the next thing to do.
 
 import { h, s, icon, mount } from './dom.mjs';
+import { cameraCard } from './camera_view.mjs';
 import { checkRoute as buildCheck, checkName, checkWords } from '../model/check_route.mjs';
 import { newWatch, readLine, summaryWords, runTone, pageMarks, routeVerbs, runDiffers } from '../model/run_log.mjs';
 import { libraryCalls, exportRegion } from '../model/export.mjs';
@@ -151,6 +152,7 @@ export function createRunView(app, { local, fieldSvg }) {
         mount(el,
             h('div', { class: `rk-status ${tone}` },
               icon(tone === 'bad' ? 'error' : tone === 'warn' ? 'warn' : tone === 'ok' ? 'check' : 'play'), h('strong', { id: 'rk-summary' }, head)),
+            cameraCard(watch, raw, mode),  // RMP1-N: the Camera tab, only when the robot prints [CAM] lines
             how ? h('p', { class: 'rk-how' }, how) : null,
             run && run.end && !run.end.live ? h('p', { class: 'rk-how', id: 'rk-notlive' }, 'Its END estimate was NOT LIVE (the robot does not trust it): not drawn.') : null,
             other ? h('p', { class: 'rk-how' }, `This run is of "${other}": switch to that route to see its steps.`) : null,
