@@ -65,7 +65,8 @@ export function createPreview(app, els, engine, baked, toast) {
         const p = st.play;
         const robot = (run) => run && { id: run.id, pose: poseAt(run.samples, st.t), path: run.path, upTo: sampleIndexAt(run.samples, st.t),
                                         throughAt: run.through ? run.through.s : null,
-                                        size: ((baked.robots[run.record.robot] || {}).drive || {}).footprintIn || 15 };
+                                        size: ((baked.robots[run.record.robot] || {}).drive || {}).footprintIn || 15,
+                                        robot: baked.robots[run.record.robot] };  // RMP1-O: its claw
         els.fieldView.drawRun({ key: st.key, robots: [robot(p.one), robot(p.two)].filter(Boolean), pair: p.pair });
         const i = stepAt(p, st.t);
         if (i !== st.stepIndex) {

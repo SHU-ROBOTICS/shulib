@@ -311,7 +311,7 @@ TEST_CASE("robot one facts (T3): Stage A for all six programs, Stage B for Drive
                      // (2026-11-17), the cascade's most volts DOWN (2026-11-20, API 2.10), its soft top and its
                      // three hold gains (2026-11-20)
     CHECK(owedB == 0);  // 2026-11-17: station 13's rows, the chosen volts, the directions and levels -- all typed
-    CHECK(recorded == 2);
+    CHECK(recorded == 3);  // the camera's port and mount, and the claw's grab spot (RMP1-O, 2026-11-20)
     CHECK(facts::owedFor(Program::BenchTests) == owedA);
     CHECK(facts::owedFor(Program::Calibrate) == owedA);
     CHECK(facts::owedFor(Program::Drive) == owedA + owedB);
@@ -326,8 +326,9 @@ TEST_CASE("robot one facts (T2): every fact has EXACTLY ONE check right below it
     // the pairing in the source); a second check for one fact.
     const std::string code = ledgerCode();
     const std::vector<SourceFact> all = sourceFacts(code);
-    REQUIRE(all.size() == 44);  // 33, Calibrate's two thresholds (2026-11-16), the autons' four drive settings (2026-11-17),
-                                // the cascade's most volts DOWN, its soft top and its three hold gains (2026-11-20)
+    REQUIRE(all.size() == 45);  // 33, Calibrate's two thresholds (2026-11-16), the autons' four drive settings (2026-11-17),
+                                // the cascade's most volts DOWN, its soft top and its three hold gains (2026-11-20),
+                                // the claw's grab spot (RMP1-O, 2026-11-20)
     const std::regex check{R"re(ROBOT_ONE_CHECK\s*\(\s*(k\w+)\s*,\s*"((\\.|[^"\\])*)"\s*\))re"};
     std::vector<std::pair<std::string, std::string>> checks;
     for (auto it = std::sregex_iterator(code.begin(), code.end(), check); it != std::sregex_iterator(); ++it) {

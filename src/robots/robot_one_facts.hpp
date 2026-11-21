@@ -45,7 +45,7 @@
 //                   (TUNE1-B1's, classified at ROB1-A's integration onto it: it homes the cascade with the
 //                   homing push, jogs it at the unhomed volts and moves it to its first and last level); a
 //                   program added later is classified there or the build fails.
-//   Stage::Recorded written down, gating NO build (the camera: VIS1-B reads it — D12, [R9]).
+//   Stage::Recorded written down, gating NO build (the camera, VIS1-B — D12, [R9]; the claw's spot, RMP1-O).
 // The drivetrain needs no ledger: src/robots/chassis_table.hpp's kRobotOneChassis leaves each unknown
 // field UNSET, and every station and program that needs one refuses by name; Calibrate discovers the
 // drive's ports, directions, sides, scale and track width itself.
@@ -674,6 +674,11 @@ ROBOT_ONE_CHECK(kCameraPort, "the AI Vision camera's port");
 inline constexpr auto kCameraMount =
     owed(CameraMount{6_in, 0_in, 10_in, 0.0}, Stage::Recorded, "where the AI Vision camera sits");
 ROBOT_ONE_CHECK(kCameraMount, "where the AI Vision camera sits");
+// RMP1-O: where the claw grabs a pin -- this far INSIDE the front edge, centred. Only the route builder reads it.
+inline constexpr auto kClawGrabInsetIn =
+    typed(0.0, 1.232, Stage::Recorded, "the claw's grab spot, inches inside the front edge",
+          "measured by the team lead, 2026-11-20: the pin's centre 1.232 in inside the front edge, centred");
+ROBOT_ONE_CHECK(kClawGrabInsetIn, "the claw's grab spot, inches inside the front edge");
 
 // ═══ THE COUNT (the Drive boot line, RPV1-B's hatch, the tests) ═════════════════════════════
 
@@ -704,7 +709,7 @@ inline constexpr FactSummary kRobotOneFacts[] = {
     summary(kClawStrokeTime),       summary(kFlipperStrokeTime),     summary(kRampStrokeTime),
     summary(kCascadeMaxDownVolts),  summary(kCascadeTopMargin),
     summary(kCascadeHoldKp),        summary(kCascadeHoldKi),         summary(kCascadeHoldKd),
-    summary(kCameraPort),           summary(kCameraMount),
+    summary(kCameraPort),           summary(kCameraMount),           summary(kClawGrabInsetIn),
 };
 
 /// How many facts the ledger holds.

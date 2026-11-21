@@ -59,6 +59,23 @@ claw follows (its level is still owed by its builders).
 
 **What you must do:** upload everything to robot one again. Keep fingers clear of the claw when a program starts.
 
+### 2026-11-20 — The route builder shows where the claw is
+
+> Written when it was built (chunk RMP1, run RMP1-O). **No library change — no API change:** the route builder's
+> page, and one recorded fact in each robot's facts file (`kClawGrabInsetIn`, gating no build). The exported C++ is
+> byte-for-byte what it was: a step still holds the robot's centre.
+
+**What you can now do (additive):** see the claw on the field — a green cross on every robot drawn (the start, each
+drive's end, robot two's mirrored start, PREVIEW's robot), 1.232 in inside the front edge, centred (the team lead's
+measure, 2026-11-20); a big one where the selected step grabs or drops. Put the cross on the pin: drag the cross
+itself, or hold **Ctrl** while dragging a drive's point, or switch on **Place by the claw** and type the claw's x and
+y — the robot's centre is worked out back along the drive. A drive step says **The claw reaches (x, y)**.
+
+**What changed (not breaking):** robots.json gains `clawSpot` (`forwardIn`, `sideIn`) for both robots.
+
+**What you must do:** re-place each drive that ends at a pin or a drop: drag its green cross onto the pin (a drive
+placed by the square's front edge is 1.232 in short; one placed by its centre, 6.268 in).
+
 ### 2026-11-20 — Robot one's cascade holds still
 
 > Written when it was fixed, on robot one with the team lead. **No library change:** robot one's mechanism table.

@@ -54,7 +54,7 @@ cannot open a project that uses something added since (it names what it cannot r
 ## What it knows
 
 The route builder knows the robots **as of the last time this site was published**: their mechanisms, their
-levels and ports, how each one finds its bottom, and each robot's driver file (its buttons and feel). The bottom bar says which build of
+levels and ports, how each one finds its bottom, where each robot's claw grabs, and each robot's driver file (its buttons and feel). The bottom bar says which build of
 the library that was. A fact typed into a robot's file reaches the route builder at the next publish; with your
 shulib folder connected (Edge or Chrome), the **Controls** tab reads today's driver file instead, and in Firefox its
 export checks the driver file you pick.

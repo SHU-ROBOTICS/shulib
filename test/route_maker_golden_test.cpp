@@ -636,6 +636,24 @@ TEST_CASE("RMP1-M: each robot's description names the facts its Auton Tester sti
     CHECK(owedList(route_maker::describe(*route_maker::robotSource("x"))) == "\"testerOwed\": [],");  // a fixture: no ledger
 }
 
+TEST_CASE("RMP1-O: each robot's claw spot is 15/2 - kClawGrabInsetIn ahead of its centre, on its centre line; a clawless robot has none") {
+    // BUG CAUGHT: the inset ignored (the claw drawn at the front edge, 7.5 in: a pin placed there 1.232 in short);
+    // the claw off the centre line; a clawless robot given one. Robot two's spot read from robot one's ledger turns
+    // RED only once the two ledgers' values differ (today both 1.232: the same number either way).
+    CHECK(shulib::bench::robot_one_facts::kClawGrabInsetIn.value() == 1.232);
+    CHECK(shulib::bench::robot_two_facts::kClawGrabInsetIn.value() == shulib::bench::robot_one_facts::kClawGrabInsetIn.value());
+    for (const char* id : {"one", "two"}) {
+        CAPTURE(id);
+        const std::string d = route_maker::describe(*route_maker::robotSource(id));
+        CHECK(d.find("\n  \"clawSpot\": {\"forwardIn\": 6.268, \"sideIn\": 0},\n") != std::string::npos);
+    }
+    CHECK(route_maker::robotSource("two")->clawInsetIn == shulib::bench::robot_two_facts::kClawGrabInsetIn.value());
+    for (const char* id : {"x", "y", "z"}) {
+        CAPTURE(id);
+        CHECK(route_maker::describe(*route_maker::robotSource(id)).find("clawSpot") == std::string::npos);
+    }
+}
+
 TEST_CASE("RMP1: a robot that builds the shared route and declares a cascade marks its levels as its facts ledger's (the tripwire for robot two)") {
     // The shared routes move the cascade to LEDGER levels (`cascade[facts::lv(i).name]`); the page lets it
     // only on a robot whose description marks them (RC18) — both robots since ROB1-BT (route_maker_robots.hpp),

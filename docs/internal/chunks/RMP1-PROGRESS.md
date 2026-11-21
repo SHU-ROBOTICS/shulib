@@ -6520,4 +6520,153 @@ No browser or helper of mine left running (the Firefox running at 19:56 is anoth
   RED; the full page suites re-run on the final site (Firefox 124 / 5 / 0, Chromium 120 / 9 / 0); both sites rebuilt
   LAST, after every restore, and `gently.page.test.mjs` 3 / 3 in both on the engine site; node 281 / 281; every
   mutated file's md5 back (only `gently.mjs` differs from before the mutants: the margin change, on purpose).
+
+## RMP1-O — the claw's spot: place a grab or a drop by where the CLAW is
+
+- **Started 2026-11-20 (`date` 17:29 EST), executor: Opus 5.5 subagent, worktree `.claude/worktrees/rmp1-o` (branch rmp1-o from
+  2cd454f).** Brief: `RMP1-O-claw-spot.md` (the coordinator's copy, landing with this run). Order: D1 → D2 → D3 (marker
+  first, the team lead is building his route now) → D4 → tests, mutants, shots, docs, gates. Scratch:
+  `.claude/coordinator/scratch/rmp1-o/`.
+- **17:42 — D1–D4 built, first green.** D1: `kClawGrabInsetIn` typed 1.232 (Recorded) in both ledgers, counts moved
+  (robot one's facts test: recorded 2 → 3, the ledger 44 → 45). D2: the emitter is `test/route_maker_describe.hpp`
+  (`describe()`; route_maker_main.cpp only calls it) — one block, key `clawSpot`, after `drive`; `RobotSource` gains
+  `clawInsetIn` (one, two from their ledgers; x/y/z none). D3: `model/claw.mjs` + a cross on the start, every drive's
+  end, robot two's mirrored start and PREVIEW's robots; big and drawn last on the selected claw step or the drive before
+  one. D4: the cross is a handle (drag it); Ctrl while dragging a drive's point; "Place by the claw" (page state, not
+  saved: the route still holds the centre, so the export cannot change). New tests: `claw.test.mjs` 9/9,
+  `claw.page.test.mjs` Chromium 5/5 and Firefox 4/4 (+ shots). Shots read (light/dark × 1440/1280): the first round's
+  big cross hid under the step's mechanism badge — moved over the badges, larger, with a halo; re-shot and re-read.
+- **17:51 — mutants** (driver `scratch/rmp1-o/mut/run.sh`: backup, apply, restore on EXIT/INT/TERM/HUP and touch;
+  every mutant rebuilds `shulib_tests` + `shulib_route_maker` and the site, and a verdict is refused unless both programs
+  and `robots.json` are newer than the mutated file). Each observed RED:
+  M1 forward = footprint/2 (inset ignored, `route_maker_describe.hpp`): the C++ RMP1-O case, node "the robots", page 3
+  of 4; M2 sideIn 1: C++, node, page 2 of 4; M5 robot one's inset retyped 1.86: C++ (`1.86 == 1.232`), node, page; M6
+  robot two's inset not robot one's (1.0): C++ (`1 == 1.232`), node, page; M3 the back-computation along the wrong
+  direction (`claw.mjs`): node 7 of 9 (the claw 12.5 in off), page "drag by the cross"; M4 the cross drawn at the centre
+  (`field_view.mjs`): page "its lines cross there" and "drawn there" (node green: the model is right — the page test is
+  the one that sees it). **A first run's M6/M3/M4 verdicts were thrown out:** M6's build stopped at the doc gate (the
+  briefing, regenerated before the binary existed, went stale once docs changed), so M6 and the two page mutants after
+  it ran on M5's mutant link. The runner now refuses a verdict on a failed build or an unrebuilt object; all three re-run
+  on fresh builds (above). Every file restored (`grep` of each mutant site: 1).
+- **18:03 — a regression found by the existing page suite, fixed:** RMP1-J's D5 test ("a click selects it") could not
+  click the claw step's badge: the big cross, drawn over the badges, carried a handle whose hit circle (3.8 in) covered
+  the "2 close" badge. Fix (`field_view.mjs`): the big cross takes NO pointer; the drive's own (small) cross, drawn
+  under the badges, stays the handle. `claw.page.test.mjs` now pins both (the big one `handle == null`; the small
+  handle at the same spot). mech_steps + claw page tests: Chromium 11/11 (2 skipped), Firefox 11/11 (2 skipped).
+  Guide picture `docs/assets/route-builder/claw.png` from Chromium's zoomed light-1440 shot (1200×750, 256 colours,
+  `scratch/rmp1-o/to_docs.py`).
+- **Gates on the final tree (2026-11-20, `date` 17:51–18:12 EST; runner `scratch/rmp1-o/gates/gates.sh`, logs beside it):**
+  briefing generated with the suite binary removed, host build (0 warnings), briefing regenerated after; the bounded suite
+  **green — 3,913 cases / 3,777,832 assertions** (+1: the RMP1-O describe case); `src_build_gate.py check` **PASS (14
+  builds; 4 refused naming exactly their owed facts, every one links in the typed copy)** — self-test NOT run: no gate
+  case counts the ledger's facts (the only Recorded case, its case at ~4409, edits the camera's line); the ARM header gate
+  (260 lines) OK; the CI greps (PROS-free, sim-free, LF) hold; api_doc_tool check-fresh / check-examples / self-test /
+  check-coverage / check-removability OK (no `///` under include/ changed: docs/api not regenerated); doc_staleness_audit
+  self-test and audit clean (38 live docs); briefing `check` current; node **274 / 274**; route_builder self-test **142
+  OK**; upload_auton self-test **55 OK**; the site rebuilt 18:11:07 just before the page suites; page suites **Firefox 126
+  pass / 5 skipped / 0 fail, Chromium 122 / 9 / 0** (131 each). After the gates, M4 re-run on the final `field_view.mjs`
+  (the big cross's pointer fix came after its first run): RED again (page "its lines cross there", "drawn there"),
+  restored, site rebuilt, claw page test 4/4.
+- **Prose review (grepped, hits read):** `robot_one_facts|robot_two_facts` in docs/ + README.md → robot-facts-form.md
+  (the builder's questionnaire: the claw spot is measured already — not touched), guide 16 §457 (generic), guide 21's stage
+  table (Recorded row STALE: now names the claw's grab spot — fixed), hardware-assumptions (other facts), changelog
+  (history). `front edge|15 in square|ghost square|robots.json` → guides 14/16/17 and HA text are about the preview's
+  square (true still); guide 22 §55 (the start's square, still true; the cross is introduced in §3). `field_view|inspector|
+  route_maker_describe|footprintIn` → only tools/route_maker/README.md (layout rows: claw.mjs added; a rule added: a step
+  holds the CENTRE). Guide 22's steps reference (the C++ each step writes) unchanged: the export never sees the claw.
+- **Stopped here: uncommitted, for the coordinator.**
+
+### RMP1-O review findings and their disposition
+
+- **Started 2026-11-20 (`date` 18:42 EST), the same builder, worktree `rmp1-o`.** Three reviewers (correctness, tests,
+  docs): 22 findings. Each re-checked, then fixed at the root or answered with evidence (below, as each lands).
+- **Disposition, finding by finding** (scratch `fix/`: node mutants `fix/mut/m.sh`, page mutants `fix/mut/p.sh` — each
+  rebuilds the site and refuses a verdict unless the site holds the mutant; restore on EXIT/INT/TERM/HUP + touch; the site
+  rebuilt from the restored tree after each batch):
+  1. *Reverse placed by the claw puts the centre PAST the point; the brief's formula is a forward drive's* — REAL (geometry
+     right, unsaid). The line on a backing step (reverseTo, reverse curve, Straight backwards) now reads "The claw reaches
+     (x, y), after the robot backs over it (to grab, drive forward)."; guide 22 says it in one sentence; the brief carries
+     an erratum under its header (the coordinator's text kept). Mutant R3 (the words dropped) RED: page "every robot drawn".
+  2. *Snap pulls the claw onto the centre's lines* — REAL. A drag by the claw is not snapped (`toField(ev, false)`); the help
+     and guide 22's key table say "not snapped". New page case drags with Snap ON 0.7/0.8 in from grid lines. Mutant R1 (the
+     claw snapped again) RED: the claw at (12, -12) vs (11.243, -11.170).
+  3. *Just past the reach, rounding the centre moves the claw up to 12.5 in* — REAL (reproduced: N3 below, 0.11 in at
+     +0.0004 in). Root fix: refused unless the centre moves at least 1 in (`MIN_LEG_IN`; the claw then within ~0.005 in).
+     New node case sweeps 52 directions × 12 distances (0.0004–3 in past the reach) × drive/reverse through `plannedPoses`:
+     every accepted placement within 0.006 in. Mutant N3 (`MIN_LEG_IN` 1e-9) RED; the old claw.mjs (N1) RED 3 cases.
+  4. *A curve whose first point the library drops* — REAL (0.338 / 0.877 in reproduced). `clawLeg` now takes the leg's start
+     from the BUILT path (`curve.K(segments() - 1)`); a curve without a built path is not placed by the claw. New node case:
+     three dropped first points × three targets × both kinds, within 0.003 in. Mutant N4 (back to `points[k - 1]`) RED.
+  5. *The page-wide switch takes over a curve's last-point drags* — REAL. The switch now applies to driveTo / reverseTo
+     only, as its inspector does (Ctrl and the cross still place a curve's end). Mutant R2 RED: the curve's point 6.27 in
+     behind the pointer.
+  6. *Robot two's crosses use the route robot's spot* — REAL (latent). `claw()` takes the robot: the twin draws
+     `baked.robots[mirroredFor]`'s, PREVIEW each record's own robot (`preview.mjs` passes it in the frame). New cases give
+     robot two a 3 in spot: the twin's cross (claw page test) and PREVIEW's (preview.test.mjs). Mutants S6b / S7b RED.
+  7–11. *Untested paths* — each now has a page or node case, and each of the reviewers' surviving mutants, re-applied to
+     this tree on a rebuilt site, is RED: S1 (switch ignored by a drag), S2 (curve's point 0 moved), S3 (no big cross on
+     the claw step itself), S4 / S14 (no line on Straight / curve), S5 (no cross on Straight), S6 (no cross on the twin), S7
+     (no cross in PREVIEW), S8 (`mine` dropped: Ctrl on a curve's first point moved its last), S9 (a refused drag moves the
+     centre — first SURVIVED my too-close case: it dragged the cross, whose refusal path's `dragTo('claw')` is a no-op; the
+     case now also Ctrl-drags the point, and S9 is RED), S17 (typed leg ignored: a reverseTo typed case), S18 (a nose of 0
+     as none: node, both curve kinds; N2 RED).
+  12. *The C++ case overstates "robot two's spot not its own ledger's"* — REAL. Comment reworded: the wiring turns RED only
+     once the two ledgers differ (equivalent by construction while both are 1.232; a source pin would test the text, not
+     the number the page gets).
+  13. *The gate driver's exit codes were echo's / tail's* — REAL (the logs were green, the printed codes proved nothing).
+     `fix/gates.sh`: `set -o pipefail`, the build step `&&`, each runner's own code.
+  14. *The claw spot rests on HA-260 (the tracking centre at the square's middle, unmeasured)* — REAL. Cited in
+     `route_maker_describe.hpp`'s clawSpot comment and here. **For the coordinator:** whether HA-260's blast radius widens
+     to the claw (a register edit — not made here); the 2-minute check for the team lead before Saturday — turn the robot
+     in place, mark the pivot, measure pivot to front edge: not 7.5 in, then the cross is off by the difference.
+  15. *Robot two's source cites HA-252* — REAL: now "(HA-256) ... -- not yet measured on robot two". A first wording used
+     ';' and broke the twin test (its parser ends a fact at the first ';'): caught by the suite, reworded with '--', green.
+  16. *Changelog "What you must do: nothing"* — REAL: now "re-place each drive that ends at a pin or a drop ... (square's
+     edge: 1.232 in short; its centre: 6.268 in)".
+  17. *"~2 in short"* — REAL: the C++ comment says 1.232 in; the brief's two lines (and its time, written 17:27) are in its
+     erratum.
+  18. *Deltas only in the report* — REAL; listed below.
+  19. *Older pictures, "What it knows", the badge over the cross* — route-builder.md's "What it knows" names where each
+     robot's claw grabs; claw.png re-taken from a drive heading 0 (the cross clear of the badges stacked above the spot,
+     both robots whole) and made with the octree quantizer (median cut had turned the green cross grey-teal); guide 22's
+     alt text updated. **Not re-shot, deliberately:** guide 22's route.png, mechanism-badges.png, robot-two.png,
+     turn-first.png, structures.png and route-builder.md's route.png — they lack the cross but are not wrong about what they
+     teach; after the 21st (DOCS3).
+  20. *Inspector words* — REAL: the hint is "drag or type the claw's point (or hold Ctrl while dragging)"; guide 22 says the
+     switch stays on for every drive until switched off, and that the line then shows the centre.
+  21. *The facts file's key names only the camera as Recorded* — REAL: "(the camera, VIS1-B — D12, [R9]; the claw's spot,
+     RMP1-O)", kept to one line (AFTER-THE-21ST.md cites line numbers in this file).
+  22. *Merge overlap (for the coordinator)* — no tree change. Integrate's uncommitted edits touch robot_two_facts.hpp
+     (~201-220; ours 255-258, 278 and the RECORDED header), guide 21 (368-390; ours 79), changelog (both at the top of
+     2.11: keep both, newest first), robot_twin_test.cpp, PROJECT-BRIEFING. Re-run the twin test with both
+     robot_two_facts.hpp edits in; regenerate the briefing in the main tree (rm -f build/test/shulib_tests, build,
+     generate): its assertion count depends on the source path's length.
+- **Deltas from the brief (D1–D5), for the record:** a "claw step" is a mechanism step whose mechanism's NAME matches
+  /claw/i; only a curve's LAST point goes by the claw (its nose's heading, else the built chord); typing the claw's x/y is
+  on driveTo / reverseTo only (not curves or Straight); with the switch on, the inspector's line shows the robot's centre
+  instead; the emitter is `test/route_maker_describe.hpp` (main only calls it) and its change also writes the shared
+  `drive` line's `"footprintIn": 15` from the new `kFootprintIn` (byte-identical output; one hunk with the clawSpot
+  block, a second place RMP1-M's emitter edit can meet); the refusal is "the centre would move under 1 in", not
+  |Q − P| < forward; backing up, the centre is past the point (item 1); "1280" means 1280×800; the fact's placeholder is
+  0.0 (a typed fact, so the placeholder is never shown).
+- **Prose review of this pass (grepped, hits read):** `place by the claw|green cross|clawSpot|kClawGrabInsetIn|claw
+  reaches` in docs/ + README.md + the tool's README → guide 22 (§3 paragraph and the key table: updated above), guide 21's
+  Recorded row (true), the changelog entry (updated), tools/route_maker/README.md (the claw.mjs row: now the 1 in refusal
+  and the built curve's knot); `snap` in guide 22 / route-builder.md / the README → guide 22's key table says the claw is
+  not snapped, ":635 Points snap ..." is about points (true); `robot_one_facts|robot_two_facts` → AFTER-THE-21ST.md :39,
+  :51, :93 (its line citations were written against another tree's facts files — already not these lines at 2cd454f;
+  this pass adds no line before them: the key comment kept to one line), where-your-code-goes.md :52, RESUMING.md :146
+  (generic: true).
+- **Gates on the final tree (`date` 18:59–20:05 EST; `fix/gates.sh`, pipefail, logs in `fix/gates/`):** briefing generated
+  with the suite binary removed, host build (0 warnings), briefing regenerated; the bounded suite **green — 3,913 cases /
+  3,777,832 assertions**; `src_build_gate.py check` **PASS (14 builds; 4 refused naming exactly their owed facts, every
+  one links in the typed copy)** — it parses the new robot-two source; `self-test` STARTED but killed by this run's own
+  40-min cap with no verdict (398 cases, ≥ 2 h); not re-run: D1's rule asks it only if a gate case counts the ledger's
+  facts, and none does (grep: the only Recorded case, ~4409, edits the camera's line); ARM header gate (260 lines) OK;
+  CI greps OK (claw.mjs LF); api_doc_tool check-fresh / check-examples / self-test / check-coverage / check-removability
+  OK (no `///` under include/ changed); doc_staleness_audit self-test + audit clean (38 live docs); briefing `check`
+  current; node **276 / 276**; route_builder self-test **142 OK**; upload_auton self-test **55 OK**; site rebuilt
+  19:56:57; page suites **Chromium 128 pass / 9 skipped / 0 fail, Firefox 132 / 5 / 0** (137 each: +5 claw cases, +1
+  PREVIEW case). Firefox's first run was OOM-killed by the 6 GB scope (its files in parallel; journal: "oom-kill") —
+  re-run one file at a time: the numbers above.
 - **Stopped here: uncommitted, for the coordinator.**
