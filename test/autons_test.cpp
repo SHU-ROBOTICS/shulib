@@ -288,7 +288,7 @@ TEST_CASE("autons (1d): every MIRRORED entry passes the pair check — 6 in apar
         CHECK_MESSAGE(!r.unanswered, "auton '", r.name, "': will both robots run it at the SAME time? Answer it in the route builder");
         CHECK((r.v.ok || !r.v.checked));
     }
-    CHECK(verdicts.size() >= 1);  // the skills route, mirrored for robot two
+    // none is fine: the skills route may be unmirrored (the team, 2026-11-21)
     MESSAGE("src/team/autons.cpp registers ", verdicts.size(), " mirrored auton(s); each checked as its route says");
 }
 
