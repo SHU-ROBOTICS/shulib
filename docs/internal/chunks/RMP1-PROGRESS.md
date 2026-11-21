@@ -6976,3 +6976,13 @@ re-checked against the tree before anything changed. Appended as each lands. Mut
   584 "**Send the test to robot one**"), the picture re-made then; `docs/route-builder.md` gained no robot name.
 - The robots goldens regenerated through `describe --robot x|y|z`: byte-identical. The briefing regenerated in this
   worktree (its suite line's assertion count depends on the source path's length: the main tree's differs by 2).
+- **The gate's first run (on the merge commit): Firefox 5 fail, Chromium 5 cancelled — all five RMP1-N camera
+  tests, in both browsers; each passed when its browser ran alone (Chromium 146/0/10, Firefox 150/0/6).** Root cause
+  (the diagnostic re-run kept the full logs): `camera_view.page.test.mjs` made its stand-in checkout at ONE fixed
+  path, `build/route_builder_camera_pagetest`, and the gate runs Firefox and Chromium at once from the same tree —
+  both start that file first (alphabetically), so one's `route_builder.py stand-in` hit the other's half-made
+  directory (`FileExistsError: …/repo/src/team/sub`) and the other's replay found its files wiped (`ENOENT …
+  route_maker.json`). Not the merge's: the path is RMP1-N's, and `run_view`, `mech_tab` and `send_robot`'s page
+  tests had the same latent race (fixed paths too; their timing happened not to collide). Fixed in all four: the
+  stand-in checkout is per browser (`…_pagetest_${BROWSER}`; the helper's port follows its root's path, so it is apart
+  as well). The four files in both browsers at once: 26/26 each, 0 fail.

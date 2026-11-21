@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
-import { SITE, SHOTS, REPO, skip, launch, shot } from './harness.mjs';
+import { SITE, SHOTS, BROWSER, REPO, skip, launch, shot } from './harness.mjs';
 import { saveProject, newProject } from '../../src/model/project.mjs';
 import { newRoute, setStart, addStep } from '../../src/model/route.mjs';
 import { GOLDENS } from '../helpers.mjs';
@@ -50,7 +50,8 @@ const SLOTS = { 1: ['shulib Drive', 'v0.1.1-470-gabc1234 | no routes', '2026-11-
                 7: ['shulib Tune', 'Made with PROS', '2026-11-19T20:00:00'], 8: ['old code', '', ''] };
 const VARIANTS = (SHOTS ? [['light', 1440, 900], ['dark', 1440, 900], ['light', 1280, 800], ['dark', 1280, 800]] : [['light', 1440, 900]])
     .map(([scheme, width, height]) => ({ scheme, viewport: { width, height }, tag: `${scheme}-${width}` }));
-const WORK = path.join(REPO, 'build', 'route_builder_runview_pagetest');
+// one stand-in checkout per browser: the gate runs Firefox and Chromium at once, from one tree
+const WORK = path.join(REPO, 'build', `route_builder_runview_pagetest_${BROWSER}`);
 const TOOL = path.join(REPO, 'tools', 'route_builder.py');
 const REAL_LOG = path.join(REPO, 'tools', 'route_maker', 'test', 'fixtures', 'robot_log', 'robot_one_2026-11-19_run3.log');
 
