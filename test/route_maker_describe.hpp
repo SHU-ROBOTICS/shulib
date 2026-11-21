@@ -12,7 +12,9 @@
 // built with when nothing overrides them), the field's numbers (localization/override_walls.hpp,
 // vision/override_elements.hpp) and the API version; since RMP1-C also each arm's and lift's home height, the
 // brain menu's name budgets and size, the other autons' names, the pair check's two numbers (mirrored_pair_numbers.hpp) and the skills mirror;
-// since RMP1-H the field's solid structures (override_field_obstacles.hpp: the goals and the Loaders, each footprint and overhang cited). A number the tables do not state is LEFT OUT, never
+// since RMP1-H the field's solid structures (override_field_obstacles.hpp: the goals and the Loaders, each footprint and overhang cited);
+// since RMP1-M each mechanism's wiring (its table's ports, each motor's direction, a piston's line levels; an OWED one null), a piston's start
+// and the facts the robot's Auton Tester still waits for (`testerOwed`). A number the tables do not state is LEFT OUT, never
 // filled from the host test plant's stand-in drive [R16].
 //
 // The declaration's C++ name (what the export writes — `clawPivot6`, not its `.name` "claw pivot 6") is
@@ -171,6 +173,60 @@ template <std::size_t N>
     return std::string_view{s, n};
 }
 
+/// A mechanism's wiring facts still owed (RMP1-M): its ports; how it moves (its motors' directions, a piston's levels).
+struct WiringOwed {
+    bool ports = false;
+    bool directions = false;
+};
+
+/// A port as JSON: the number, null when owed or unbound (0).
+[[nodiscard]] inline std::string portJson(unsigned p, bool owed) { return owed || p == 0 ? "null" : std::to_string(p); }
+/// A 3-wire line as JSON: "A".."H", null when owed or unbound.
+[[nodiscard]] inline std::string lineJson(shulib::mechanism::Line l, bool owed) {
+    return owed || l == shulib::mechanism::Line::None ? "null" : str(std::string(1, shulib::mechanism::lineLetter(l)));
+}
+
+/// RMP1-M: a mechanism's wiring from its table — each motor's port and direction (`reversed`), each line, a piston's
+/// levels per position (which one is which), and any sensor's port; an owed fact null.
+[[nodiscard]] inline std::string wiringJson(const shulib::mechanism::MechanismSpec& s, const shulib::mechanism::MechanismWiring& w,
+                                            WiringOwed owed) {
+    namespace m = shulib::mechanism;
+    std::string j = "{\"motors\": [";
+    for (std::size_t k = 0; k < s.motorCount; ++k) {
+        j += k == 0 ? "" : ", ";
+        j += "{\"port\": " + portJson(w.motors[k], owed.ports) + ", \"reversed\": "
+             + (owed.directions ? "null" : s.motors[k].reversed ? "true" : "false") + "}";
+    }
+    j += "], \"lines\": [";
+    for (std::size_t k = 0; k < s.lineCount; ++k) {
+        j += (k == 0 ? "" : ", ") + lineJson(w.lines[k], owed.ports);
+    }
+    j += "]";
+    if (s.kind == m::Kind::Pneumatic) {  // {"closed": ["low"], "open": ["high"]}: one level per line
+        std::string lv;
+        for (std::size_t p = 0; p < s.pneumatic.positionCount; ++p) {
+            lv += (p == 0 ? "" : ", ") + str(textOf(s.pneumatic.positions[p].name)) + ": [";
+            for (std::size_t l = 0; l < s.lineCount; ++l) {
+                lv += std::string{l == 0 ? "" : ", "} + (s.pneumatic.positions[p].levels[l] ? "\"high\"" : "\"low\"");
+            }
+            lv += "]";
+        }
+        j += ", \"levels\": " + (owed.directions ? std::string{"null"} : "{" + lv + "}");
+    }
+    if (w.homeSwitch != m::Line::None) {
+        j += ", \"homeSwitch\": " + lineJson(w.homeSwitch, owed.ports);
+    }
+    if (w.angleSensor != 0) {
+        j += ", \"angleSensor\": " + portJson(w.angleSensor, owed.ports);
+    }
+    if (w.pieceSensorPort != 0) {
+        j += ", \"pieceSensor\": " + portJson(w.pieceSensorPort, owed.ports);
+    } else if (w.pieceSwitch != m::Line::None) {
+        j += ", \"pieceSensor\": " + lineJson(w.pieceSwitch, owed.ports);
+    }
+    return j + "}";
+}
+
 /// What a robot's description is made from.
 struct RobotSource {
     const char* id;                                  ///< "one", "two", "x", "y", "z"
@@ -183,6 +239,10 @@ struct RobotSource {
     /// The ledger's levels are still OWED (placeholders, not measured): each is described `"owed": true`, and the
     /// page shows "not measured yet" in place of its height — a placeholder is never shown as a fact.
     bool ledgerOwed = false;
+    /// RMP1-M: which of a mechanism's wiring facts (by its name) are still OWED: written null, never the placeholder.
+    std::function<WiringOwed(std::string_view)> wiringOwed{};
+    /// RMP1-M: the facts its Auton Tester needs that are still OWED (that build refuses until they are typed).
+    std::vector<std::string> testerOwed{};
 };
 
 /// The description (file banner), one JSON object, keys in a fixed order, ending in a newline.
@@ -193,6 +253,11 @@ struct RobotSource {
     std::string j = "{\n";
     j += "  \"id\": " + str(r.id) + ",\n";
     j += "  \"name\": " + str(r.name) + ",\n";
+    j += "  \"testerOwed\": [";  // RMP1-M: a Test sent while one is owed would never build
+    for (std::size_t i = 0; i < r.testerOwed.size(); ++i) {
+        j += (i == 0 ? "" : ", ") + str(r.testerOwed[i]);
+    }
+    j += "],\n";
     j += "  \"api\": " + str(shulib::kApiVersionString) + ",\n";
     j += "  \"autonNameMaxChars\": " + std::to_string(shulib::competition::kMaxAutonNameChars) + ",\n";
     // RMP1-C: a mirrored name's budget, the menu's size, the pair check's numbers and the skills mirror (cos 2a, sin 2a
@@ -219,6 +284,7 @@ struct RobotSource {
     for (std::size_t i = 0; i < t.count; ++i) {
         const m::MechanismSpec& s = t.specs[i];
         const std::string ident = identAt(s.declaredFile, s.declaredLine);
+        const WiringOwed owed = r.wiringOwed ? r.wiringOwed(m::nameOf(s)) : WiringOwed{};
         j += i == 0 ? "\n" : ",\n";
         j += "    {\"name\": " + str(m::nameOf(s)) + ", \"ident\": " + (ident.empty() ? std::string{"null"} : str(ident));
         switch (s.kind) {
@@ -270,9 +336,14 @@ struct RobotSource {
                     j += str(textOf(s.pneumatic.positions[p].name));
                 }
                 j += "]";
+                if (s.pneumatic.start < s.pneumatic.positionCount) {  // RMP1-M: where it is at program start (a test ends there);
+                    // null while its levels are owed (the unpowered position is then not known)
+                    j += ", \"start\": " + (owed.directions ? std::string{"null"} : str(textOf(s.pneumatic.positions[s.pneumatic.start].name)));
+                }
                 break;
             }
         }
+        j += ", \"wiring\": " + wiringJson(s, t.wiring[i], owed);
         j += "}";
     }
     j += t.count ? "\n  ],\n" : "],\n";

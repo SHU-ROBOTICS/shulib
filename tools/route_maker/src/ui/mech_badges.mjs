@@ -10,12 +10,12 @@ import { MECHANISM_KINDS, startPose } from '../model/route.mjs';
 import { isHidden, isLocked } from '../model/step_view.mjs';
 import { stepPoses } from '../model/pair.mjs';
 import { waitsFor, kindIcon } from '../model/mech_steps.mjs';
-import { targetKind, unitOf } from '../model/lift.mjs';
+import { targetKind, unitOf, homeEnd } from '../model/lift.mjs';
 import { fmt } from '../model/numbers.mjs';
 
 const finite = (q) => !!q && Number.isFinite(q.x) && Number.isFinite(q.y);
 
-/** A badge's one word: "close", "18 in", "level 2", "home", "wait", "run". */
+/** A badge's words: "close", "18 in", "level 2", "find bottom", "wait", "run" (RMP1-M D5: never "home"). */
 export function badgeWord(step, m) {
     switch (step.do) {
         case 'set':
@@ -29,7 +29,7 @@ export function badgeWord(step, m) {
         }
         case 'home':
         case 'startHome':
-            return 'home';
+            return homeEnd(m) === 'zero' ? 'find' : `find ${homeEnd(m)}`;
         case 'waitUntilDone':
             return 'wait';
         default:

@@ -812,3 +812,37 @@ input.num.bad { border-color: var(--failed); }
 .rk-slots tr.bad .rk-mark { color: var(--failed); font-weight: 700; }
 .rk-slots tr.first { background: var(--error-soft); }
 /* ── end Mechanism check and run view (RMP1-K) ── */
+
+/* ── Mechanisms tab (RMP1-M) ── one card per mechanism; the one highlight is a card's last test result */
+.app[data-tab="mechanisms"] .workspace { display: none; }
+@media (max-width: 1440px) { .tab svg { display: none; } .tab { padding: 0 10px; } }  /* three tabs: the words stay, the icons give way */
+@media (max-width: 1280px) { .topbar > .sep { display: none; } .tab { padding: 0 8px; } }  /* then the separators */
+.mechs { display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--surface-3); }
+.mechs .spacer { flex: 1; }
+.mech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--s-4); width: 100%; max-width: 1400px;
+  margin: 0 auto; align-items: start; }
+.mech-card { padding: var(--s-3) var(--s-4); border-left: 4px solid transparent; }
+.mech-card.ok { border-left-color: var(--ok); }
+.mech-card.warn { border-left-color: var(--cut); }
+.mech-card.bad { border-left-color: var(--failed); }
+.mc-head { display: flex; align-items: center; gap: var(--s-2); }
+.mc-head h2 { flex: 1; margin: 0; font-size: var(--t-lg); }
+.mc-icon svg { width: 22px; height: 22px; color: var(--text-muted); }
+.mech-card dl { margin: var(--s-2) 0 0; display: grid; gap: 6px; }
+.mc-row { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: var(--s-2); }
+.mc-row dt { font-size: var(--t-xs); font-weight: 600; color: var(--text-muted); padding-top: 2px; }
+.mc-row dd { margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; font-size: var(--t-sm); }
+.mc-row dd .owed { color: var(--cut); font-weight: 600; }
+.mc-row dd .link { color: var(--accent-strong); background: none; border: 0; cursor: pointer; padding: 0; min-height: 24px; font: inherit; font-weight: 600;
+  text-decoration: underline; text-align: left; }
+.mc-result { display: flex; align-items: center; gap: var(--s-2); margin: var(--s-3) 0 0; font-weight: 650; color: var(--text-muted); }
+.mc-result svg { width: 18px; height: 18px; flex: none; }
+.mc-result small { margin-left: auto; font-weight: 450; color: var(--text-muted); }
+.mc-result.ok { color: var(--ok); }
+.mc-result.warn { color: var(--cut); }
+.mc-result.bad { color: var(--failed); }
+.mc-watch { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-sm); font-weight: 600; color: var(--text-muted); }
+.mc-watch svg { width: 16px; height: 16px; }
+.mc-notice { display: inline-flex; align-items: center; gap: 6px; flex: 1 1 24rem; min-width: 0; font-size: var(--t-sm); font-weight: 600; color: var(--cut); }
+.mc-notice svg { width: 16px; height: 16px; flex: none; }
+/* ── end Mechanisms tab (RMP1-M) ── */

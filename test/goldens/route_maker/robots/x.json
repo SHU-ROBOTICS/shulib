@@ -1,6 +1,7 @@
 {
   "id": "x",
   "name": "robot x (test)",
+  "testerOwed": [],
   "api": "2.11",
   "autonNameMaxChars": 29,
   "mirroredAutonNameMaxChars": 25,
@@ -10,11 +11,11 @@
   "skillsMirror": {"cos2a": 0, "sin2a": -1},
   "drive": {"tank": true, "footprintIn": 15, "maxSteerDeg": 14.999999999999998, "curve": {"maxStartOffDeg": 90, "lookAheadIn": 8, "minSpacingIn": 1, "maxPoints": 16}},
   "mechanisms": [
-    {"name": "arm", "ident": "arm", "kind": "arm", "units": "deg", "homing": "restsAtStop", "homeAt": 0, "range": [0, 160], "unhomedVolts": 0, "presets": [{"name": "stow", "value": 0}, {"name": "score", "value": 95}, {"name": "high", "value": 140}]},
-    {"name": "lift", "ident": "lift", "kind": "lift", "units": "in", "homing": "switch", "homeAt": 0, "range": [0, 24], "unhomedVolts": 0, "presets": [{"name": "floor", "value": 0}, {"name": "low", "value": 8}, {"name": "high", "value": 22}]},
-    {"name": "flywheel", "ident": "flywheel", "kind": "flywheel", "presets": [{"name": "shoot", "value": 3000}]},
-    {"name": "intake", "ident": "intake", "kind": "power", "pieceSensor": true},
-    {"name": "hood", "ident": "hood", "kind": "pneumatic", "positions": ["down", "middle", "up"]}
+    {"name": "arm", "ident": "arm", "kind": "arm", "units": "deg", "homing": "restsAtStop", "homeAt": 0, "range": [0, 160], "unhomedVolts": 0, "presets": [{"name": "stow", "value": 0}, {"name": "score", "value": 95}, {"name": "high", "value": 140}], "wiring": {"motors": [{"port": 1, "reversed": false}], "lines": []}},
+    {"name": "lift", "ident": "lift", "kind": "lift", "units": "in", "homing": "switch", "homeAt": 0, "range": [0, 24], "unhomedVolts": 0, "presets": [{"name": "floor", "value": 0}, {"name": "low", "value": 8}, {"name": "high", "value": 22}], "wiring": {"motors": [{"port": 2, "reversed": false}, {"port": 3, "reversed": true}], "lines": [], "homeSwitch": "B"}},
+    {"name": "flywheel", "ident": "flywheel", "kind": "flywheel", "presets": [{"name": "shoot", "value": 3000}], "wiring": {"motors": [{"port": 4, "reversed": false}], "lines": []}},
+    {"name": "intake", "ident": "intake", "kind": "power", "pieceSensor": true, "wiring": {"motors": [{"port": 5, "reversed": false}], "lines": [], "pieceSensor": 9}},
+    {"name": "hood", "ident": "hood", "kind": "pneumatic", "positions": ["down", "middle", "up"], "start": "down", "wiring": {"motors": [], "lines": ["C", "D"], "levels": {"down": ["low", "low"], "middle": ["high", "low"], "up": ["high", "high"]}}}
   ],
   "field": {"wallInnerFaceIn": 70.20472440944883, "centreGoal": {"x": 0, "y": 0}, "toggles": [{"name": "right wall", "x": 70.2, "y": 0}, {"name": "left wall", "x": -70.2, "y": 0}, {"name": "blue wall", "x": 0, "y": 70.2}, {"name": "red wall", "x": 0, "y": -70.2}], "obstacles": [
     {"id": "centre-goal", "name": "centre goal", "kind": "goal", "x": 0, "y": 0, "overhangIn": 0, "source": "Game Manual Appendix A (v2.0 = v2.1): Field Element Locations (A10), Goal Specifications (A7)", "footprint": [[2.805, -1.59], [2.805, 1.59], [2.566, 1.953], [2.28, 2.28], [1.953, 2.566], [1.59, 2.805], [-1.59, 2.805], [-1.953, 2.566], [-2.28, 2.28], [-2.566, 1.953], [-2.805, 1.59], [-2.805, -1.59], [-2.566, -1.953], [-2.28, -2.28], [-1.953, -2.566], [-1.59, -2.805], [1.59, -2.805], [1.953, -2.566], [2.28, -2.28], [2.566, -1.953]]},

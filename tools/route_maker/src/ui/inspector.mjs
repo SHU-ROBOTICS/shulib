@@ -7,9 +7,9 @@
 
 import { h, icon, mount } from './dom.mjs';
 import { parseTyped, fmt } from '../model/numbers.mjs';
-import { stepTitle, stepIcon, KIND_LABEL, HOMING_WORDS } from './words.mjs';
+import { stepTitle, stepIcon, KIND_LABEL, homingWords } from './words.mjs';
 import { ROUTE_NAME, startPose, MECHANISM_KINDS } from '../model/route.mjs';
-import { targetKind, unitOf, bottomOf, plannedHeights } from '../model/lift.mjs';
+import { targetKind, unitOf, bottomOf, plannedHeights, findWord } from '../model/lift.mjs';
 import { heightPatch, barPick, asHeight, waitsFor, WAIT_PAIR, limitOf, limitHint, limitWords, homeCard } from '../model/mech_steps.mjs';
 import { reflect } from '../model/pair.mjs';
 import { isHidden, isLocked } from '../model/step_view.mjs';
@@ -54,8 +54,9 @@ function select(label, value, options, onSet, name) {
 
 function issueBox(issue, app) {
     const fixes = [];
-    const fixWords = { faceFirst: 'Turn to face it first', homeFirst: 'Home it first', homeWhileDriving: 'Home it while the first leg drives',
-                       waitForHome: 'Wait for the home first', faceCurveStart: issue.fix && issue.fix.away ? 'Turn its back to the first point first' : 'Turn to face the first point first',
+    const mech = issue.fix && ((app.robot() || {}).mechanisms || []).find((x) => x.ident === issue.fix.mechanism);  // RMP1-M D5
+    const fixWords = { faceFirst: 'Turn to face it first', homeFirst: `${findWord(mech, true)} first`, homeWhileDriving: `${findWord(mech, true)} while the first leg drives`,
+                       waitForHome: 'Wait for it first', faceCurveStart: issue.fix && issue.fix.away ? 'Turn its back to the first point first' : 'Turn to face the first point first',
                        nameSkills: 'Name it "skills"', together: 'Yes, at the same time' };
     for (const f of [issue.fix, issue.alsoFix]) {
         if (f) {
@@ -205,10 +206,9 @@ function limitLine(step, i, app, current, use) {
 
 /** D6: the first height move of a mechanism the route never homes — one card, one click (today's fix). */
 function homeCardBox(card, app) {
-    const lift = card.m.kind === 'lift';
     return h('div', { class: 'home-card', role: 'status' }, h('span', { class: 'ic' }, icon('home')),
-        h('div', {}, h('strong', {}, `The ${card.m.name} must find its ${lift ? 'bottom' : 'zero'} first.`),
-          h('div', { class: 'row' }, h('button', { class: 'btn primary', type: 'button', onclick: () => app.fix(card.fix) }, 'Home it at the start'),
+        h('div', {}, h('strong', {}, `The ${card.m.name} must ${findWord(card.m)} first.`),
+          h('div', { class: 'row' }, h('button', { class: 'btn primary', type: 'button', onclick: () => app.fix(card.fix) }, `${findWord(card.m, true)} at the start`),
             h('small', {}, 'while the first leg drives'))));
 }
 
@@ -219,7 +219,7 @@ function mechanismFields(step, i, app, issues) {
     const out = [select('Mechanism', step.mechanism, [...(m ? [] : [[step.mechanism, `${step.mechanism} (not on this robot)`]]),
         ...mechs.map((x) => [x.ident, `${x.name} (${KIND_LABEL[x.kind] || x.kind})`])], (v) => app.update(i, { mechanism: v }), 'mechanism')];
     if (m && (step.do === 'home' || step.do === 'startHome')) {
-        out.push(h('p', { class: 'hint' }, `The ${m.name} ${HOMING_WORDS[m.homing] || ''}.`));
+        out.push(h('p', { class: 'hint' }, `The ${m.name} ${homingWords(m)}.`));
     }
     if ((step.do === 'move' || step.do === 'startMove') && m && (m.kind === 'arm' || m.kind === 'lift')) {
         out.push(heightControl(step, i, app, m, issues));

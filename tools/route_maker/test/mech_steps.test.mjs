@@ -51,7 +51,7 @@ test('D1: one row per mechanism, its kind as an icon; then each kind of step ONC
         }
     }
     const lift = X.mechanisms.find((m) => m.ident === 'lift');
-    assert.deepEqual(actionsOf(lift, route([]), 0).map((a) => [a.words, a.icon]), [['Move the lift', 'lift'], ['Home it', 'home']], 'no wait: nothing started it; the move wears its kind\'s icon');
+    assert.deepEqual(actionsOf(lift, route([]), 0).map((a) => [a.words, a.icon]), [['Move the lift', 'lift'], ['Find the bottom', 'home']], 'no wait: nothing started it; the move wears its kind\'s icon');
     assert.deepEqual(actionsOf(X.mechanisms.find((m) => m.ident === 'hood'), route([]), 0).map((a) => a.icon), ['piston', 'piston', 'piston']);
     // "Wait for it" only once a step BEFORE the new one starts THIS mechanism without waiting
     const r = route([{ do: 'startRun', mechanism: 'intake', volts: 6, forS: 1 }, { do: 'move', mechanism: 'lift', to: 4, boundS: 2 },
@@ -380,8 +380,8 @@ test('D5: a badge\'s one word, for every mechanism step kind', () => {
     for (const [step, m, word] of [[{ do: 'set', position: 'closed' }, null, 'close'], [{ do: 'set', position: 'open' }, null, 'open'],
                                    [{ do: 'set', position: 'up' }, null, 'up'], [{ do: 'move', to: 18 }, lift, '18 in'], [{ do: 'startMove', to: 95 }, arm, '95 deg'],
                                    [{ do: 'move', bottom: true }, lift, 'bottom'], [{ do: 'move', preset: 2 }, lift, 'level 2'], [{ do: 'move', up: 6 }, lift, 'up 6'],
-                                   [{ do: 'move', down: 2.5 }, lift, 'down 2.5'], [{ do: 'move' }, lift, 'move'], [{ do: 'home' }, lift, 'home'],
-                                   [{ do: 'startHome' }, lift, 'home'], [{ do: 'waitUntilDone' }, lift, 'wait'], [{ do: 'startRun' }, null, 'run']]) {
+                                   [{ do: 'move', down: 2.5 }, lift, 'down 2.5'], [{ do: 'move' }, lift, 'move'], [{ do: 'home' }, lift, 'find bottom'],
+                                   [{ do: 'startHome' }, lift, 'find bottom'], [{ do: 'waitUntilDone' }, lift, 'wait'], [{ do: 'startRun' }, null, 'run']]) {
         assert.equal(badgeWord(step, m), word, JSON.stringify(step));
     }
 });

@@ -362,7 +362,7 @@ const ACTIONS = {
     await spot(await rectOf(`${R} [data-together="false"]`), 6);
   },
   async m07() {
-    await mechItem(/^Home it/);
+    await mechItem(/^Find the bottom/);
     await typeBox('boundS', 2);
     await spot(await rectOf('.pane.left .step.selected'), 6);
   },

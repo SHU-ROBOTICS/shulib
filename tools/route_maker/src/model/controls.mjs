@@ -5,6 +5,7 @@
 // exactly the forms written here. The project keeps them in G3a's shape (D14; toSaved/fromSaved). Pure.
 
 import { fmt, round3 } from './numbers.mjs';
+import { findWord } from './lift.mjs';
 
 /** The controller's twelve buttons, in hal::ControllerButton's order (the build names them in this order). */
 export const BUTTONS = ['L1', 'L2', 'R1', 'R2', 'Up', 'Down', 'Left', 'Right', 'X', 'B', 'Y', 'A'];
@@ -34,8 +35,8 @@ export function actionsFor(m) {
         case 'arm':
         case 'lift': return [{ form: 'whileHeld', two: true, words: 'Move while held: one button up, one down' },
                              { form: 'preset', words: 'Go to a level on one press' },
-                             { form: 'homeOnPress', words: 'Home it on one press' },
-                             { form: 'homeAtDriverStart', words: 'Home it when driver control starts' }, auton];
+                             { form: 'homeOnPress', words: `${findWord(m, true)} on one press` },
+                             { form: 'homeAtDriverStart', words: `${findWord(m, true)} when driver control starts` }, auton];
         case 'pneumatic': return [{ form: 'toggle', words: 'Each press flips it' },
                                   { form: 'preset', words: 'Go to one position on one press' }, auton];
         case 'flywheel': return [{ form: 'toggle', words: 'Each press: spin up to a speed / stop' },
@@ -115,20 +116,20 @@ const SAY = {
     whileHeld_with_one_button_is_for_a_power_mechanism_an_arm_or_a_lift_needs_two: (n) => `${n} needs two buttons (one up, one down): one button runs only a plain motor, one way.`,
     a_toggle_on_a_flywheel_names_its_speed_like_toggle_flywheel_shoot: (n) => `Choose the speed ${n}'s toggle spins up to.`,
     a_toggle_is_for_a_two_position_pneumatic_or_a_flywheel_speed: (n) => `A toggle is for a piston or a flywheel: ${n} cannot be toggled.`,
-    homeOnPress_and_homeAtDriverStart_are_for_an_arm_or_a_lift: (n) => `Only an arm or a lift homes: ${n} cannot.`,
+    homeOnPress_and_homeAtDriverStart_are_for_an_arm_or_a_lift: (n) => `Only an arm or a lift finds its bottom: ${n} cannot.`,
     a_control_names_a_mechanism_this_robot_does_not_have: (n) => `This robot has no mechanism called ${n}.`,
     a_control_names_a_button_that_is_not_one_of_the_twelve: (n, b) => `"${b}" is not one of the controller's twelve buttons.`,
     a_hold_needs_volts_above_0_and_at_most_12: (n) => `${n}'s volts must be above 0 and at most 12.`,
     a_preset_or_a_homing_needs_a_time_limit_above_zero: (n) => `Type ${n}'s time limit: the most this may take, above 0 s.`,
     two_controls_of_the_same_kind_on_one_mechanism: (n) => `${n} has two controls that do the same job: remove one.`,
     a_toggle_needs_a_two_position_pneumatic_or_a_flywheel_named_speed: (n) => `${n} has more than two positions, so a toggle cannot know where to go: use "go to one position" buttons.`,
-    a_homing_control_on_a_mechanism_that_is_never_homed: (n) => `${n} is never homed (its robot file says so): it cannot have a home button.`,
+    a_homing_control_on_a_mechanism_that_is_never_homed: (n) => `${n} never finds its zero (its robot file says so): it cannot have a button for it.`,
     a_mechanism_has_no_driver_control_mark_it_autonOnly_if_that_is_meant: (n) => `${n} has no button. Give it one, or choose "autons only".`,
     a_mechanism_marked_autonOnly_also_has_a_control: (n) => `${n} is "autons only" and also has a button: remove one of them.`,
     more_controls_than_fit: () => `More than ${MAX_CONTROLS} controls: the driver file holds at most ${MAX_CONTROLS}.`,
-    a_mechanism_that_must_be_homed_has_no_way_to_home_in_driver_control: (n) => `${n} must be homed before it can go to a level (and before a hold moves it at full volts): add "home it when driver control starts" or a home button.`,
-    a_never_homed_mechanism_needs_unhomedVolts_for_its_buttons_to_move_it: (n) => `${n} is never homed and its robot file gives it no "unhomed volts", so its buttons would not move it.`,
-    a_preset_on_a_mechanism_that_is_never_homed: (n) => `${n} is never homed, so it never knows where a level is: it cannot have a level button.`,
+    a_mechanism_that_must_be_homed_has_no_way_to_home_in_driver_control: (n, _, m) => `${n} must ${findWord(m)} before it can go to a level (and before a hold moves it at full volts): add "${findWord(m)} when driver control starts" or a button that does it.`,
+    a_never_homed_mechanism_needs_unhomedVolts_for_its_buttons_to_move_it: (n) => `${n} never finds its zero and its robot file gives it no "unhomed volts", so its buttons would not move it.`,
+    a_preset_on_a_mechanism_that_is_never_homed: (n) => `${n} never finds its zero, so it never knows where a level is: it cannot have a level button.`,
     no_such_preset_on_this_mechanism: (n, p) => `${n} has no level or speed ${p}.`,
     no_such_position_on_this_mechanism: (n, p) => `${n} has no position ${p}.`,
     a_power_mechanism_has_no_presets_run_it_with_r_run: (n) => `${n} is a plain motor: it has no levels. Give it "run while held" instead.`,
@@ -149,7 +150,7 @@ export function checkControls(list, robot, { rezero = 'Y' } = {}) {
     const say = (refusal, at, c, extra) => {
         const m = c && mechOf(robot, c.mechanism);
         const n = m ? `the ${m.name}` : c ? `"${c.mechanism}"` : '';
-        out.push({ level: 'error', refusal, at, mechanism: c && c.mechanism, words: SAY[refusal](n, extra), ...(extra !== undefined ? { button: extra } : {}) });
+        out.push({ level: 'error', refusal, at, mechanism: c && c.mechanism, words: SAY[refusal](n, extra, m), ...(extra !== undefined ? { button: extra } : {}) });
     };
     if (list.length > MAX_CONTROLS) {
         say('more_controls_than_fit', -1, null);

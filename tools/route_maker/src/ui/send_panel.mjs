@@ -34,10 +34,11 @@ export function createSendPanel({ send, log, onChange = () => {} }) {
             busy ? null : all);
     }
 
-    /** Send to robot `which`; resolves when it has ended (never throws: a failure is the panel's red card). */
+    /** Send to robot `which`; resolves when it has ended — to its end row ({kind: 'uploaded'|'failed', …}), or nothing
+     *  when another send was running — and never throws (a failure is the panel's red card). */
     async function start(which) {
         if (busy) {
-            return;
+            return null;
         }
         robot = which;
         busy = true;
@@ -62,7 +63,9 @@ export function createSendPanel({ send, log, onChange = () => {} }) {
         }
         busy = false;
         render();
-        onChange(rows.find((r) => r.kind === 'uploaded' || r.kind === 'failed'));
+        const end = rows.find((r) => r.kind === 'uploaded' || r.kind === 'failed') || null;
+        onChange(end);
+        return end;
     }
 
     return { element: el, start, busy: () => busy, robot: () => robot };

@@ -23,7 +23,9 @@ step and its neighbours ([guide chapter 22, step 10](guide/22-making-your-first-
 ![The route builder: the steps on the left, the real field in the middle with the planned path dashed, the selected step on the right](assets/route-builder/route.png)
 
 Its **Controls** tab sets the driver's buttons on a picture of the controller and the driving feel — how a small
-push and a full push of the stick drive — and exports them into the robot's driver file.
+push and a full push of the stick drive — and exports them into the robot's driver file. Its **Mechanisms** tab shows
+every mechanism on the robot — its ports, its buttons, its levels, the routes that use it — and, on the team laptop,
+**Test** moves one on the robot ([guide chapter 22](guide/22-making-your-first-route.md#the-mechanisms-on-the-robot)).
 
 **How to use it, step by step:** [guide chapter 22 — making your first route](guide/22-making-your-first-route.md)
 (the buttons and the feel: [its second part](guide/22-making-your-first-route.md#the-drivers-buttons-and-the-driving-feel)).
@@ -32,7 +34,7 @@ push and a full push of the stick drive — and exports them into the robot's dr
 
 | Browser | What it does |
 |---|---|
-| **On the team laptop:** `python3 tools/route_builder.py` (VS Code: **Terminal → Run Task → Open the route builder**) | Any browser, everything, and **Send to robot**: it writes the routes into `src/team/skills_route.cpp`, then builds and uploads them in one button ([guide chapter 22, step 7](guide/22-making-your-first-route.md#7-send-it-to-the-robot)); then **Check the mechanisms**, **Watch the robot** and **What is on robot one** ([the same step](guide/22-making-your-first-route.md#check-the-mechanisms-then-watch-the-run)). |
+| **On the team laptop:** `python3 tools/route_builder.py` (VS Code: **Terminal → Run Task → Open the route builder**) | Any browser, everything, and **Send to robot**: it writes the routes into `src/team/skills_route.cpp`, then builds and uploads them in one button ([guide chapter 22, step 7](guide/22-making-your-first-route.md#7-send-it-to-the-robot)); then **Check the mechanisms**, **Watch the robot** and **What is on robot one** ([the same step](guide/22-making-your-first-route.md#check-the-mechanisms-then-watch-the-run)), and the Mechanisms tab's **Test** ([guide chapter 22](guide/22-making-your-first-route.md#the-mechanisms-on-the-robot)). |
 | **Edge or Chrome** (version 97 or newer) | Everything. Connect your shulib folder once: **Save** writes `src/team/route_maker.json`, **Export** writes the routes into `src/team/skills_route.cpp` (and reads it back) and the **Controls** tab's export into the robot's driver file, each keeping the file's own line endings. |
 | **Firefox** (115 or newer) | Everything except writing into the folder: **Save** downloads `route_maker.json`, **Export** copies the code (or hands back an updated `skills_route.cpp`, or driver file, to put in place). |
 | **Safari** (16 or newer) — not tested | Should work as Firefox does; no test runs it. |
@@ -52,7 +54,7 @@ cannot open a project that uses something added since (it names what it cannot r
 ## What it knows
 
 The route builder knows the robots **as of the last time this site was published**: their mechanisms, their
-levels, how each one homes, and each robot's driver file (its buttons and feel). The bottom bar says which build of
+levels and ports, how each one finds its bottom, and each robot's driver file (its buttons and feel). The bottom bar says which build of
 the library that was. A fact typed into a robot's file reaches the route builder at the next publish; with your
 shulib folder connected (Edge or Chrome), the **Controls** tab reads today's driver file instead, and in Firefox its
 export checks the driver file you pick.

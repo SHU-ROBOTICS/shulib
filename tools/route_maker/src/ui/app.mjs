@@ -45,13 +45,15 @@ import { bearingDeg, wrapDeg } from '../model/geometry.mjs';
 
 import { kMaxCurvePoints } from '../model/curve.mjs';
 import { createControlsTab } from './controls_tab.mjs';
+import { createMechTab } from './mech_tab.mjs';
 import { setView, isHidden, isLocked, sectionsOf, indicesOf } from '../model/step_view.mjs';
 
 const DRAFT_KEY = 'shulib-route-builder:draft';
 const SAVED_KEY = 'shulib-route-builder:saved';  // the project text last saved or opened (the draft is "unsaved" only when it differs)
 const THEME_KEY = 'shulib-route-builder:theme';
 const COACH_KEY = 'shulib-route-builder:coach-dismissed';
-const TAB_KEY = 'shulib-route-builder:tab';  // RMP1-B: the Route or the Controls tab, as last left
+const TAB_KEY = 'shulib-route-builder:tab';  // RMP1-B: the Route, Controls (or, RMP1-M, Mechanisms) tab, as last left
+const TABS = ['route', 'controls', 'mechanisms'];
 
 function store(key, value) {
     try {
@@ -102,7 +104,7 @@ async function main() {
     const ui = {
         selected: null, point: null, tool: 'select', curveDraft: [], snap: true, focus: false, focusAt: null, here: null,
         saveState: startState, coach: !store(COACH_KEY) && project.routes.every((r) => r.steps.length === 0),
-        tab: store(TAB_KEY) === 'controls' ? 'controls' : 'route',
+        tab: TABS.includes(store(TAB_KEY)) ? store(TAB_KEY) : 'route',
     };
     let dragBase = null;  // the route before a drag (a drag is ONE undo entry, committed when it ends)
     let derived = null;
@@ -299,7 +301,7 @@ async function main() {
                 : ['nameSkills', 'together', 'moveStart'].includes(f.kind) ? 'start' : f.stepIndex;
             edit(r, sel);
             if (f.kind === 'homeFirst' || f.kind === 'homeWhileDriving' || f.kind === 'waitForHome') {
-                toast('Added. Type its time limit: the most the home (or the wait) may take.');
+                toast('Added. Type its time limit: the most it may take to find where it is (or the wait).');
                 // now (edit() drew it): a deferred focus could land after the student has moved on (RMP1-B's verifier)
                 const inp = document.querySelector('.pane.right input[name="boundS"]');
                 if (inp) {
@@ -695,6 +697,9 @@ async function main() {
         renderTop();
     }
     function undo() {
+        if (ui.tab === 'mechanisms') {
+            return;  // RMP1-M: nothing on the Mechanisms tab is an edit (and the route is not on screen)
+        }
         if (ui.tab === 'controls') {
             controlsTab.undo();
             renderTop();
@@ -704,6 +709,9 @@ async function main() {
         travel(undoH(hist));
     }
     function redo() {
+        if (ui.tab === 'mechanisms') {
+            return;
+        }
         if (ui.tab === 'controls') {
             controlsTab.redo();
             renderTop();
@@ -774,6 +782,15 @@ async function main() {
     document.body.append(els.app, els.toasts);
     const controlsTab = createControlsTab(app);
     els.app.insertBefore(controlsTab.element, els.status);
+    // RMP1-M: the Mechanisms tab (its buttons are the Controls tab's; its Test is RMP1-K's check, made by app.runView below)
+    app.jobsOf = (id, ident) => controlsTab.jobsOf(id, ident);
+    app.openStep = (k, i) => {
+        showTab('route');
+        app.switchRoute(k);
+        app.select(i);
+    };
+    const mechTab = createMechTab(app);
+    els.app.insertBefore(mechTab.element, els.status);
     els.fieldView = createFieldView(els.fieldPane, app);
     els.fieldPane.append(els.toolbar, els.hud, els.zoom, els.modeHint, els.coach);
     app.refresh = () => render();  // RMP1-A2u: PREVIEW redraws the shell (the step list lit, a run put away)
@@ -781,6 +798,7 @@ async function main() {
     app.sendPanel = local ? createSendPanel({ send: (r, onLine) => sendToRobot(local, r, onLine), log: () => sendLog(local),
         onChange: (end) => {
             renderTop();
+            mechTab.render();
             if (end && !app.sendPanel.element.isConnected) {  // the drawer was closed mid-send: say how it ended
                 toast(`${end.kind === 'uploaded' ? '✓' : '✗'} ${end.words}${end.then ? `: ${end.then}` : ''}`, end.kind === 'uploaded' ? '' : 'error');
             }
@@ -809,15 +827,15 @@ async function main() {
               h('span', { class: 'hide-narrow' }, 'Route builder'), h('small', {}, 'shulib')),
             h('span', { class: 'sep hide-narrow' }),
             h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'What to build' },
-              [['route', 'Route', 'curve'], ['controls', 'Controls', 'mechanism']].map(([id, t, ic]) => h('button', {
+              [['route', 'Route', 'curve'], ['controls', 'Controls', 'mechanism'], ['mechanisms', 'Mechanisms', 'motor']].map(([id, t, ic]) => h('button', {
                   role: 'tab', class: `tab${ui.tab === id ? ' on' : ''}`, 'aria-selected': String(ui.tab === id), id: `tab-${id}`,
                   onclick: () => showTab(id) }, icon(ic), t))),
             ui.tab === 'route' ? h('span', { class: 'chip robot hide-narrow', title: 'The route is written in robot one\'s numbers' }, 'Robot one') : null,
             ui.tab === 'route' ? routesMenu.button() : null,
             h('span', { class: `chip ${saveWords[1]}`, id: 'save-state', role: 'status' }, saveWords[0]),
             h('span', { class: 'spacer' }),
-            h('button', { class: 'btn icon ghost', 'aria-label': 'Undo (Ctrl+Z)', title: 'Undo (Ctrl+Z)', disabled: ui.tab === 'controls' ? !controlsTab.canUndo() : !canUndo(hist), onclick: undo }, icon('undo')),
-            h('button', { class: 'btn icon ghost', 'aria-label': 'Redo (Ctrl+Shift+Z)', title: 'Redo (Ctrl+Shift+Z)', disabled: ui.tab === 'controls' ? !controlsTab.canRedo() : !canRedo(hist), onclick: redo }, icon('redo')),
+            ui.tab === 'mechanisms' ? null : h('button', { class: 'btn icon ghost', 'aria-label': 'Undo (Ctrl+Z)', title: 'Undo (Ctrl+Z)', disabled: ui.tab === 'controls' ? !controlsTab.canUndo() : !canUndo(hist), onclick: undo }, icon('undo')),
+            ui.tab === 'mechanisms' ? null : h('button', { class: 'btn icon ghost', 'aria-label': 'Redo (Ctrl+Shift+Z)', title: 'Redo (Ctrl+Shift+Z)', disabled: ui.tab === 'controls' ? !controlsTab.canRedo() : !canRedo(hist), onclick: redo }, icon('redo')),
             h('span', { class: 'sep' }),
             files.canWriteFolder
                 ? h('button', { class: 'btn hide-narrow', onclick: connect, title: capabilityWords(caps),
@@ -830,7 +848,7 @@ async function main() {
             h('button', { class: 'btn icon ghost', 'aria-label': 'Help and shortcuts (?)', title: 'Help and shortcuts (?)', onclick: () => openHelp(app) }, icon('help')),
             h('span', { class: 'sep' }),
             ui.tab === 'route' ? app.preview.topbar() : null,  // PREVIEW plays the route: not on the Controls tab
-            exportButton(),
+            ui.tab === 'mechanisms' ? null : exportButton(),  // RMP1-M: the Mechanisms tab's one action is Test
             sendButton(),
             h('button', { class: 'btn icon ghost pane-toggle', 'aria-label': 'Step details', onclick: () => { els.app.dataset.right = els.app.dataset.right ? '' : 'open'; } }, icon('panel')));
     }
@@ -861,6 +879,11 @@ async function main() {
                  icon('send'), panel.busy() ? 'Sending…' : `Send to robot ${panel.robot()}`);
     }
     function renderStatus() {
+        if (ui.tab === 'mechanisms') {
+            mount(els.status, h('span', { class: 'build', title: 'The robots and the library this page was built with' },
+                `Library API ${baked.build.api} · built from ${baked.build.commit} on ${baked.build.date}`));
+            return;
+        }
         if (ui.tab === 'controls') {
             const n = controlsTab.errors().length;
             mount(els.status, n ? h('span', { class: 'chip error' }, icon('error'), `${n} error${n === 1 ? '' : 's'}`) : h('span', { class: 'chip ok' }, icon('check'), 'Ready to export'),
@@ -896,7 +919,8 @@ async function main() {
     function render() {
         els.app.dataset.tab = ui.tab;
         controlsTab.show(ui.tab === 'controls');
-        if (ui.tab === 'controls') {
+        mechTab.show(ui.tab === 'mechanisms');
+        if (ui.tab !== 'route') {
             renderTop();
             renderStatus();
             return;
@@ -1017,12 +1041,12 @@ async function main() {
             e.preventDefault();
             if (ui.tab === 'controls') {
                 controlsTab.openExport();
-            } else {
+            } else if (ui.tab === 'route') {
                 openExportDrawer(app);
             }
             return;
         }
-        if (ui.tab === 'controls') {
+        if (ui.tab !== 'route') {
             if (e.key === '?' && !typing) {
                 openHelp(app);
             }
@@ -1117,7 +1141,7 @@ async function main() {
     // is the manual Windows check's, A.4)
     window.routeBuilder = { route: () => JSON.parse(JSON.stringify(route())), issues: () => derive().issues, ready: true,
                             routes: () => JSON.parse(JSON.stringify(routes())), at,
-                            controls: () => controlsTab.snapshot(), tab: (id) => showTab(id),
+                            controls: () => controlsTab.snapshot(), tab: (id) => showTab(id), mechanisms: () => mechTab.state(),
                             useMemoryFolder: async (files0, opts) => {
                                 const host = memoryHost(files0, opts || {});
                                 files = makeFiles(host);

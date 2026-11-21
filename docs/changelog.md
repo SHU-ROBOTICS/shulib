@@ -16,6 +16,30 @@
 
 ## API 2.11
 
+### 2026-11-20 — The route builder's Mechanisms tab: every mechanism on the robot, and Test
+
+> Written when it was built. **The route builder and its host tool only — additive; no robot code, no library change.**
+
+**What you can now do (additive):**
+
+- **The Mechanisms tab** (beside Route and Controls) shows every mechanism on robot one or two, one card each: what it
+  is, its ports and which way each motor turns, its buttons, its levels and the routes that use it (a click opens the
+  route at its first step on that mechanism). A port, a motor's direction or which piston position is which, not sent
+  by the builders yet, says "not known yet".
+- **Test** on a card (on the team laptop, `python3 tools/route_builder.py`) moves that one mechanism while the robot
+  stays where it is — the same "what will move" screen and Send as **Check the mechanisms**; on the brain it is
+  `<mechanism> mechs` (**Test every mechanism**: `all mechs`), and `src/team/skills_route.cpp` is written back without
+  it. The card turns green, amber or red from the robot's own lines (only a run after that Send, on that robot), with
+  the time. A mechanism whose port is not known yet is not sent, nor is any test to a robot whose Auton Tester does not
+  build yet (robot two today, until station 13's quick pass). Like the check, run only against stand-ins for `pros` so
+  far.
+- **"Find the bottom"** replaces "home" wherever the page itself says it (the menu, the steps, the badges, the checks,
+  the Controls tab's words); the help says once what it means. The exported C++ is unchanged (`home()` /
+  `startHome()`), and so are the words that are C++ or the robot's: the driver file's own comments the Controls tab
+  shows and exports, the library's quoted refusals and the robot's `NOT_HOMED`.
+
+**What you must do:** nothing.
+
 ### 2026-11-20 — See the mechanisms work: each step says when it is done
 
 > Written when it was built. **A library change, by the team lead's second freeze exception the day before the

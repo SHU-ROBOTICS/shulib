@@ -69,7 +69,8 @@ export function readLine(w, raw) {
         const number = Number(a[1]);
         const s = START.exec(a[2]);
         if (s) {
-            w.runs.push({ number, name: s[1], steps: {}, open: {}, live: false, verdict: null, endAction: null, summary: null, end: null, ended: false });
+            w.runs.push({ number, name: s[1], robot: w.robot, steps: {}, open: {}, live: false, verdict: null, endAction: null, summary: null, end: null,
+                          ended: false });  // robot: the boot line's, when one was read (RMP1-M: a test's run is its robot's)
             return w;
         }
         const run = w.runs.findLast((r) => r.number === number);  // this boot's run N (each boot counts from 1 again)
