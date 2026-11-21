@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { SITE, SHOTS, skip, launch, serve, openPage, shot } from './harness.mjs';
 import { fixture, standinScript } from '../standin_engine.mjs';
-import { squareCorners } from '../../src/model/geometry.mjs';
+import { frontBayOf, robotOutline } from '../../src/model/obstacles.mjs';
 
 const VARIANTS = (SHOTS ? [['light', 1440, 900], ['dark', 1440, 900], ['light', 1280, 800], ['dark', 1280, 800]] : [['light', 1440, 900]])
     .map(([scheme, width, height]) => ({ scheme, viewport: { width, height }, tag: `${scheme}-${width}` }));
@@ -158,7 +158,8 @@ test.describe('RMP1-H in a browser', { skip }, () => {
             const moment = page.locator('.g-obstacle-moment.error');
             assert.equal(await moment.count(), 1);
             const pic = await page.evaluate(() => JSON.parse(document.getElementById('shulib-field').textContent));
-            const want = squareCorners(e.obstacle.at.x, e.obstacle.at.y, e.obstacle.at.headingDeg, 15)
+            const bay = frontBayOf(JSON.parse(fs.readFileSync(path.join(SITE, 'robots.json'), 'utf8')).robots.one);  // RMP1-Q: drawn with it
+            const want = robotOutline(e.obstacle.at, 15, bay, bay.body)  // the centre goal: the body's radius
                 .map((c) => [pic.originPx[0] + c.x * pic.pxPerIn, pic.originPx[1] - c.y * pic.pxPerIn]);
             const got = (await moment.getAttribute('points')).trim().split(/\s+/).map((q) => q.split(',').map(Number));
             assert.ok(Math.abs(e.obstacle.at.x) < 0.3 && got.every((q, k) => Math.hypot(q[0] - want[k][0], q[1] - want[k][1]) < 0.01), JSON.stringify({ got, want }));
@@ -175,8 +176,10 @@ test.describe('RMP1-H in a browser', { skip }, () => {
         test(`[${v.tag}] ending against a goal is a touch (amber) -- "touches it on purpose" silences it; Ctrl+Z brings it back`, async () => {
             const p = await openPage(browser, site.base, v);
             const { page } = p;
-            await startAt(page, 0, -30, 90);
-            await driveTo(page, 0, -10.005);  // the square's front 0.3 in into the centre goal's flat (7.5 + 2.805)
+            // the square's front 0.3 in into the centre goal's flat (7.5 + 2.805), 5 in off the robot's centre line: beside
+            // its open front (RMP1-Q), where it is solid
+            await startAt(page, 5, -30, 90);
+            await driveTo(page, 5, -10.005);
             const [w] = await structureIssues(page);
             assert.equal(w.code, 'RCO2');
             assert.equal(w.level, 'warn');

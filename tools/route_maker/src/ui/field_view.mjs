@@ -1,8 +1,8 @@
 // field_view.mjs — THE FIELD: the real picture under an SVG layer (RMP1 brief §1.4; landmine 1).
 //
 // Pan (drag the empty field, or Space-drag, or two fingers), zoom (the wheel, a pinch, + / - / 0 to fit), and
-// the route drawn over it: the robot's 15 in square at the start in the red alliance's colour with its FRONT
-// marked and a heading knob; every step's PLANNED path dashed (a curve drawn as the library's own CurvePath,
+// the route drawn over it: the robot's 15 in square (its open front cut out, RMP1-Q) at the start in the red
+// alliance's colour with its FRONT marked and a heading knob; every step's PLANNED path dashed (a curve drawn as the library's own CurvePath,
 // curve.mjs), a ghost square where it ends, a handle on every point to drag, a step's number at its spot, and
 // any step with an error red (a warning amber). Nothing here is the robot's real path: that is the preview's,
 // drawn on its own layer (drawRun, RMP1-A2u): each robot as the record placed it, its path so far solid, the rest
@@ -29,6 +29,7 @@ import { obstacleShapes } from './field_obstacles.mjs';
 import { mechBadges } from './mech_badges.mjs';
 import { clawSpotOf, clawAt, centreForClaw, clawLeg, isClawStep } from '../model/claw.mjs';
 import { robotName } from '../model/robot_names.mjs';
+import { frontBayOf, robotOutline, bayRadiusAt } from '../model/obstacles.mjs';
 
 const KNOB_IN = 15;  // the heading knob sits this far ahead of the start's centre
 
@@ -288,6 +289,15 @@ export function createFieldView(host, app) {
     function square(pose, cls) {
         return s('polygon', { class: cls, points: cornersOf(pose) });
     }
+    /** RMP1-Q: `robot` drawn at `pose` -- its square, its open front cut out (the outline the goals are checked with:
+     *  the body's radius when a black or centre goal is in it). */
+    const outlineOf = (pose, robot = app.robot(), size = app.size()) => {
+        const bay = frontBayOf(robot);
+        return pts(robotOutline(pose, size, bay, bayRadiusAt(pose, size, bay, (app.field() || {}).obstacles)));
+    };
+    function robotBody(pose, cls, robot) {
+        return s('polygon', { class: cls, points: outlineOf(pose, robot) });
+    }
     function frontPoints(pose, size = app.size()) {
         const half = size / 2;
         const rad = (pose.headingDeg * Math.PI) / 180;
@@ -374,8 +384,9 @@ export function createFieldView(host, app) {
         const two = path.map((q) => reflect(q, mirror));
         out.push(s('polyline', { class: 'g-twin-path', points: pts(two) }));
         const t0 = two[0];
-        out.push(s('g', { class: 'g-twin', 'data-twin': '' }, square(t0, 'g-twin-robot'), s('polygon', { class: 'g-twin-front', points: frontPoints(t0) }),
-                             claw(t0, false, {}, app.baked.robots[route.mirroredFor] || null)));
+        const twin = app.baked.robots[route.mirroredFor] || null;
+        out.push(s('g', { class: 'g-twin', 'data-twin': '' }, robotBody(t0, 'g-twin-robot', twin), s('polygon', { class: 'g-twin-front', points: frontPoints(t0) }),
+                             claw(t0, false, {}, twin)));
         const q = P(t0.x, t0.y + app.size() / 2 + 2.5);
         out.push(s('text', { class: 'g-twin-label', x: q.px, y: q.py }, `${robotName('two')} (mirrored)`));
         const hit = app.issues().find((x) => x.code === 'RCP1' && x.pair);
@@ -433,7 +444,7 @@ export function createFieldView(host, app) {
                 const b = P(step.x, step.y);
                 if (Number.isFinite(step.x) && Number.isFinite(step.y)) {
                     parts.push(s('line', { class: cls, x1: a.px, y1: a.py, x2: b.px, y2: b.py }));
-                    parts.push(square(p.to, `g-ghost ${sel ? 'sel' : ''}`));
+                    parts.push(robotBody(p.to, `g-ghost ${sel ? 'sel' : ''}`));
                     parts.push(handle(step.x, step.y, 'point', i, 0, `${sel ? 'sel' : ''} ${level[i] === 'error' ? 'error' : ''}`));
                     parts.push(claw(p.to, false, { 'data-handle': 'claw', 'data-index': i }));
                 }
@@ -441,7 +452,7 @@ export function createFieldView(host, app) {
                 const a = P(p.from.x, p.from.y);
                 const b = P(p.to.x, p.to.y);
                 parts.push(s('line', { class: cls, x1: a.px, y1: a.py, x2: b.px, y2: b.py }));
-                parts.push(square(p.to, `g-ghost ${sel ? 'sel' : ''}`));
+                parts.push(robotBody(p.to, `g-ghost ${sel ? 'sel' : ''}`));
                 parts.push(claw(p.to));
             } else if (step.do === 'face' || step.do === 'faceAway' || step.do === 'turnTo') {
                 parts.push(arc(p.from, p.from.headingDeg, p.to.headingDeg));
@@ -452,12 +463,12 @@ export function createFieldView(host, app) {
                     parts.push(handle(step.x, step.y, 'point', i, 0, sel ? 'sel' : ''));
                 }
                 if (sel) {
-                    parts.push(square(p.to, 'g-ghost sel'), claw(p.to));
+                    parts.push(robotBody(p.to, 'g-ghost sel'), claw(p.to));
                 }
             } else if ((step.do === 'curveTo' || step.do === 'reverseCurveTo') && p.curve) {
                 const pts = p.curve.samples(1).map((q) => P(q.x, q.y)).map((q) => `${q.px},${q.py}`).join(' ');
                 parts.push(s('polyline', { class: cls, points: pts }));
-                parts.push(square(p.to, `g-ghost ${sel ? 'sel' : ''}`));
+                parts.push(robotBody(p.to, `g-ghost ${sel ? 'sel' : ''}`));
                 parts.push(claw(p.to, false, { 'data-handle': 'claw', 'data-index': i, 'data-point': step.points.length - 1 }));
                 (step.points || []).forEach((q, k) => parts.push(handle(q.x, q.y, 'curvePoint', i, k, sel ? `sel${st.point === k ? ' point' : ''}` : '')));
             }
@@ -477,7 +488,7 @@ export function createFieldView(host, app) {
         // from a hand-edited file, is not: the step list shows "?" for the part and the inspector asks for it)
         const st0 = startPose(route.start);
         if (st0) {
-            parts.push(s('g', { class: `g-start${faded('start')}`, 'data-handle': 'start', 'data-index': -1 }, square(st0, 'g-robot'), front(st0), claw(st0)));
+            parts.push(s('g', { class: `g-start${faded('start')}`, 'data-handle': 'start', 'data-index': -1 }, robotBody(st0, 'g-robot'), front(st0), claw(st0)));
             const rad = (st0.headingDeg * Math.PI) / 180;
             const a = P(st0.x, st0.y);
             const k = P(st0.x + KNOB_IN * Math.cos(rad), st0.y + KNOB_IN * Math.sin(rad));
@@ -575,7 +586,7 @@ export function createFieldView(host, app) {
             done.setAttribute('points', past ? g.done.text : `${g.done.text} ${pts([r.pose])}`);
             after.setAttribute('points', past ? `${g.after.text} ${pts([r.pose])}` : '');
             g.classList.toggle('through', past);
-            body.setAttribute('points', cornersOf(r.pose, r.size));
+            body.setAttribute('points', outlineOf(r.pose, r.robot || null, r.size));
             nose.setAttribute('points', frontPoints(r.pose, r.size));
             cl.replaceChildren(...[claw(r.pose, false, {}, r.robot || null)].filter(Boolean));
         });

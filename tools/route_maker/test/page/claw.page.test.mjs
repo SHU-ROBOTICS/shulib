@@ -40,7 +40,7 @@ const drawnRobot = (page, g, body, nose) => page.evaluate(([gs, bs, ns]) => {
     const f = ([x, y]) => ({ x: (x - pic.originPx[0]) / pic.pxPerIn, y: (pic.originPx[1] - y) / pic.pxPerIn });
     const pts = (el) => el.getAttribute('points').trim().split(/\s+/).map((q) => f(q.split(',').map(Number)));
     const root = document.querySelector(gs);
-    const sq = pts(root.querySelector(bs));
+    const sq = pts(root.querySelector(bs)).slice(0, 4);  // the square's corners (RMP1-Q: its open front follows)
     const c = { x: sq.reduce((a, q) => a + q.x, 0) / sq.length, y: sq.reduce((a, q) => a + q.y, 0) / sq.length };
     const tip = pts(root.querySelector(ns))[0];
     const cl = root.querySelector('[data-claw]');

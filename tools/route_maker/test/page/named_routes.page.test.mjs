@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { SITE, skip, VARIANTS, launch, serve, openPage, shot } from './harness.mjs';
-import { squareCorners } from '../../src/model/geometry.mjs';
+import { frontBayOf, robotOutline } from '../../src/model/obstacles.mjs';
 
 let browser;
 let site;
@@ -215,7 +215,9 @@ test.describe('RMP1-C in a browser', { skip }, () => {
             a.forEach((q, i) => assert.ok(Math.hypot(q[0] - b[i][0], q[1] - b[i][1]) < 0.01, `${what} ${i}: ${q} vs ${b[i]}`));
         };
         // across y = -x: (x, y) -> (-y, -x), a heading h -> -90 - h (worked here by hand, not by the page's reflect)
-        near(await pts('.g-twin-robot'), squareCorners(-54.076, 36, -120, 15).map((c) => px(c.x, c.y)), 'robot two\'s square');
+        const two = JSON.parse(fs.readFileSync(`${SITE}/robots.json`, 'utf8')).robots.two;  // (`path` is this test's own below)
+        near(await pts('.g-twin-robot'), robotOutline({ x: -54.076, y: 36, headingDeg: -120 }, 15, frontBayOf(two)).map((c) => px(c.x, c.y)),
+             'robot two\'s square, its open front (RMP1-Q)');
         const rad = (-120 * Math.PI) / 180;
         near((await pts('.g-twin-front')).slice(0, 1), [px(-54.076 + Math.cos(rad) * 6.5, 36 + Math.sin(rad) * 6.5)], 'its front\'s tip');
         const path = await pts('.g-twin-path');

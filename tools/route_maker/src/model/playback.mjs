@@ -173,13 +173,14 @@ export function tookOf(p, mine, t) {
 }
 
 /** One robot's run: its samples, its thinned path, its page steps with times, verdicts and words, its field notes —
- *  RPV1's, and (RMP1-H) the page's THROUGH a solid structure (`field`: {obstacles, size}) when it comes first. */
+ *  RPV1's, and (RMP1-H) the page's THROUGH a solid structure (`field`: {obstacles, size, bays: {robot id: its open
+ *  front, RMP1-Q}}) when it comes first. */
 function runOf(id, rec, names = [], field = null) {
     const t = (i) => (i === null || i === undefined ? null : rec.samples[i][0]);
     const owner = ownersOf(rec, names);
     const ps = rec.pageSteps || [];
     let notes = (rec.field || []).map((f) => ({ ...f, at: stepOfPace(ps, f.s) }));
-    const mine = field && field.obstacles ? runThrough(rec.samples || [], field.obstacles, field.size || 15) : null;
+    const mine = field && field.obstacles ? runThrough(rec.samples || [], field.obstacles, field.size || 15, (field.bays || {})[rec.robot] || null) : null;
     const theirs = notes.find((f) => f.kind === 'THROUGH');
     if (mine && (!theirs || mine.s < theirs.s)) {  // the robot never gets past the first: a later THROUGH is dropped
         notes = [...notes.filter((f) => f.kind !== 'THROUGH'), { ...mine, at: stepOfPace(ps, mine.s) }].sort((a, b) => a.s - b.s);
@@ -213,8 +214,8 @@ const RANK = { ok: 0, cut: 1, failed: 2 };
 /**
  * The engine's result ({one, two?, verdict?}) ready to play: robot one's run (and robot two's, mirrored), the
  * duration, the run's own end times (the 57 s cut, the hard stop, the period) and the pair check's verdict.
- * `names` = {one, two}: each page step's mechanism `.name` on that robot (ownersOf); `field` = {obstacles, size}
- * (RMP1-H: the solid structures a run is checked against, the robot's square). Robot two's verdict on a page
+ * `names` = {one, two}: each page step's mechanism `.name` on that robot (ownersOf); `field` = {obstacles, size, bays}
+ * (RMP1-H: the solid structures a run is checked against, the robot's square; RMP1-Q: each robot's open front). Robot two's verdict on a page
  * step is kept on robot one's (`.two`) where it went otherwise and not done; the headline is the worse of the two.
  */
 export function playbackOf(result, names = {}, field = null) {

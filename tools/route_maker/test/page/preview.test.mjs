@@ -15,6 +15,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { standinScript, fixture } from '../standin_engine.mjs';
 import { poseAt, thinPath, sampleIndexAt, playbackOf } from '../../src/model/playback.mjs';
 import { squareCorners } from '../../src/model/geometry.mjs';
+import { frontBayOf, robotOutline } from '../../src/model/obstacles.mjs';
 import { TIMEOUT_WORDS } from '../../src/host/engine.mjs';
 import { noStructures } from './harness.mjs';
 
@@ -137,10 +138,12 @@ async function shot(page, name) {
     }
 }
 /** The page's picture points of the record's robot square at `t` (what the page must draw, from the record alone). */
-async function expectedSquare(page, samples, t) {
+/** The robot drawn at its record's pose: its square with its open front (RMP1-Q: robot `who`'s frontBay, as built). */
+async function expectedSquare(page, samples, t, who = 'one') {
     const pic = await page.evaluate(() => JSON.parse(document.getElementById('shulib-field').textContent));
     const q = poseAt(samples, t);
-    return squareCorners(q.x, q.y, q.headingDeg, 15).map((c) => [pic.originPx[0] + c.x * pic.pxPerIn, pic.originPx[1] - c.y * pic.pxPerIn]);
+    const bay = frontBayOf(JSON.parse(fs.readFileSync(path.join(SITE, 'robots.json'), 'utf8')).robots[who]);
+    return robotOutline(q, 15, bay).map((c) => [pic.originPx[0] + c.x * pic.pxPerIn, pic.originPx[1] - c.y * pic.pxPerIn]);
 }
 const drawn = (page, who, part = 'g-run-robot') => page.evaluate(([w, c]) => (document.querySelector(`.g-run.${w} .${c}`).getAttribute('points') || '')
     .trim().split(/\s+/).filter(Boolean).map((p) => p.split(',').map(Number)), [who, part]);
@@ -613,7 +616,7 @@ test.describe('PREVIEW in the page', { skip }, () => {
         await page.locator('.pair-mark').click();
         const t = (await pv(page)).t;
         assert.equal(t, f.result.verdict.failAt);
-        near(await drawn(page, 'two'), await expectedSquare(page, f.result.two.samples, t), 'robot two');
+        near(await drawn(page, 'two'), await expectedSquare(page, f.result.two.samples, t, 'two'), 'robot two');
         near(await drawn(page, 'one'), await expectedSquare(page, f.result.one.samples, t), 'robot one');
         assert.match(await page.locator('.dock-words').textContent(), /come too close\. auton 'skills': the two robots come within 6\.0 in/);
         await openFixture(page, 'pair_ok');
@@ -638,7 +641,7 @@ test.describe('PREVIEW in the page', { skip }, () => {
         await stop(page);
         await page.keyboard.press('End');
         for (const [who, k] of [['one', 7.5 - 1.232], ['two', 3]]) {
-            const body = await drawn(page, who);
+            const body = (await drawn(page, who)).slice(0, 4);  // the square's corners (RMP1-Q: its open front follows)
             const c = [body.reduce((a, q) => a + q[0], 0) / body.length, body.reduce((a, q) => a + q[1], 0) / body.length];
             const tip = (await drawn(page, who, 'g-run-front'))[0];
             const claw = await page.evaluate((w) => {
