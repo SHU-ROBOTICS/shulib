@@ -20,6 +20,7 @@ import { isTeamPath, spliceRegion, findRegion, regionText, regionHash, exportKey
 import { exportRegion } from '../model/export.mjs';
 import { ROUTE_NAME } from '../model/route.mjs';
 import { saveProject, loadProject, PROJECT_FILE } from '../model/project.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
 /** The file layer over `host` (header). */
 export function makeFiles(host) {
@@ -130,7 +131,7 @@ export function makeFiles(host) {
                 const text = await host.readText(SKILLS_ROUTE_FILE);
                 if (text === null) {
                     return { ok: false, why: 'noFile', words: `There is no ${SKILLS_ROUTE_FILE} in this folder: it arrives with `
-                        + 'robot two\'s update. Until then, use Copy.' };
+                        + `${robotName('two')}'s update. Until then, use Copy.` };
                 }
                 const found = findRegion(text);
                 key = exportKey(SKILLS_ROUTE_FILE, found.ok ? found.name : ROUTE_NAME);

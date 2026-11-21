@@ -3,10 +3,11 @@
     // builder in the browser, where Send to robot is one button (tools/route_builder.py; the terminal keeps it running,
     // Ctrl+C stops it). The two "Upload routes" build the Auton Tester for that robot, upload it to slot 6 and say plainly
     // whether it worked (tools/upload_auton.py). "Upload everything" puts all six programs on that robot, each in its
-    // slot. "Upload a program to a robot" asks which robot and which program. "What is on robot one" (or two) lists what
-    // is in each of the brain's slots against what should be there, read-only (tools/route_builder.py robot one).
+    // slot. "Upload a program to a robot" asks which robot and which program. "What is on White Bot" (or Black Bot) lists
+    // what is in each of the brain's slots against what should be there, read-only (tools/route_builder.py robot one).
+    // White Bot is robot one (ROBOT=one), Black Bot robot two (ROBOT=tank): the labels say both, the args stay one/two.
     // Plug the BRAIN in by USB. (Not the PROS extension's own Upload button: it builds the bench bot's test program
-    // into slot 5, not robot one's.)
+    // into slot 5, not White Bot's.)
     "version": "2.0.0",
     "tasks": [
         {
@@ -20,7 +21,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Upload routes to robot one",
+            "label": "Upload routes to White Bot (robot one)",
             "type": "shell",
             "command": "python3",
             "windows": { "command": "python" },
@@ -30,7 +31,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Upload routes to robot two",
+            "label": "Upload routes to Black Bot (robot two)",
             "type": "shell",
             "command": "python3",
             "windows": { "command": "python" },
@@ -40,7 +41,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Upload everything to robot one",
+            "label": "Upload everything to White Bot (robot one)",
             "type": "shell",
             "command": "python3",
             "windows": { "command": "python" },
@@ -50,7 +51,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Upload everything to robot two",
+            "label": "Upload everything to Black Bot (robot two)",
             "type": "shell",
             "command": "python3",
             "windows": { "command": "python" },
@@ -70,7 +71,7 @@
             "problemMatcher": []
         },
         {
-            "label": "What is on robot one",
+            "label": "What is on White Bot (robot one)",
             "type": "shell",
             "command": "python3",
             "windows": { "command": "python" },
@@ -79,7 +80,7 @@
             "problemMatcher": []
         },
         {
-            "label": "What is on robot two",
+            "label": "What is on Black Bot (robot two)",
             "type": "shell",
             "command": "python3",
             "windows": { "command": "python" },
@@ -95,11 +96,11 @@
             "description": "Which robot is plugged in?",
             "options": [
                 {
-                    "label": "Robot one",
+                    "label": "White Bot (robot one)",
                     "value": "one"
                 },
                 {
-                    "label": "Robot two",
+                    "label": "Black Bot (robot two)",
                     "value": "two"
                 }
             ],

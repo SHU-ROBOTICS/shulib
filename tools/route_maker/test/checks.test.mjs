@@ -138,7 +138,7 @@ test('RC3: a start MISSING a part (a hand-edited file\'s null) -- one RC3, nothi
     assert.deepEqual(startTitle({ y: -36, headingDeg: 90 }), ['Start at (?, -36)', 'facing 90°']);
     assert.deepEqual(startTitle({ x: -36, y: -36 }), ['Start at (-36, -36)', 'facing ?°']);
     assert.deepEqual(startTitle({}), ['Start at (?, ?)', 'facing ?°']);
-    assert.deepEqual(startTitle(null), ['Start: not placed yet', 'click the field to place robot one']);
+    assert.deepEqual(startTitle(null), ['Start: not placed yet', 'click the field to place White Bot']);
     // and the whole start planned again the moment the part is typed
     const whole = route([{ do: 'driveTo', x: 0.5, y: -55.7 }], START);
     assert.deepEqual(plannedPoses(whole)[0].from, { ...START });
@@ -218,7 +218,7 @@ test('RC18: a mechanism, a kind, a preset or a position the robot does not have 
 test('RC18: an arm or lift with NO levels (robot one\'s cascade since ROB1-C2) -- a move says where levels come from, never "choose one"', () => {
     const lift = ledgerRobot().mechanisms[0];
     const none = { ...ledgerRobot(), mechanisms: [{ ...lift, presets: [] }] };
-    const words = 'Robot one\'s cascade has no levels yet: record them at Bench Tests station 13.';
+    const words = 'White Bot\'s cascade has no levels yet: record them at Bench Tests station 13.';
     for (const step of [{ do: 'move', mechanism: 'cascade', preset: 1, boundS: 2 }, { do: 'startMove', mechanism: 'cascade', preset: 1, boundS: 2 }]) {
         const rc18 = at(checkRoute(route([{ do: 'home', mechanism: 'cascade', boundS: 3 }, step]), [none], FIELD), 'RC18');
         assert.deepEqual(rc18.map((x) => [x.level, x.stepIndex, x.field, x.words]), [['error', 1, 'preset', words]], JSON.stringify(step));

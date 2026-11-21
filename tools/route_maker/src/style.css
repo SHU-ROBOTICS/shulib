@@ -73,7 +73,7 @@ button, input, select { font: inherit; color: inherit; }
    give way first — the save state is cut with "…" only as a last resort, the route's name (the switcher, RMP1-C) at its own
    width; at 1600 px and
    below the folder button keeps only its icon and the "Save downloads" chip (its words are on the Export page too)
-   is not drawn; at 1366 px and below the "Route builder" words and the "Robot one" chip go too (the mark and the
+   is not drawn; at 1366 px and below the "Route builder" words and the robot's name chip go too (the mark and the
    route's name stay). The widths leave room for wider fonts than ours (CI's Linux runners). */
 .topbar > * { flex-shrink: 0; }
 .topbar > .chip { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -157,16 +157,16 @@ test.describe('RMP1-C in a browser', { skip }, () => {
         await page.getByRole('button', { name: 'Got it' }).click();
         await startAt(page, -36, 54.076, -90);
         assert.equal(await page.locator('[data-twin]').count(), 1, 'robot two drawn');
-        assert.equal(await page.locator('.g-twin-label').textContent(), 'robot two (mirrored)');
+        assert.equal(await page.locator('.g-twin-label').textContent(), 'Black Bot (mirrored)');
         assert.equal(await page.locator('[data-mirror]').count(), 1, 'the diagonal drawn');
-        assert.match(await page.locator('.pane.right').textContent(), /Robot two starts at \(-54\.076, 36\) facing 0 deg/);
+        assert.match(await page.locator('.pane.right').textContent(), /Black Bot starts at \(-54\.076, 36\) facing 0 deg/);
         const q = (await errorsOf(page)).map((x) => x.code);
         assert.deepEqual(q, ['RCT1'], 'asked, no default');
         assert.ok(await page.locator('.ask-together.unanswered').isVisible());
         await page.locator('.pane.right [data-together="true"]').click();
         const close = await errorsOf(page);
         assert.deepEqual(close.map((x) => [x.code, x.stepIndex]), [['RCP1', -1]]);
-        assert.match(close[0].words, /At the START robot one at \(-36, 54\.076\) and robot two \(mirrored\) at \(-54\.076, 36\) are 4\.4 in apart/);
+        assert.match(close[0].words, /At the START White Bot at \(-36, 54\.076\) and Black Bot \(mirrored\) at \(-54\.076, 36\) are 4\.4 in apart/);
         assert.equal(await page.locator('.field-svg .g-too-close').count(), 2, 'both squares marked');
         await shot(page, 'too-close-light-1440');
         await page.locator('.pane.right .issue.error').getByRole('button', { name: /Move the start .* in away from the diagonal/ }).click();
@@ -221,7 +221,7 @@ test.describe('RMP1-C in a browser', { skip }, () => {
         const path = await pts('.g-twin-path');
         near([path[0], path[path.length - 1]], [px(-54.076, 36), px(-36, 12)], 'its path, start to end');
         await page.locator('.start-card').click();
-        assert.match(await page.locator('.pane.right').textContent(), /Robot two starts at \(-54\.076, 36\) facing -120 deg/);
+        assert.match(await page.locator('.pane.right').textContent(), /Black Bot starts at \(-54\.076, 36\) facing -120 deg/);
         assert.deepEqual(await p.done(), []);
     });
 

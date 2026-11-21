@@ -8,6 +8,7 @@
 
 import { h, icon, askText, openMenu } from './dom.mjs';
 import { stepIcon, stepTitle, startTitle } from './words.mjs';
+import { robotName } from '../model/robot_names.mjs';
 import { isHidden, isLocked, sectionsOf, indicesOf } from '../model/step_view.mjs';
 
 /** A small button on a card or a section's row (its click never selects the card). */
@@ -87,7 +88,7 @@ export function renderStepList(el, app) {
         const card = h('div', {
             class: `step ${st.selected === i ? 'selected' : ''} ${level[i] ? `has-${level[i]}` : ''} ${pv ? `pv-${pv.state}` : ''}${hidden ? ' is-hidden' : ''}${locked ? ' is-locked' : ''}`,
             role: 'button', tabindex: '0', 'data-step': i,
-            'aria-label': `Step ${i + 1}: ${title}${level[i] ? ` (${level[i] === 'error' ? 'has an error' : 'has a warning'})` : ''}${pv ? `. In the preview: ${pv.words}` : ''}${pv && pv.two ? `. Robot two: ${pv.two.words}` : ''}`,
+            'aria-label': `Step ${i + 1}: ${title}${level[i] ? ` (${level[i] === 'error' ? 'has an error' : 'has a warning'})` : ''}${pv ? `. In the preview: ${pv.words}` : ''}${pv && pv.two ? `. ${robotName('two')}: ${pv.two.words}` : ''}`,
             onclick: () => pick(i),
             onkeydown: (e) => {
                 if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
@@ -107,7 +108,7 @@ export function renderStepList(el, app) {
                    pv.placeholder ? h('span', { class: 'ph' }, 'PLACEHOLDER') : null) : null,
             pv && pv.state !== 'ok' && pv.library.length ? h('div', { class: 'step-lib' }, pv.library[0]) : null,
             pv && pv.two ? h('div', { class: 'step-lib two', title: [pv.two.words, ...pv.two.library].join('\n') },
-                             `Robot two: ${pv.two.words}${pv.two.library.length ? `. ${pv.two.library[0]}` : ''}`) : null),
+                             `${robotName('two')}: ${pv.two.words}${pv.two.library.length ? `. ${pv.two.library[0]}` : ''}`) : null),
         h('span', { class: 'step-acts' },
           act(`${hidden ? 'Show' : 'Hide'} step ${i + 1} on the field (H)`, hidden ? 'eyeOff' : 'eye', hidden, () => app.toggleHidden(i)),
           act(`${locked ? 'Unlock' : 'Lock'} step ${i + 1} (L)`, locked ? 'lock' : 'unlock', locked, () => app.toggleLocked(i)),
@@ -159,7 +160,7 @@ export function renderStepList(el, app) {
     const empty = route.steps.length === 0
         ? h('li', { class: 'empty-list' }, route.start
             ? 'Add a step: pick Drive, Curve, Turn, Mechanism or Wait above the field, then click on the field.'
-            : 'Place robot one\'s start first: click where it starts on the field.')
+            : `Place ${robotName('one')}'s start first: click where it starts on the field.`)
         : null;
     el.replaceChildren(h('ol', { class: 'steps', 'aria-label': 'The route\'s steps' }, bar, start, items, empty));
 }

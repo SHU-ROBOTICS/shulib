@@ -333,8 +333,9 @@ test.describe('the Controls tab in a browser', { skip }, () => {
         project.robots = { two: newer };
         await page.evaluate((t) => window.routeBuilder.useMemoryFolder({ 'src/team/route_maker.json': t }), `${JSON.stringify(project, null, 2)}\n`);
         await page.getByRole('tab', { name: 'Controls' }).click();
-        await page.getByRole('radio', { name: 'two' }).click();
-        assert.match((await controls(page)).meta.locked, /cannot be read here \(a "toggles" entry has a field "glow"/);
+        await page.getByRole('radio', { name: 'Black Bot' }).click();
+        assert.equal(await page.locator('.pad-card h2').textContent(), 'Black Bot\'s controller', 'RMP1-L: the robot by its name');
+        assert.match((await controls(page)).meta.locked, /^src\/team\/route_maker\.json's controls for Black Bot cannot be read here \(a "toggles" entry has a field "glow"/);
         // read only: a job chosen, or a button made free, is refused -- the toast says so, never "Added" or "free now"
         const before = (await controls(page)).state.controls.list.length;
         await page.locator('svg.pad .cbtn.free').first().click();
@@ -345,7 +346,7 @@ test.describe('the Controls tab in a browser', { skip }, () => {
         await editor(page).getByRole('button', { name: /^Make .* free$/ }).click();
         assert.match(await page.locator('.toast').textContent(), /cannot be read here/);
         assert.equal((await controls(page)).state.controls.list.length, before);
-        await page.getByRole('radio', { name: 'one' }).click();
+        await page.getByRole('radio', { name: 'White Bot' }).click();
         await give(page, 'Up', 'claw', 'Go to "open" on one press');
         await page.keyboard.press('Control+s');
         await page.waitForFunction(() => /"one"/.test(window.routeBuilder.memory.store['src/team/route_maker.json'] || ''));
@@ -390,13 +391,13 @@ test.describe('the Controls tab in a browser', { skip }, () => {
         await openControls(page);
         await feel(page);
         await page.locator('select[name="onRelease"]').selectOption('brake');
-        await page.getByRole('radio', { name: 'two' }).click();
+        await page.getByRole('radio', { name: 'Black Bot' }).click();
         const two = (await controls(page)).state;
         assert.ok(await page.getByRole('button', { name: 'Undo (Ctrl+Z)' }).isDisabled(), 'nothing to undo on robot two');
         await away(page);
         await page.keyboard.press('Control+z');
         assert.deepEqual((await controls(page)).state, two, 'robot two unchanged');
-        await page.getByRole('radio', { name: 'one' }).click();
+        await page.getByRole('radio', { name: 'White Bot' }).click();
         assert.equal((await controls(page)).state.driving.onRelease, 'brake', 'robot one\'s edit still there');
         await away(page);
         await page.keyboard.press('Control+z');
@@ -427,7 +428,7 @@ test.describe('the Controls tab in a browser', { skip }, () => {
         await page.getByRole('tab', { name: 'Controls' }).click();
         assert.equal((await controls(page)).state.driving.onRelease, 'brake');
         assert.ok((await page.evaluate(() => window.routeBuilder.route())).start, 'the team\'s route is open');
-        assert.match((await page.locator('.toast').allTextContents()).join(' '), /Opened src\/team\/route_maker\.json from the folder\. Your Controls changes for robot one are kept/);
+        assert.match((await page.locator('.toast').allTextContents()).join(' '), /Opened src\/team\/route_maker\.json from the folder\. Your Controls changes for White Bot are kept/);
         await buttons(page);
         assert.match(await editor(page).textContent(), /You changed it here, so today's file in your folder is not read in/, 'never "Connect your folder" once it is');
         await page.keyboard.press('Control+s');
@@ -476,7 +477,7 @@ test.describe('the Controls tab in a browser', { skip }, () => {
         const p = await openPage(browser, site.base);
         const { page } = p;
         await openControls(page);
-        await page.getByRole('radio', { name: 'two' }).click();
+        await page.getByRole('radio', { name: 'Black Bot' }).click();
         await feel(page);
         await page.locator('select[name="onRelease"]').selectOption('brake');
         const project = JSON.parse(fs.readFileSync(path.join(REPO, 'test', 'goldens', 'route_maker', 'smoke_robot_one.route.json'), 'utf8'));
@@ -484,7 +485,7 @@ test.describe('the Controls tab in a browser', { skip }, () => {
         const folder = { 'src/team/route_maker.json': `${JSON.stringify(project, null, 2)}\n`, 'src/team/robot_one_driver.hpp': 'int x;\n' };
         await page.evaluate((s) => window.routeBuilder.useMemoryFolder(s), folder);
         await page.getByRole('tab', { name: 'Controls' }).click();
-        assert.match((await page.locator('.toast').allTextContents()).join(' '), /Its Controls for robot two are read only here, so your changes there are gone\./);
+        assert.match((await page.locator('.toast').allTextContents()).join(' '), /Its Controls for Black Bot are read only here, so your changes there are gone\./);
         assert.doesNotMatch((await page.locator('.toast').allTextContents()).join(' '), /brings yours back|are kept/);
         assert.match((await controls(page)).meta.locked, /cannot be read here/);
         // the editor says why today's file is not read in: never "You changed it here" for a change that is gone
@@ -495,7 +496,7 @@ test.describe('the Controls tab in a browser', { skip }, () => {
         await away(page);
         await page.keyboard.press('Control+z');
         assert.notEqual((await controls(page)).state.driving.onRelease, 'brake', 'nothing to bring back');
-        await page.getByRole('radio', { name: 'one' }).click();
+        await page.getByRole('radio', { name: 'White Bot' }).click();
         assert.match(await pane(), /Today's file in your folder was not read in \(src\/team\/robot_one_driver\.hpp has no /);
         assert.doesNotMatch(await pane(), /You changed it here/);
         assert.deepEqual(await p.done(), []);

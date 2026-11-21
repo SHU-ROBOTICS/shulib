@@ -16,6 +16,23 @@
 
 ## API 2.11
 
+### 2026-11-20 — What people see: White Bot and Black Bot
+
+> Written when it was built (the team lead: "we will name the bots White Bot and Black bot instead of 1 and two" —
+> what people see, today). **No library change.**
+
+**What changed:** robot one is **White Bot** and robot two **Black Bot** wherever the route builder names a robot
+(its buttons — **Send to White Bot** —, headings, checks, PREVIEW's words, the Controls tab), in
+`tools/upload_auton.py`'s and `tools/route_builder.py`'s sentences ("Building White Bot's Drive: make ROBOT=one
+PROGRAM=drive"), and in the VS Code tasks, which say both: **Upload routes to White Bot (robot one)**, **Upload
+everything to Black Bot (robot two)**, **What is on White Bot (robot one)**; the robot picker too. Both tools take
+`white` and `black` as well as `one` and `two` (`python3 tools/upload_auton.py white drive`).
+
+**Not changed:** the exported C++ (byte for byte), what the robot and the library print (they still say robot one),
+`ROBOT=one` / `ROBOT=tank`, file names, `route_maker.json`, and the rest of these docs (after the competition).
+
+**What you must do:** nothing. `one` and `two` still work everywhere they did.
+
 ### 2026-11-20 — See the mechanisms work: each step says when it is done
 
 > Written when it was built. **A library change, by the team lead's second freeze exception the day before the

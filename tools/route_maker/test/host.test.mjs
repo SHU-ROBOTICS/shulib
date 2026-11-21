@@ -25,7 +25,9 @@ test('FA1 (host): export writes ONLY the region of src/team/skills_route.cpp; no
     assert.deepEqual(Object.keys(host.store).sort(), ['src/team/autons.cpp', 'src/team/skills_route.cpp'], 'nothing else written');
     assert.equal(host.store['src/team/autons.cpp'], 'x');
     const noneHost = memoryHost({});
-    assert.equal((await makeFiles(noneHost).exportToFile(ROUTE, newProject())).why, 'noFile', 'before robot two\'s update: no file, Copy only');
+    assert.deepEqual(await makeFiles(noneHost).exportToFile(ROUTE, newProject()), { ok: false, why: 'noFile',
+        words: 'There is no src/team/skills_route.cpp in this folder: it arrives with Black Bot\'s update. Until then, use Copy.' },
+        'before robot two\'s update: no file, Copy only (RMP1-L: the robot named)');
     assert.deepEqual(noneHost.store, {}, 'the builder never creates a file under src/');
     const bare = memoryHost({ 'src/team/skills_route.cpp': 'int x;\n' });
     assert.equal((await makeFiles(bare).exportToFile(ROUTE, newProject())).why, 'noMarkers');

@@ -14,6 +14,7 @@ import { heightPatch, barPick, asHeight, waitsFor, WAIT_PAIR, limitOf, limitHint
 import { reflect } from '../model/pair.mjs';
 import { isHidden, isLocked } from '../model/step_view.mjs';
 import { touchOnPurpose } from './field_obstacles.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
 /**
  * A number with its unit. Empty means "nothing typed" (the step keeps its hole, and the checks ask for it);
@@ -254,15 +255,15 @@ function robotTwoSection(route, app) {
                                         'data-together': String(v), onclick: () => app.setTogether(v) },
         v ? 'Yes, together' : 'No, one at a time', h('small', {}, v ? `too-close check: ${fmt(robot.pairCheck.gapIn)} in` : 'no too-close check'));
     const skills = route.name === ROUTE_NAME;
-    return h('div', { class: 'section' }, h('h3', {}, 'Robot two'),
+    return h('div', { class: 'section' }, h('h3', {}, robotName('two')),
         toggle('Runs it mirrored', skills ? 'always, for the skills route (the competition\'s skills run, on both robots)' : 'across the field\'s skills diagonal',
                !!route.mirroredFor, (on) => app.setMirror(on), 'mirrored', skills && !!route.mirroredFor),
         route.mirroredFor ? [
-            s0 ? h('p', { class: 'hint' }, `Robot two starts at (${fmt(s0.x)}, ${fmt(s0.y)}) facing ${fmt(s0.headingDeg)} deg: the blue square on the field.`) : null,
+            s0 ? h('p', { class: 'hint' }, `${robotName('two')} starts at (${fmt(s0.x)}, ${fmt(s0.y)}) facing ${fmt(s0.headingDeg)} deg: the blue square on the field.`) : null,
             h('div', { class: `fld ask-together${route.together === undefined ? ' unanswered' : ''}` },
               h('span', {}, 'Do both robots run it at the SAME time?'),
               h('div', { class: 'seg wide', role: 'radiogroup', 'aria-label': 'Both robots at the same time' }, answer(true), answer(false))),
-        ] : h('p', { class: 'hint' }, 'Robot two runs it as written, from robot one\'s start: for a route one robot runs.'));
+        ] : h('p', { class: 'hint' }, `${robotName('two')} runs it as written, from ${robotName('one')}'s start: for a route one robot runs.`));
 }
 
 /** RMP1-G: where the step is among the points on its spot, and whether it is hidden or locked on the field. */
@@ -293,14 +294,14 @@ export function renderInspector(el, app) {
                   ? h('p', { class: 'route-name-fixed' }, h('strong', {}, `"${route.name}"`), ' — the competition\'s skills route keeps its name.')
                   : h('div', { class: 'row' }, h('strong', {}, `"${route.name}"`),
                       h('button', { class: 'btn small', onclick: () => app.renameRoute(app.at()) }, icon('edit'), 'Rename'))),
-            h('div', { class: 'section' }, h('h3', {}, 'Robot one\'s start'),
+            h('div', { class: 'section' }, h('h3', {}, `${robotName('one')}'s start`),
               s0 ? [
                   h('div', { class: 'field-row' },
                     numField('x', s0.x, 'in', (v) => app.setStart({ ...s0, x: v }), { name: 'startX' }),
                     numField('y', s0.y, 'in', (v) => app.setStart({ ...s0, y: v }), { name: 'startY' })),
                   h('div', { class: 'field-row' }, numField('Heading', s0.headingDeg, 'deg', (v) => app.setStart({ ...s0, headingDeg: v }), { name: 'startH' }),
                     h('div', { class: 'hint' }, '0 faces the right wall, 90 faces blue. Drag the red knob on the field; arrow keys move it 1 in (Shift: 0.25 in).')),
-              ] : h('p', { class: 'hint' }, 'Click the field to place robot one where it starts; then drag it, and its red knob to turn it.')),
+              ] : h('p', { class: 'hint' }, `Click the field to place ${robotName('one')} where it starts; then drag it, and its red knob to turn it.`)),
             robotTwoSection(route, app),
             h('div', { class: 'section' }, h('h3', {}, 'The robots'),
               h('p', { class: 'hint' }, app.robotsWords())),

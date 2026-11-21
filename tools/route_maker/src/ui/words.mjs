@@ -3,6 +3,7 @@
 
 import { fmt } from '../model/numbers.mjs';
 import { targetKind, unitOf, bottomOf } from '../model/lift.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
 /** The toolbar's tools and the step kinds they add. */
 export const TOOLS = [
@@ -71,7 +72,7 @@ export function positionWords(m, position) {
  *  the start is kept as the file has it, and RC3 asks for the part. */
 export function startTitle(start) {
     if (!start) {
-        return ['Start: not placed yet', 'click the field to place robot one'];
+        return ['Start: not placed yet', `click the field to place ${robotName('one')}`];
     }
     return [`Start at ${pt(start.x, start.y)}`, `facing ${n(start.headingDeg, '°')}`];
 }

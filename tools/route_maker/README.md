@@ -8,7 +8,7 @@ the skills route by clicking and exports the C++. Students: read
 
 | Where | What |
 |---|---|
-| `src/model/` | PURE ES modules (no DOM, no file API), each with its node test in `test/`: the route and its edits (`route.mjs`), the library's curve ported line for line (`curve.mjs`, pinned by CV1), every check (`checks.mjs`), the export (`export.mjs`), the ONE number formatter (`numbers.mjs`), the marker / hand-edit / line-ending / read-back rules (`region.mjs`), what Export says next (`to_robot.mjs`: the build and upload commands, and `sendStage`, Send's reading of upload_auton's lines), the project file (`project.mjs`), undo, the field and snapping, the field's solid structures (`obstacles.mjs`, RMP1-H: the goals and the Loaders from the description's `field.obstacles` — `test/override_field_obstacles.hpp`, cited to the game manual — every step's swept square checked against them), the library's quoted sentences (`library_words.mjs`, checked against the headers) |
+| `src/model/` | PURE ES modules (no DOM, no file API), each with its node test in `test/`: the route and its edits (`route.mjs`), the library's curve ported line for line (`curve.mjs`, pinned by CV1), every check (`checks.mjs`), the export (`export.mjs`), the ONE number formatter (`numbers.mjs`), the robots' names people see (`robot_names.mjs`, RMP1-L), the marker / hand-edit / line-ending / read-back rules (`region.mjs`), what Export says next (`to_robot.mjs`: the build and upload commands, and `sendStage`, Send's reading of upload_auton's lines), the project file (`project.mjs`), undo, the field and snapping, the field's solid structures (`obstacles.mjs`, RMP1-H: the goals and the Loaders from the description's `field.obstacles` — `test/override_field_obstacles.hpp`, cited to the game manual — every step's swept square checked against them), the library's quoted sentences (`library_words.mjs`, checked against the headers) |
 | `src/host/` | the four host interfaces the screens call: `files.mjs` (over `files_fsaccess.mjs` — Chrome/Edge's folder — `files_download.mjs` — every browser — or `files_local.mjs` — the page `tools/route_builder.py` serves, RMP1-I), `engine.mjs` (PREVIEW's engine, in a Worker — below), `robots.mjs` (the descriptions baked into the page), `capabilities.mjs`. A host (the local helper; later a VS Code panel) swaps these, never the screens or a rule |
 | `src/ui/` | the screens: `app.mjs` (the shell and the store), `field_view.mjs` (and `field_obstacles.mjs`: the structures' outlines, the one highlight, a step's "touches it on purpose"), `step_list.mjs`, `inspector.mjs`, `export_drawer.mjs` (with `to_robot.mjs`: the result, "Will it build?", Next; and `send_panel.mjs`: Send to robot, RMP1-I), `help.mjs`, `words.mjs` (what the page calls each step), `dom.mjs` (helpers and the icons); the Controls tab, one step on screen at a time: `controls_tab.mjs` (step 1: the controller and the editor beside it), `feel_tab.mjs` (step 2: the driving feel and its graph, "More settings" closed at first), `controls_export.mjs` |
 | `src/model/` (the Controls tab) | `controls.mjs` (the controls as data, one check per build refusal of `controls()`, the `controls` and `control words` regions), `feel.mjs` (the library's stick curve in the C++'s order, `checkFeel`, the `feel` region), `driver_file.mjs` (the driver file's three marked regions: found, read, written all or none) |
@@ -91,13 +91,27 @@ says how it ended; one summary line coloured by the robot's own verdict (`run R:
 the END estimate on the field when LIVE; an older program's run (no per-step line) is marked at its end from its "k of N
 steps done", only when that count adds up; run numbers restart at each boot (a later line goes to the LAST run of its
 number); a run of another version of the route, or of the route as it was before an edit, is said, never painted. **What
-is on robot one** (also `python3 tools/route_builder.py robot one` — through the running helper when there is one —
-and VS Code's **What is on robot one**) shows the slot table.
+is on White Bot (robot one)** (also `python3 tools/route_builder.py robot white` — through the running helper when there is one —
+and VS Code's **What is on White Bot (robot one)**) shows the slot table.
 Tests: `test/check_route.test.mjs`, `test/run_log.test.mjs` (the real 11-19 lines in `test/fixtures/robot_log/`, and
 `d4_lines.log` there, the library's own per-step lines, which `test/routine_step_line_test.cpp` checks it prints), the
 helper's self-test (the fake pros's `terminal` and `user-script` commands in `tools/upload_auton.py`'s FAKE — its
 `user-script` prints pros's own `Loading` and `Downloading slot_N.ini` lines, its `v5 read-file` fails as 3.5.6's does), and
 `test/page/run_view.page.test.mjs`.
+
+**RMP1-L — White Bot and Black Bot.** The page calls robot one **White Bot** and robot two **Black Bot** wherever it
+names a robot; `src/model/robot_names.mjs` is the page's one spelling of the names (`robotName(id)`; `robotBridge(id)`,
+"White Bot (robot one)", only where a person matches the page to a file or doc that says robot one: the export
+drawer's autons-file lines and the help's first mention). The data keys (`'one'`, `'two'`), `ROBOT=one|tank`, the file
+names and the exported C++ (its comments say ROBOT ONE: the goldens, byte for byte) keep the old words, and so do the
+lines quoted from the library or the robot (PREVIEW's "Previewing ROBOT ONE's mechanisms", the pair check's verdict,
+a brain's log). `tools/upload_auton.py` and `tools/route_builder.py robot` take `white`/`black` beside `one`/`two`
+(`NAMES`, `robot_id` in `upload_auton.py`). A rename changes three places: `robot_names.mjs` (the page),
+`upload_auton.py`'s `NAMES` (the Python tools) and `.vscode/tasks.json`'s labels (pinned by the helper's self-test).
+`test/robot_names.test.mjs` fails on a second spelling of a name, a page string that still says robot one or two, or
+a robot's description name (robots.json's "robot one") read for the screen; `test/page/names.page.test.mjs` walks the
+screens with those description names set to a marker and fails if one shows. A PREVIEW engine built before this
+change words "no robot two" itself, in the old names: the page says it in its own.
 
 ## The preview engine (RMP1-A2e)
 
@@ -193,7 +207,7 @@ says PREVIEW comes next. A record with no paces (the library refused the route b
 
 **Robot two** plays only when BOTH are true: robot two's update is in the build (`sharedRoute`, so the page asks for
 the pair), and the runner has a PAIR MODE — today it has none (no chunk owns it yet), so the page plays robot one and
-says so. That mode is the backend's `pair(route, robots) -> {rc, record, verdict}`: `record` robot two's run of
+says so (the Worker's `done` carries `noPair: true`; the page words it, in the robots' names). That mode is the backend's `pair(route, robots) -> {rc, record, verdict}`: `record` robot two's run of
 `competition::mirrored(entry, kSkillsMirror)` from ITS seated start (`competition::seatedStart` — RPV1's
 `plantStartFor` seats a mirrored entry at robot one's start today, and MIRROR1-A's `checkMirroredPair` needs the
 routine run inside `previewEntry`), as schema 1 with `robot: "two"`; `verdict` MIRROR1-A's `PairVerdict` as JSON — the

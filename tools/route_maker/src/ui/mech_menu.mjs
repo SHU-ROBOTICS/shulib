@@ -5,6 +5,7 @@ import { h, icon, mount } from './dom.mjs';
 import { mechanismActions, KIND_LABEL } from './words.mjs';
 import { menuRows, menuActions } from '../model/mech_steps.mjs';
 import { noLevels } from '../model/checks.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
 /** Open it under `anchor` for a step at `at` of `route`; `add(step, words)` adds the one chosen. Returns its close. */
 export function openMechMenu(anchor, robot, route, at, add) {
@@ -26,7 +27,7 @@ export function openMechMenu(anchor, robot, route, at, add) {
             const n = actionsOf(mechs[k]).length;
             return h('button', { class: 'menu-item mech-row', role: 'menuitem', 'data-mech': r.ident, disabled: !n, onclick: () => show(mechs[k]) },
                      icon(r.icon), r.name, h('small', {}, n ? KIND_LABEL[r.kind] || r.kind : 'steps come later'));
-        }) : h('p', { class: 'hint', style: 'padding:8px' }, `${robot.name} declares no mechanism yet.`));
+        }) : h('p', { class: 'hint', style: 'padding:8px' }, `${robotName(robot.id)} declares no mechanism yet.`));
         focus(back ? `[data-mech="${back}"]` : '.menu-item:not(:disabled)');
     }
     function show(m) {

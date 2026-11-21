@@ -21,6 +21,7 @@
 import { fmt } from './numbers.mjs';
 import { CARE_MOTION_FIELDS, MOTION_KINDS, plannedPoses } from './route.mjs';
 import { plannedHeights, targetKind, moveTarget } from './lift.mjs';
+import { robotName } from './robot_names.mjs';
 
 /** The line format's version (the runner refuses another). */
 export const LINES_VERSION = 1;
@@ -50,7 +51,7 @@ export function routeLines(route, robot) {
     const mech = (step) => {
         const m = byIdent.get(step.mechanism);
         if (!m) {
-            throw new Error(`route lines: ${robot.name} has no mechanism "${step.mechanism}"`);
+            throw new Error(`route lines: ${robotName(robot.id)} has no mechanism "${step.mechanism}"`);
         }
         return m;
     };

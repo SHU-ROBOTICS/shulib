@@ -17,6 +17,7 @@ import { fieldToPicture } from '../model/field.mjs';
 import { squareCorners } from '../model/geometry.mjs';
 import { reflect } from '../model/pair.mjs';
 import { watchRobot, robotSlots } from '../host/files_local.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
 const KEEP_LINES = 2000;
 
@@ -243,7 +244,7 @@ export function createRunView(app, { local, fieldSvg }) {
         }
         const words = checkWords(c.route, robot).split('; ');
         const go = sendRobots().map((r, k) => h('button', { class: `btn${k === 0 ? ' primary' : ''}`, 'data-check': r, onclick: () => send(r) },
-            icon('send'), `Send the check to robot ${r}`));
+            icon('send'), `Send the check to ${robotName(r)}`));
         mount(d.body,
             h('p', {}, 'On the brain it is ', h('strong', {}, `"${c.route.name}"`), '. It moves:'),
             h('ul', { class: 'rk-moves' }, words.map((w) => h('li', {}, w))),
@@ -260,7 +261,7 @@ export function createRunView(app, { local, fieldSvg }) {
             }
             app.setProject(out.project, 'exported');
             await app.saveQuietly().catch(() => false);
-            mount(d.body, h('p', {}, `Sending "${c.route.name}" to robot ${robotId}…`), app.sendPanel.element,
+            mount(d.body, h('p', {}, `Sending "${c.route.name}" to ${robotName(robotId)}…`), app.sendPanel.element,
                 h('p', { class: 'hint' }, 'When the upload ends, the check comes out of src/team/skills_route.cpp again.'));
             await app.sendPanel.start(robotId);
             // The check is the brain's alone: the team's file is written back without it, however the send ended.
@@ -280,7 +281,7 @@ export function createRunView(app, { local, fieldSvg }) {
 
     /** What is on robot `robot`: each slot against the wanted table, the first wrong one highlighted. */
     async function slots(robot) {
-        const d = dialog(`What is on robot ${robot}`);
+        const d = dialog(`What is on ${robotName(robot)}`);
         mount(d.body, h('p', {}, 'Reading the brain\'s programs over USB…'));
         let got;
         try {

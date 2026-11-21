@@ -6,6 +6,7 @@
 import { h, icon, mount } from './dom.mjs';
 import { fmt } from '../model/numbers.mjs';
 import { noteWords } from '../model/playback.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
 const SPEEDS = [[0.5, 'half speed'], [1, 'normal speed'], [2, 'twice the speed'], [4, 'four times the speed']];
 const secs = (t) => `${t.toFixed(2)} s`;
@@ -127,7 +128,7 @@ export function createDock(host, pv) {
             parts.t,
             h('div', { class: 'dock-row foot' }, parts.words,
               h('span', { class: `chip ${head.mark === 'ok' ? 'ok' : head.mark === 'cut' ? 'warn' : 'error'}`, title: 'How the run ended (the Auton Tester\'s word)' },
-                head.two ? `Robot one: ${head.word} · robot two: ${head.two}` : head.word),
+                head.two ? `${robotName('one')}: ${head.word} · ${robotName('two')}: ${head.two}` : head.word),
               budget(play)),
             st.details ? details(st) : null);
         update();
@@ -137,7 +138,7 @@ export function createDock(host, pv) {
         const { play, pairWords } = st;
         const of = (run) => {
             const rec = run.record;
-            const who = { one: 'robot one', two: 'robot two' }[rec.robot] || 'the robot';
+            const who = rec.robot ? robotName(rec.robot) : 'the robot';
             return [
                 rec.owed.length ? h('div', { class: 'banner warn' }, icon('warn'), h('div', {},
                     h('strong', {}, `${rec.owed.length} of ${who}'s facts are PLACEHOLDERS`),
@@ -155,7 +156,7 @@ export function createDock(host, pv) {
                 + 'test plant\'s too: each height and time comes from its fakes and the declaration\'s numbers, not from the robot.') : null,
             pairWords ? h('p', {}, pairWords) : null,
             of(play.one),
-            play.two ? [h('h4', {}, `Robot two: ${play.two.headline.word}`), of(play.two)] : null,
+            play.two ? [h('h4', {}, `${robotName('two')}: ${play.two.headline.word}`), of(play.two)] : null,
             play.pair ? h('p', { class: play.pair.ok ? '' : 'inline-err' }, play.pair.sentence) : null);
     }
 
@@ -186,10 +187,10 @@ export function createDock(host, pv) {
             return;
         }
         parts.key = key;
-        const two = s && s.two ? [h('strong', {}, ` Robot two: ${s.two.words}. `), s.two.library.join(' ')] : [];
+        const two = s && s.two ? [h('strong', {}, ` ${robotName('two')}: ${s.two.words}. `), s.two.library.join(' ')] : [];
         const lead = s && s.state !== 'ok' ? [h('strong', {}, `Step ${s.n}: ${s.words}. `), s.library.join(' '), ...two]
             : two.length ? [h('strong', {}, `Step ${s.n}:`), ...two]
-                : pairBad ? [h('strong', {}, 'Robot one and robot two come too close. '), play.pair.sentence]
+                : pairBad ? [h('strong', {}, `${robotName('one')} and ${robotName('two')} come too close. `), play.pair.sentence]
                     : hit ? [h('strong', {}, `THROUGH the ${hit.element}. `), noteWords(hit)]
                         : [s && s.placeholder ? s.placeholder : 'The robot as the real library drove it on the host test plant — not the robot: time it on the robot.'];
         mount(parts.words, lead);

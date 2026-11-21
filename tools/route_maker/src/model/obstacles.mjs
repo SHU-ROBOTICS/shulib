@@ -14,6 +14,7 @@ import { squareCorners, bearingDeg, wrapDeg } from './geometry.mjs';
 import { stepPoses, reflect } from './pair.mjs';
 import { startPose } from './route.mjs';
 import { fmt } from './numbers.mjs';
+import { robotName } from './robot_names.mjs';
 
 /** D4: real overlap past this (in) is red; less is touching. */
 export const TOUCH_IN = 0.5;
@@ -278,8 +279,8 @@ export function obstacleIssues(route, plan, robots, field, issue) {
         out.push(issue('RCO1', 'error', -1, 'start', `At the start the robot's ${size} in square is ${up(-h0.dmin)} in inside the `
             + `${h0.o.name}: it is solid. Move the start off it.`, '', extra(h0, 'error')));
     } else if (h1) {
-        out.push(issue('RCO3', 'error', -1, 'start', `Robot two (mirrored) starts ${up(-h1.dmin)} in inside the ${h1.o.name}: it is `
-            + 'solid. Move robot one\'s start so its mirror image is clear of it.', '', extra(h1, 'error')));
+        out.push(issue('RCO3', 'error', -1, 'start', `${robotName('two')} (mirrored) starts ${up(-h1.dmin)} in inside the ${h1.o.name}: it is `
+            + `solid. Move ${robotName('one')}'s start so its mirror image is clear of it.`, '', extra(h1, 'error')));
     }
     route.steps.forEach((step, i) => {
         const p = plan[i];
@@ -303,9 +304,9 @@ export function obstacleIssues(route, plan, robots, field, issue) {
         const twins = mirror && twinsOf(touches, obs, mirror);
         const two = mirror ? worst(sweep(poses.map((q) => reflect(q, mirror)), obs, size2).filter((h) => goesIn(h, twins))) : null;
         if (two) {
-            out.push(issue('RCO3', 'error', i, f, `Robot two runs this mirrored, and its ${size2} in square goes ${up(-two.dmin)} in `
+            out.push(issue('RCO3', 'error', i, f, `${robotName('two')} runs this mirrored, and its ${size2} in square goes ${up(-two.dmin)} in `
                 + `into the ${two.o.name} during this step${two.o.kind === 'Loader' ? ' (the Loaders are not mirror images)' : ''}: it is `
-                + 'solid. Move the point so robot two\'s path clears it too.', '', extra(two, 'error')));
+                + `solid. Move the point so ${robotName('two')}'s path clears it too.`, '', extra(two, 'error')));
             return;
         }
         const near = worst(hits.filter((h) => comesClose(h) && !touches.has(h.o.id)));

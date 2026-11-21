@@ -28,6 +28,7 @@ import { plannedHeights, targetKind, moveTarget, bottomOf, unitOf } from './lift
 import { tooClose, startAwayFromLine } from './pair.mjs';
 import { otherAutons, routeCap } from './project.mjs';
 import { obstacleIssues } from './obstacles.mjs';
+import { robotName } from './robot_names.mjs';
 
 /** A corner may sit this far (in) past a wall's inner face — RPV1's THROUGH rule (more than 1 in is THROUGH). */
 export const WALL_SLACK_IN = 1.0;
@@ -126,7 +127,7 @@ export function nameProblem(n, mirrored, robot = {}) {
             + 'route\'s name must differ from it by more than capitals.', library: libraryWords('autonTaken') };
     }
     if (mirrored && n.length > maxMirrored) {
-        return { words: `Robot two shows this route as "${n} SKILLS MIR" on one screen line, so a mirrored route's name is at `
+        return { words: `${robotName('two')} shows this route as "${n} SKILLS MIR" on one screen line, so a mirrored route's name is at `
             + `most ${maxMirrored} characters.`, library: '' };
     }
     if (/["\\]/.test(n)) {
@@ -268,14 +269,14 @@ export function checkRoute(route, robots, field, ctx = {}) {
 
     out.push(...nameIssues(route, ctx, primary));
     if (route.name === ROUTE_NAME && !route.mirroredFor) {  // ROB1-BT: robot two runs the skills route mirrored
-        out.push(issue('RCM1', 'error', -1, 'mirrored', 'Robot two runs the skills route MIRRORED, always (the competition\'s skills '
-            + 'run, on both robots): turn its mirror back on.', '', { fix: { kind: 'mirrorSkills', stepIndex: -1, words: 'Mirror it for robot two' } }));
+        out.push(issue('RCM1', 'error', -1, 'mirrored', `${robotName('two')} runs the skills route MIRRORED, always (the competition's skills `
+            + 'run, on both robots): turn its mirror back on.', '', { fix: { kind: 'mirrorSkills', stepIndex: -1, words: `Mirror it for ${robotName('two')}` } }));
     }
 
     // RC3: the start.
     if (!route.start) {
         if (route.steps.length > 0) {
-            out.push(issue('RC3', 'error', -1, 'start', 'Place robot one\'s start on the field first: every step is planned from it.'));
+            out.push(issue('RC3', 'error', -1, 'start', `Place ${robotName('one')}'s start on the field first: every step is planned from it.`));
         }
     } else {
         const s = route.start;
@@ -499,7 +500,7 @@ export function checkRoute(route, robots, field, ctx = {}) {
             }
             // RC18 / RC20: on EVERY robot that builds the route.
             for (const robot of robots) {
-                const rname = robot.name || `robot ${robot.id}`;
+                const rname = robotName(robot.id);
                 const mech = mechOf(robot, s.mechanism);
                 if (!mech) {
                     out.push(issue('RC18', 'error', i, 'mechanism', `${cap(rname)} has no mechanism called ${s.mechanism}.`, '',
@@ -552,7 +553,7 @@ export function checkRoute(route, robots, field, ctx = {}) {
     // The path rules, per robot (R13): RC17 (a wait on a mechanism nothing started) and RC25 (the home rule).
     for (const robot of robots) {
         const arrive = walkPaths(route, robot);
-        const rname = robot.name || `robot ${robot.id}`;
+        const rname = robotName(robot.id);
         route.steps.forEach((s, i) => {
             if (s.do === 'waitUntilDone') {
                 const states = arrive[i];
@@ -630,7 +631,7 @@ function liftIssues(s, i, m, robot, before) {
     const out = [];
     const tk = targetKind(s);
     const u = unitOf(m);
-    const rname = robot.name || `robot ${robot.id}`;
+    const rname = robotName(robot.id);
     if ((tk === 'up' || tk === 'down') && (!Number.isFinite(s[tk]) || s[tk] <= 0)) {
         return [issue('RCL1', 'error', i, tk, `Type how far it goes ${tk} (${u}, above 0).`, '', { robot: robot.id })];
     }
@@ -674,7 +675,7 @@ function pairIssues(route, plan, robot, field) {
     const yes = { kind: 'together', value: true, stepIndex: -1 };
     const no = { kind: 'together', value: false, stepIndex: -1 };
     if (route.together === undefined) {
-        return [issue('RCT1', 'error', -1, 'together', 'Robot two runs this route mirrored. Will both robots run it at the SAME time? '
+        return [issue('RCT1', 'error', -1, 'together', `${robotName('two')} runs this route mirrored. Will both robots run it at the SAME time? `
             + 'Answer it, so the too-close check knows.', '', { fix: yes, alsoFix: no })];
     }
     if (route.together !== true || !robot.pairCheck || !robot.skillsMirror) {
@@ -687,10 +688,10 @@ function pairIssues(route, plan, robot, field) {
     const at = (q) => `(${fmt(round3(q.x))}, ${fmt(round3(q.y))})`;
     const gap = robot.pairCheck.gapIn;
     const where = hit.stepIndex < 0 ? 'At the START' : `During step ${hit.stepIndex + 1}`;
-    const words = `Both robots run this at the same time. ${where} robot one at ${at(hit.one)} and robot two (mirrored) at `
+    const words = `Both robots run this at the same time. ${where} ${robotName('one')} at ${at(hit.one)} and ${robotName('two')} (mirrored) at `
         + `${at(hit.two)} are ${hit.gap.toFixed(1)} in apart: they must stay ${fmt(gap)} in apart. `
-        + (hit.stepIndex < 0 ? 'Move robot one\'s start away from the diagonal.'
-            : `Keep robot one's whole robot ${fmt(gap / 2)} in off the diagonal here, or send ONE robot there with isMirrored(ctx) in the code.`);
+        + (hit.stepIndex < 0 ? `Move ${robotName('one')}'s start away from the diagonal.`
+            : `Keep ${robotName('one')}'s whole robot ${fmt(gap / 2)} in off the diagonal here, or send ONE robot there with isMirrored(ctx) in the code.`);
     const away = hit.stepIndex < 0
         ? startAwayFromLine(route.start, robot.skillsMirror, robot.pairCheck, round3, { inner: field.wallInnerFaceIn, slack: WALL_SLACK_IN }) : null;
     const moveWords = away && (away.along ? `Slide the start ${away.by.toFixed(1)} in along ${wallName(route.start.x, route.start.y, field)}, away from the diagonal`
