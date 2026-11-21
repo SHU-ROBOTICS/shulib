@@ -87,18 +87,11 @@ test('D1: a route may not take another auton\'s name (the 40 in, the acceptance 
     assert.equal(routeCap({ ...X, otherAutons: ['a', 'b', 'c'] }), X.maxAutons - 3);
 });
 
-test('D2: robot two always runs the skills route MIRRORED (ROB1-BT) -- an unmirrored skills route is refused, its fix one click; any other route may be either', () => {
+test('D2: the skills route may be mirrored for robot two or not (the team, 2026-11-21: not every skills path is mirrored)', () => {
     const plain = route([], START, { mirroredFor: undefined, together: undefined });
-    const rcm = at(checkRoute(plain, [X], FIELD), 'RCM1');
-    assert.equal(rcm.length, 1);
-    assert.match(rcm[0].words, /^Black Bot runs the skills route MIRRORED, always/);
-    assert.equal(rcm[0].fix.words, 'Mirror it for Black Bot');
-    const fixed = applyFix(plain, rcm[0].fix);
-    assert.equal(fixed.mirroredFor, 'two');
-    assert.deepEqual(at(checkRoute(fixed, [X], FIELD), 'RCM1'), []);
-    assert.deepEqual(at(checkRoute({ ...plain, name: 'left' }, [X], FIELD, { routes: [newRoute(), { ...plain, name: 'left' }], index: 1 }), 'RCM1'), []);
-    assert.ok(['RCT1', 'RCP1', 'RCM1', 'RCO3'].every((c) => ROBOT_TWO_ONLY.has(c)), 'PREVIEW (robot one\'s run) never waits for these');
-    assert.equal(ROBOT_TWO_ONLY.size, 4);
+    assert.deepEqual(checkRoute(plain, [X], FIELD).filter((i) => i.level === 'error' && i.field === 'mirrored'), []);
+    assert.ok(['RCT1', 'RCP1', 'RCO3'].every((c) => ROBOT_TWO_ONLY.has(c)), 'PREVIEW (robot one\'s run) never waits for these');
+    assert.equal(ROBOT_TWO_ONLY.size, 3);
 });
 
 test('D1: an OLD project (one route "skills", A1\'s file) opens unchanged and saves to the same bytes', () => {

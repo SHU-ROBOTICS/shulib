@@ -278,10 +278,8 @@ function robotTwoSection(route, app) {
     const answer = (v) => h('button', { class: route.together === v ? 'on' : '', role: 'radio', 'aria-checked': String(route.together === v),
                                         'data-together': String(v), onclick: () => app.setTogether(v) },
         v ? 'Yes, together' : 'No, one at a time', h('small', {}, v ? `too-close check: ${fmt(robot.pairCheck.gapIn)} in` : 'no too-close check'));
-    const skills = route.name === ROUTE_NAME;
     return h('div', { class: 'section' }, h('h3', {}, robotName('two')),
-        toggle('Runs it mirrored', skills ? 'always, for the skills route (the competition\'s skills run, on both robots)' : 'across the field\'s skills diagonal',
-               !!route.mirroredFor, (on) => app.setMirror(on), 'mirrored', skills && !!route.mirroredFor),
+        toggle('Runs it mirrored', 'across the field\'s skills diagonal', !!route.mirroredFor, (on) => app.setMirror(on), 'mirrored', false),
         route.mirroredFor ? [
             s0 ? h('p', { class: 'hint' }, `${robotName('two')} starts at (${fmt(s0.x)}, ${fmt(s0.y)}) facing ${fmt(s0.headingDeg)} deg: the blue square on the field.`) : null,
             h('div', { class: `fld ask-together${route.together === undefined ? ' unanswered' : ''}` },

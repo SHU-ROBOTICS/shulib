@@ -269,10 +269,6 @@ export function checkRoute(route, robots, field, ctx = {}) {
     const maxSteer = primary.drive && primary.drive.maxSteerDeg !== undefined ? primary.drive.maxSteerDeg : 15;
 
     out.push(...nameIssues(route, ctx, primary));
-    if (route.name === ROUTE_NAME && !route.mirroredFor) {  // ROB1-BT: robot two runs the skills route mirrored
-        out.push(issue('RCM1', 'error', -1, 'mirrored', `${robotName('two')} runs the skills route MIRRORED, always (the competition's skills `
-            + 'run, on both robots): turn its mirror back on.', '', { fix: { kind: 'mirrorSkills', stepIndex: -1, words: `Mirror it for ${robotName('two')}` } }));
-    }
 
     // RC3: the start.
     if (!route.start) {
@@ -709,7 +705,7 @@ function pairIssues(route, plan, robot, field) {
 }
 
 /** The errors about robot two running the route beside robot one: PREVIEW (robot one's run) never waits for them. */
-export const ROBOT_TWO_ONLY = new Set(['RCT1', 'RCP1', 'RCM1', 'RCO3']);
+export const ROBOT_TWO_ONLY = new Set(['RCT1', 'RCP1', 'RCO3']);
 
 /** The first error, if any (while there is one, Export lists the errors instead of the code — §1.4). */
 export function firstError(issues) {
@@ -738,8 +734,6 @@ export function applyFix(route, fix, addStep, updateStep) {
             return { ...route, name: ROUTE_NAME };
         case 'together':
             return { ...route, together: fix.value };
-        case 'mirrorSkills':
-            return { ...route, mirroredFor: 'two' };
         case 'moveStart':
             return { ...route, start: fix.start };
         case 'detour': {  // RMP1-H: a point beside the structure first; both legs turned first (the corner)
