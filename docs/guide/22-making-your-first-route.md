@@ -116,23 +116,30 @@ Zoom in (**+**) and two points 1 in apart are two handles.
 
 The nine goals and the four Loaders stand on the floor, and the robot cannot drive through them. Each is drawn on
 the field as a quiet outline, from the game manual's drawings (hover one for its name). Every step's path — the
-robot's whole 15 in square, its turns and curves included — is checked against them:
+robot's 15 in square (against a goal, its open front cut out: below), its turns and curves included — is checked
+against them:
 
 - **Red:** the square goes into one on the way, or more than 0.5 in into one where the step ends. Select the step: it
-  says where, which one and how far in, and that structure turns red with the robot's square at that moment. A drive
+  says where, which one and how far in, and that structure turns red with the robot's outline at that moment. A drive
   or a back-up to a point offers **Go around: add a point at (x, y)** when there is a clear way round: one click adds
   a step to that point first, and both legs turn to face their point.
 - **Amber:** the robot passes closer than 1 in, so a little drift and it clips it. A step that is meant to touch one
   — its front against a goal to place a cone, or against a Loader to take a load — switches on **Touches the … on
   purpose** on the right. That silences the amber for that structure. A red or blue goal narrows above its low base,
-  so with the switch on, a step may end with the robot's front up to 1 in over that base. A red on the way stays
-  red.
+  so with the switch on, a step may end with the robot's front up to 1 in over that base — but not in the robot's
+  open front, where the frame meets the base. A red on the way stays red.
 - A mirrored route checks robot two's path too, and the switch carries over: robot two touches the mirror-image
   goal. The Loaders are only on the red and blue walls, so robot two can meet one that robot one never does.
 - In PREVIEW, a robot that drives more than 1 in into one went **THROUGH** it, as with a wall: its step red, the path
   faded after.
 
-![A drive through the centre goal: the step red, saying how far in, the goal outlined red with the robot's square at that moment, and "Go around: add a point at (0, 15.5)" one click away](../assets/route-builder/structures.png)
+**A goal centred on your claw sits in the robot's open front** (the claw lifted above it). The robot is drawn with
+that bay cut out. It fits a goal's base exactly, so a cross placed by hand usually reads a touch: switch on
+**Touches the … on purpose**. More than 0.5 in past the bay's edge is red, switch or not.
+
+![White Bot's first drive placed by the claw, its x and y typed: the red goal by the right wall sits in the open front of the robot's square, the green cross on its centre, and no warning](../assets/route-builder/bay.png)
+
+![A drive through the centre goal: the step red, saying how far in, the goal outlined red with the robot's outline at that moment, and "Go around: add a point at (0, 15.5)" one click away](../assets/route-builder/structures.png)
 
 ### 4. Add a curve
 
@@ -327,7 +334,7 @@ shows its number, `class 0` (on 2026-11-20 the camera printed no names).
 ![The Camera tab: "Sees: AprilTag 3, redBluePin (87 %), colour 2", the tag boxed in yellow with its 3, the Pin boxed in blue with its name and score, the colour boxed in pink with its number](../assets/route-builder/camera.png)
 
 **What is on robot one.** Each slot against what should be there: the first wrong one is red, with its fix. It only
-reads. (In VS Code: **Terminal → Run Task → What is on robot one**.)
+reads. (In VS Code: **Terminal → Run Task → What is on White Bot (robot one)**.)
 
 ![What is on robot one: slot 2 holds shulib Auton Tester, highlighted: upload shulib Competition there](../assets/route-builder/slots.png)
 
@@ -351,7 +358,7 @@ The result is never silent: green (**Written and checked** with the routes and t
 **Overwrite**. Then **Will it build?** (what the page checked; the C++ compiler checks the rest) and **Next**: the
 build and upload commands for robot one or two, each with **Copy**, or one command for both
 ([chapter 16](16-testing-an-auton-on-the-bench.md)). The quickest: in VS Code, **Terminal → Run Task → Upload
-routes to robot one** (or two) — it runs `python3 tools/upload_auton.py one` and ends with **✓ UPLOADED** or **✗** and
+routes to White Bot (robot one)** (or **… Black Bot (robot two)**) — it runs `python3 tools/upload_auton.py one` and ends with **✓ UPLOADED** or **✗** and
 what to fix. On the brain: **shulib Auton Tester** (slot 6) → the route → **RUN**.
 
 ![After Write: Written and checked, the routes and their steps, "Will it build?", and Next with robot one's commands](../assets/route-builder/export-written.png)
@@ -453,8 +460,8 @@ project that uses them: download it again.
 2. Click a button; a free (dashed) one: pick its mechanism, then its job.
 3. **2 · Driving feel**: set the dead zone and the curve.
 4. **Export** (**Ctrl+E**) → **Write into src/team/robot_one_driver.hpp**.
-5. Put it on the robot: VS Code **Terminal → Run Task → Upload a program to a robot** → **Robot one** → **Drive**,
-   then again with **Competition** (both run the driver file). Robot two: pick **two** in steps 1–5.
+5. Put it on the robot: VS Code **Terminal → Run Task → Upload a program to a robot** → **White Bot (robot one)** → **Drive**,
+   then again with **Competition** (both run the driver file). Robot two: pick **Black Bot** in steps 1–5.
 
 <video controls preload="metadata" poster="../../assets/video/controls-tab.jpg" src="../../assets/video/controls-tab.mp4" style="max-width:100%"></video>
 
@@ -634,7 +641,7 @@ one-click fix it offers it.
 | The check | Red when |
 |---|---|
 | Inside the field | the robot's 15 in square would go more than 1 in into a wall — at a point, turning in place, or anywhere along a curve |
-| Solid structures | the square goes into a goal or a Loader on the way, or more than 0.5 in into one at the start or where a step ends (a red or blue goal: 1 in, when the step touches it on purpose); robot two's mirrored path too. Amber when it passes closer than 1 in, unless the step touches it on purpose |
+| Solid structures | the square goes into a goal or a Loader on the way, or more than 0.5 in into one at the start or where a step ends (a red or blue goal: 1 in, when the step touches it on purpose); robot two's mirrored path too. Amber when it passes closer than 1 in, unless the step touches it on purpose. Against a goal, the square has its open front cut out: a goal centred on the claw sits in it (placed by hand, usually a touch; a black or the centre goal, always); past the bay's edge only a touch, even on purpose |
 | The start | there is no start, a number of it is missing (a `route_maker.json` edited by hand: the list shows `?` for it, and the robot is drawn once you type it), or it is through a wall |
 | Turn first (tank) | a drive is not turned first and starts more than 15° off its line (amber from 0.5°) |
 | The curve | the library refuses it: its first point is behind the robot, two points are closer than 1 in, a point doubles back (amber: a bend tighter than the robot can follow) |

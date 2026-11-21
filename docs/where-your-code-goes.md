@@ -34,9 +34,9 @@ Robot one's builds. Robot two's are the same with `ROBOT=tank`, and its files ar
 Slot 5 holds whatever the PROS extension's own Upload button built last ("PROS button (bench bot)": the bench bot's
 test program, not one of robot one's). Slot 8 is the team's old code: never upload over it. (Since 2026-11-20
 Competition is slot 2 and the Auton Tester slot 6: the team lead.)
-**All six at once:** VS Code's **Upload everything to robot one** task, or `python3 tools/upload_auton.py one all`;
+**All six at once:** VS Code's **Upload everything to White Bot (robot one)** task, or `python3 tools/upload_auton.py one all`;
 one program: **Upload a program to a robot**, or `python3 tools/upload_auton.py one competition` (`drive`,
-`tester`, `bench`, `calibrate`, `tune`). **Which program is in which slot:** VS Code's **What is on robot one** task.
+`tester`, `bench`, `calibrate`, `tune`). **Which program is in which slot:** VS Code's **What is on White Bot (robot one)** task.
 Upload a build by hand with `pros upload --slot <slot> --name "<on the brain>" --description "$(git describe --always
 --dirty)"` ([Build and upload the programs](guide/07-getting-set-up.md)).
 For the Auton Tester, `python3 tools/upload_auton.py one` (or `two`; `python` on Windows) does both and says plainly

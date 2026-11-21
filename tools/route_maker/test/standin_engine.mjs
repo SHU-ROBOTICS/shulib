@@ -31,13 +31,17 @@ function standinBackend() {
     // a run the library refused before its first pace, as RPV1's refusedModel writes it: no paces, no steps, REFUSED
     const refused = (rec, why) => ({ ...rec, samples: [], steps: [], lines: [], field: [], refused: true, word: 'REFUSED', why,
                                      pageSteps: rec.pageSteps.map((q) => ({ ...q, verdict: 'notReached', first: null, last: null, lib: null })) });
+    if (STANDIN.oldWords) {  // a worker built before RMP1-L: no `noPair`, its own sentence in pairWords
+        const post = self.postMessage.bind(self);
+        self.postMessage = (m) => post(m.done && m.done.noPair ? { ...m, done: { ...without(m.done, ['noPair']), pairWords: STANDIN.oldWords } } : m);
+    }
     self.shulibBackend = async () => {
         if (STANDIN.failLoad) {
             throw new Error(STANDIN.failLoad);
         }
         const made = ++STANDIN.made;
         const find = (route) => STANDIN.runs[canon(route)];
-        return {
+        const backend = {
             preview(route) {
                 const run = find(route);
                 if (STANDIN.hang && run && run.name === STANDIN.hang) {
@@ -58,12 +62,20 @@ function standinBackend() {
                     : { rc: 2, record: null, words: 'the stand-in engine has no recorded run of robot two' };
             },
         };
+        if (STANDIN.noPair) {  // an engine with no pair mode: the page says so (RMP1-L)
+            delete backend.pair;
+        }
+        if (STANDIN.pairDelayMs && backend.pair) {  // robot two's run takes a while: its phase shows
+            const pair = backend.pair;
+            backend.pair = (...a) => (busy(STANDIN.pairDelayMs), pair(...a));
+        }
+        return backend;
     };
 }
 
 /** The Worker script: the stand-in backend, then the page's own worker.mjs. */
 export function standinScript(names, { delayMs = 0, hang = null, failLoad = '', rcOf = {}, refuse = {}, two = {}, pairRc = {}, patch = {},
-                                       together = [], omit = {} } = {}) {
+                                       together = [], omit = {}, noPair = false, oldWords = '', pairDelayMs = 0 } = {}) {
     const runs = {};
     for (const n of names) {
         const f = fixture(n);
@@ -73,6 +85,6 @@ export function standinScript(names, { delayMs = 0, hang = null, failLoad = '', 
             runs[routeKey({ ...f.route, together: false })] = { name: n, ...f.result };
         }
     }
-    return `const STANDIN = ${JSON.stringify({ runs, delayMs, hang, failLoad, rcOf, refuse, two, pairRc, patch, omit, made: 0, ran: 0 })};\n(${standinBackend.toString()})();\n`
+    return `const STANDIN = ${JSON.stringify({ runs, delayMs, hang, failLoad, rcOf, refuse, two, pairRc, patch, omit, noPair, oldWords, pairDelayMs, made: 0, ran: 0 })};\n(${standinBackend.toString()})();\n`
         + fs.readFileSync(WORKER, 'utf8');
 }

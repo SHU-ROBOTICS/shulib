@@ -178,7 +178,8 @@ test('worker.mjs: robot two — the pair when the engine has it, plain words whe
     assert.deepEqual(a[3].done.result, { one: REC, two: 'two', verdict: 'v' });
     const noPair = await loadWorker(() => ({ preview: () => ({ rc: 0, record: REC }) }));
     const b = await noPair.send({ id: 1, route: {}, robots: { one: {}, two: {} }, pair: true });
-    assert.equal(b[b.length - 1].done.pairWords, 'PREVIEW plays robot one: robot two\'s mirrored run is not in this preview engine yet.');
+    assert.deepEqual(b[b.length - 1].done, { ok: true, result: { one: REC, two: null, verdict: null }, pairWords: '', noPair: true },
+        'no pair mode: said by the page, in its robots\' names (RMP1-L)');
     // robot one's run returned 1 (its instance put away): an engine with no pair mode is not reloaded to find that out
     const rc1 = await loadWorker(() => ({ preview: () => ({ rc: 1, record: REC }) }));
     const d = await rc1.send({ id: 1, route: {}, robots: { one: {}, two: {} }, pair: true });

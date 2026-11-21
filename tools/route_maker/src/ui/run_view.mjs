@@ -4,7 +4,7 @@
 //   * Watch the robot (D2): the brain's own lines (run_log.mjs) mark the step list — done, started, stopped (the robot's
 //     words), failed and carried on, skipped — with one summary line coloured by the robot's own verdict, the END estimate
 //     on the field (a LIVE one only), and the raw lines folded; an edit to the route after its run clears its marks;
-//   * What is on robot one (D5): each slot against the wanted table;
+//   * What is on the robot (D5): each slot against the wanted table;
 //   * RMP1-M: Test one mechanism (or every one) from the Mechanisms tab — the same screen, Send and write-back.
 // One idea per screen; the one highlighted button is the next thing to do.
 
@@ -19,6 +19,7 @@ import { fieldToPicture } from '../model/field.mjs';
 import { squareCorners } from '../model/geometry.mjs';
 import { reflect } from '../model/pair.mjs';
 import { watchRobot, robotSlots } from '../host/files_local.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
 const KEEP_LINES = 2000;
 
@@ -242,8 +243,8 @@ export function createRunView(app, { local, fieldSvg }) {
      *  `onSend(route)` once it is written, `onEnd(end)` when its send has ended (the send panel's end, or nothing). */
     function test(idents, robotId, { onSend, onEnd } = {}) {
         const t = mechanismTest(idents, app.baked.robots[robotId], app.routes());
-        const one = idents && idents.length === 1 && app.baked.robots[robotId].mechanisms.find((m) => m.ident === idents[0]);
-        confirmSend(one ? `Test the ${one.name}` : 'Test every mechanism', t, app.baked.robots[robotId], { only: robotId, left: t.left, onSend, onEnd });
+        const mech = idents && idents.length === 1 && app.baked.robots[robotId].mechanisms.find((m) => m.ident === idents[0]);
+        confirmSend(mech ? `Test the ${mech.name}` : 'Test every mechanism', t, app.baked.robots[robotId], { only: robotId, left: t.left, onSend, onEnd });
     }
     function confirmSend(title, c, robot, { only = null, left = [], onSend = () => {}, onEnd = () => {} } = {}) {
         const d = dialog(title);
@@ -253,12 +254,12 @@ export function createRunView(app, { local, fieldSvg }) {
         const to = only ? [only] : sendRobots();
         if (!c.route || errs.length || !sendRobots().includes(to[0])) {
             mount(d.body, h('p', { class: 'rk-why' }, !c.route ? c.why : errs.length ? `Fix the routes' errors first (Export lists them): ${errs[0].words}`
-                : `Robot ${to[0]}'s build does not take the routes yet: nothing is sent.`));
+                : `${robotName(to[0])}'s build does not take the routes yet: nothing is sent.`));
             return;
         }
         const words = checkWords(c.route, robot).split('; ');
         const go = to.map((r, k) => h('button', { class: `btn${k === 0 ? ' primary' : ''}`, 'data-check': r, onclick: () => send(r) },
-            icon('send'), `Send the ${only ? 'test' : 'check'} to robot ${r}`));
+            icon('send'), `Send the ${only ? 'test' : 'check'} to ${robotName(r)}`));
         mount(d.body,
             h('p', {}, 'On the brain it is ', h('strong', {}, `"${c.route.name}"`), '. It moves:'),
             h('ul', { class: 'rk-moves' }, words.map((w) => h('li', {}, w))),
@@ -277,7 +278,7 @@ export function createRunView(app, { local, fieldSvg }) {
             onSend(c.route);
             app.setProject(out.project, 'exported');
             await app.saveQuietly().catch(() => false);
-            mount(d.body, h('p', {}, `Sending "${c.route.name}" to robot ${robotId}…`), app.sendPanel.element,
+            mount(d.body, h('p', {}, `Sending "${c.route.name}" to ${robotName(robotId)}…`), app.sendPanel.element,
                 h('p', { class: 'hint' }, 'When the upload ends, the check comes out of src/team/skills_route.cpp again.'));
             const end = await app.sendPanel.start(robotId);
             // The check is the brain's alone: the team's file is written back without it, however the send ended.
@@ -298,7 +299,7 @@ export function createRunView(app, { local, fieldSvg }) {
 
     /** What is on robot `robot`: each slot against the wanted table, the first wrong one highlighted. */
     async function slots(robot) {
-        const d = dialog(`What is on robot ${robot}`);
+        const d = dialog(`What is on ${robotName(robot)}`);
         mount(d.body, h('p', {}, 'Reading the brain\'s programs over USB…'));
         let got;
         try {

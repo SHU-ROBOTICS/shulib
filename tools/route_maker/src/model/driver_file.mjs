@@ -8,6 +8,7 @@
 import { lineEnding, regionHash } from './region.mjs';
 import { parseControls, parseControlWords, exportControls, exportControlWords } from './controls.mjs';
 import { parseFeel, exportFeel, FEEL_HEADING } from './feel.mjs';
+import { robotName } from './robot_names.mjs';
 
 /** The driver file of robot `id` ("one", "two"). */
 export const driverFilePath = (id) => `src/team/robot_${id}_driver.hpp`;
@@ -148,7 +149,7 @@ export function spliceRegions(text, id, regions, { base = {}, overwrite = false 
         return { ok: false, why: 'noMarkers', regions: missing,
                  words: f.problems[0] ? `${driverFilePath(id)}: ${f.problems[0]}.`
                      : `${driverFilePath(id)} has no ${missing.map((r) => `"${r}"`).join(' or ')} markers yet, so the route builder `
-                     + 'will not write into it (it gets them with robot two\'s update). Until then use Copy.' };
+                     + `will not write into it (it gets them with ${robotName('two')}'s update). Until then use Copy.` };
     }
     const edited = REGIONS.filter((r) => {
         const now = regionOf(f, r);

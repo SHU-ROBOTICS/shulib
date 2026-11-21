@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
-import { SITE, SHOTS, REPO, skip, launch, shot } from './harness.mjs';
+import { SITE, SHOTS, BROWSER, REPO, skip, launch, shot } from './harness.mjs';
 import { saveProject, newProject } from '../../src/model/project.mjs';
 import { newRoute, setStart, addStep } from '../../src/model/route.mjs';
 import { GOLDENS } from '../helpers.mjs';
@@ -36,7 +36,8 @@ const ON_TWO = [TEST_RUN[0].replace('variant=one-', 'variant=tank-'), ...TEST_RU
 const HOME_WORD = /\bhom(e|es|ed|ing)\b/i;
 const VARIANTS = (SHOTS ? [['light', 1440, 900], ['dark', 1440, 900], ['light', 1280, 800], ['dark', 1280, 800]] : [['light', 1440, 900]])
     .map(([scheme, width, height]) => ({ scheme, viewport: { width, height }, tag: `${scheme}-${width}` }));
-const WORK = path.join(REPO, 'build', 'route_builder_mechtab_pagetest');
+// one stand-in checkout per browser: the gate runs Firefox and Chromium at once, from one tree
+const WORK = path.join(REPO, 'build', `route_builder_mechtab_pagetest_${BROWSER}`);
 const TOOL = path.join(REPO, 'tools', 'route_builder.py');
 
 let browser;
@@ -184,12 +185,12 @@ test.describe('RMP1-M: the Mechanisms tab', { skip }, () => {
             assert.deepEqual((await readable(page)).match(HOME_WORD), null, 'no "home" on the tab');
             await shot(page, `mechs-${v.tag}`);
             // robot two: its toggles' directions are owed today, said as owed (never robot one's)
-            await page.getByRole('radio', { name: 'robot two' }).click();
+            await page.getByRole('radio', { name: 'Black Bot' }).click();
             await shot(page, `mechs-two-${v.tag}`);
             const right = robots.two.mechanisms.find((m) => m.ident === 'rightToggle');
             assert.equal(await page.locator('.mech-card[data-mech="rightToggle"] .mc-row', { hasText: 'Ports' }).locator('dd').textContent(),
                 `port ${right.wiring.motors[0].port}, ${right.wiring.motors[0].reversed === null ? 'which way it turns not known yet' : `turns ${right.wiring.motors[0].reversed ? 'reversed' : 'forward'}`}`);
-            await page.getByRole('radio', { name: 'robot one' }).click();
+            await page.getByRole('radio', { name: 'White Bot' }).click();
             // Test: the "what will move" screen, and NOTHING sent until its Send
             await cascade.locator('[data-test="cascade"]').click();
             const dlg = page.locator('.rk-dialog');
@@ -199,7 +200,7 @@ test.describe('RMP1-M: the Mechanisms tab', { skip }, () => {
             assert.deepEqual(uploads(), [], 'nothing sent before Send');
             assert.deepEqual(await dlg.locator('.rk-moves li').allTextContents(), [`the cascade finds its bottom, goes to ${(one[0].range[0] + one[0].range[1]) / 2} in, then ${one[0].range[0]} in`]);
             assert.equal(await dlg.locator('.rk-safe').textContent(), 'The robot stays where it is — clear the mechanisms\' paths.');
-            assert.equal(await dlg.locator('.btn.primary').textContent(), 'Send the test to robot one');
+            assert.equal(await dlg.locator('.btn.primary').textContent(), 'Send the test to White Bot');
             assert.deepEqual(uploads(), [], 'nothing sent before Send');
             assert.deepEqual((await readable(page)).match(HOME_WORD), null, 'no "home" in the dialog');
             await shot(page, `mechs-test-${v.tag}`);
@@ -329,7 +330,7 @@ test.describe('RMP1-M: the Mechanisms tab', { skip }, () => {
         const p = await opened(VARIANTS[0]);
         const { page } = p;
         await page.locator('#tab-mechanisms').click();
-        await page.getByRole('radio', { name: 'robot two' }).click();
+        await page.getByRole('radio', { name: 'Black Bot' }).click();
         const owed = robots.two.testerOwed;
         assert.ok(Array.isArray(owed), 'the site\'s robots.json says what robot two\'s Auton Tester waits for');
         if (owed.length) {  // robot two today (2026-11-20): five Stage-B facts owed
@@ -353,7 +354,7 @@ test.describe('RMP1-M: the Mechanisms tab', { skip }, () => {
         assert.equal(await page.locator('#test-all.primary').count(), 1, 'its Auton Tester builds: Test every mechanism is the highlight again');
         await page.locator('[data-test="cascade"]').click();
         assert.deepEqual(await page.locator('.rk-dialog [data-check]').evaluateAll((els) => els.map((e) => [e.dataset.check, e.textContent])),
-                         [['two', 'Send the test to robot two']]);
+                         [['two', 'Send the test to Black Bot']]);
         await page.locator('.rk-dialog button[aria-label="Close"]').click();
         assert.deepEqual(await p.done(), []);
         // a checkout whose build does not take the routes (no shared route file): refused for robot two, nothing offered
@@ -361,9 +362,9 @@ test.describe('RMP1-M: the Mechanisms tab', { skip }, () => {
         const q = await opened(VARIANTS[0]);
         await q.page.evaluate((two) => window.routeBuilder.useRobots({ two: { ...two, testerOwed: [] } }), robots.two);
         await q.page.locator('#tab-mechanisms').click();
-        await q.page.getByRole('radio', { name: 'robot two' }).click();
+        await q.page.getByRole('radio', { name: 'Black Bot' }).click();
         await q.page.locator('[data-test="cascade"]').click();
-        assert.match(await q.page.locator('.rk-dialog .rk-why').textContent(), /build does not take the routes yet: nothing is sent/);
+        assert.equal(await q.page.locator('.rk-dialog .rk-why').textContent(), 'Black Bot\'s build does not take the routes yet: nothing is sent.');  // RMP1-L: the robot by its name
         assert.equal(await q.page.locator('.rk-dialog [data-check]').count(), 0);
         assert.deepEqual(uploads(), []);
         assert.deepEqual(await q.done(), []);

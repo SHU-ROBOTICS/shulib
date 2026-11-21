@@ -251,7 +251,7 @@ inline constexpr auto kCascadeHoldKd =
           "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- measured on robot one");
 ROBOT_TWO_CHECK(kCascadeHoldKd, "the cascade's hold kD");
 
-// ── RECORDED — gating no build (the camera: VIS1-B reads it; the claw's grab spot: the route builder) ──
+// ── RECORDED — gating no build (the camera: VIS1-B reads it; the claw's grab spot and its bay: the route builder) ──
 inline constexpr auto kCameraPort = owed(one::kCameraPort.value(), Stage::Recorded, "the AI Vision camera's port");
 ROBOT_TWO_CHECK(kCameraPort, "the AI Vision camera's port");
 inline constexpr auto kCameraMount =
@@ -261,6 +261,14 @@ inline constexpr auto kClawGrabInsetIn =
     typed(one::kClawGrabInsetIn.placeholder, one::kClawGrabInsetIn.value(), Stage::Recorded, "the claw's grab spot, inches inside the front edge",
           "robot one's value: the same build (HA-256) -- measured on robot one by the team lead, 2026-11-20 -- not yet measured on robot two");
 ROBOT_TWO_CHECK(kClawGrabInsetIn, "the claw's grab spot, inches inside the front edge");
+inline constexpr auto kFrontBayLipRadiusIn =
+    typed(one::kFrontBayLipRadiusIn.placeholder, one::kFrontBayLipRadiusIn.value(), Stage::Recorded, "the front bay's room for a goal's lip, inches from the claw's spot",
+          "robot one's value: the same build (HA-256) -- measured on robot one's CAD, 2026-11-20 -- not yet on robot two");
+ROBOT_TWO_CHECK(kFrontBayLipRadiusIn, "the front bay's room for a goal's lip, inches from the claw's spot");
+inline constexpr auto kFrontBayBodyRadiusIn =
+    typed(one::kFrontBayBodyRadiusIn.placeholder, one::kFrontBayBodyRadiusIn.value(), Stage::Recorded, "the front bay's room for a goal's body, inches from the claw's spot",
+          "robot one's value: the same build (HA-256) -- measured on robot one's CAD, 2026-11-20 -- not yet on robot two");
+ROBOT_TWO_CHECK(kFrontBayBodyRadiusIn, "the front bay's room for a goal's body, inches from the claw's spot");
 
 // ═══ THE COUNT, AND THE HELPERS (robot one's, over robot two's facts) ═══════════════════════
 
@@ -280,7 +288,8 @@ inline constexpr FactSummary kRobotTwoFacts[] = {
     summary(kRampDownLevel),          summary(kClawStrokeTime),       summary(kFlipperStrokeTime),
     summary(kRampStrokeTime),         summary(kCascadeMaxDownVolts),  summary(kCascadeTopMargin),
     summary(kCascadeHoldKp),        summary(kCascadeHoldKi),         summary(kCascadeHoldKd),  summary(kCameraPort),
-    summary(kCameraMount),            summary(kClawGrabInsetIn),
+    summary(kCameraMount),            summary(kClawGrabInsetIn),      summary(kFrontBayLipRadiusIn),
+    summary(kFrontBayBodyRadiusIn),
 };
 
 /// How many facts the ledger holds.

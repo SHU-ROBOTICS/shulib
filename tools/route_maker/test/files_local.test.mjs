@@ -118,7 +118,7 @@ function streamed(chunks, { cut = false } = {}) {
 
 test('sendToRobot: each line AS IT COMES (a line split across reads, a ✓ split mid-character), then the code', async () => {
     const ok = new TextEncoder().encode(`${JSON.stringify({ line: '✓ BUILT' })}\n`);
-    const s = streamed([`${JSON.stringify({ line: 'Building robot one\'s Auton Tester' })}\n{"li`, `ne": "Uploading"}\n`,
+    const s = streamed([`${JSON.stringify({ line: 'Building White Bot\'s Auton Tester' })}\n{"li`, `ne": "Uploading"}\n`,
                         ok.slice(0, 11), ok.slice(11), `${JSON.stringify({ done: true, code: 0 })}\n`]);
     let call;
     const lines = [];
@@ -127,12 +127,12 @@ test('sendToRobot: each line AS IT COMES (a line split across reads, a ✓ split
     const out = sendToRobot(PAGE, 'two', (l) => { lines.push(l); first(); }, { fetch: async (url, init) => { call = { url, ...init }; return s.res; } });
     s.next();
     await seen;
-    assert.deepEqual(lines, ['Building robot one\'s Auton Tester'], 'the first line before the rest of the stream exists');
+    assert.deepEqual(lines, ['Building White Bot\'s Auton Tester'], 'the first line before the rest of the stream exists');
     for (let k = 0; k < 4; k++) {
         s.next();
     }
     assert.equal(await out, 0);
-    assert.deepEqual(lines, ['Building robot one\'s Auton Tester', 'Uploading', '✓ BUILT']);
+    assert.deepEqual(lines, ['Building White Bot\'s Auton Tester', 'Uploading', '✓ BUILT']);
     assert.equal(call.url, 'api/send?robot=two');
     assert.equal(call.method, 'POST');
     assert.deepEqual(call.headers, { 'X-Shulib-Token': 'tok-123' });
@@ -165,8 +165,8 @@ test('sendToRobot: a refusal (one already running) in the helper\'s words; a hel
 });
 
 test('sendStage: tools/upload_auton.py\'s own lines, said plainly', () => {
-    assert.deepEqual(sendStage('Building robot two\'s Auton Tester: make ROBOT=tank PROGRAM=autontest (a few minutes the first time; Ctrl+C stops it)...'),
-        { kind: 'step', words: 'Building robot two\'s Auton Tester… (a few minutes the first time)' });
+    assert.deepEqual(sendStage('Building Black Bot\'s Auton Tester: make ROBOT=tank PROGRAM=autontest (a few minutes the first time; Ctrl+C stops it)...'),
+        { kind: 'step', words: 'Building Black Bot\'s Auton Tester… (a few minutes the first time)' });
     assert.deepEqual(sendStage('✓ BUILT'), { kind: 'built', words: 'BUILT' });
     assert.deepEqual(sendStage('Uploading to slot 6 on COM3...'), { kind: 'step', words: 'Uploading to slot 6 on COM3…' });
     assert.deepEqual(sendStage('✓ UPLOADED to slot 6. On the brain: shulib Auton Tester → skills or left 1 → RUN'),

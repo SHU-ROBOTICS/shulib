@@ -87,7 +87,7 @@ export function itemWords(it, names = {}) {
         : it.kind === 'col' ? `colour ${it.id}` : `something else (type ${it.type})`;
 }
 
-/** The card's one sentence; `robot`: the robot's words ("robot one"). Null before any [CAM] line. */
+/** The card's one sentence; `robot`: the robot's name (robot_names.mjs). Null before any [CAM] line. */
 export function seesWords(cam, robot = 'this robot') {
     if (!cam.lines) {
         return null;

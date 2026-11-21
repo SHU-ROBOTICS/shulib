@@ -7,6 +7,7 @@
 import { h, icon } from './dom.mjs';
 import { exportRegions, spliceRegions, driverFilePath, regionKey, REGIONS } from '../model/driver_file.mjs';
 import { copyText } from '../host/files_download.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
 const TITLES = { controls: 'Which button does what (kControls)', 'control words': 'The button map at the top of the file', feel: 'The feel (kFeel, kLoop)' };
 
@@ -28,7 +29,7 @@ export async function openControlsExport(x) {
     const scrim = h('div', { class: 'scrim', onclick: close });
     const body = h('div', { class: 'drawer-body' });
     const drawer = h('aside', { class: 'drawer', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'cx-title' },
-        h('div', { class: 'drawer-head' }, icon('code'), h('h2', { id: 'cx-title' }, `Export ${x.robot.name}'s controls`), h('span', { class: 'spacer' }),
+        h('div', { class: 'drawer-head' }, icon('code'), h('h2', { id: 'cx-title' }, `Export ${robotName(x.id)}'s controls`), h('span', { class: 'spacer' }),
           h('button', { class: 'btn icon ghost', 'aria-label': 'Close', onclick: close }, icon('close'))),
         body);
     document.body.append(scrim, drawer);
@@ -110,7 +111,7 @@ export async function openControlsExport(x) {
         card.append(h('h3', {}, `Write it into ${path}`),
             ready ? h('p', {}, 'Only the lines between its three marker pairs change.')
                 : h('div', { class: 'banner warn' }, icon('warn'), h('div', {}, text === null ? `${path} is not in this folder.`
-                    : `${path} has no "control words" and "feel" markers yet: it gets them with robot two's update. Until then, Copy each part.`)),
+                    : `${path} has no "control words" and "feel" markers yet: it gets them with ${robotName('two')}'s update. Until then, Copy each part.`)),
             h('button', { class: 'btn primary', disabled: !ready, onclick: () => write(false) }, icon('download'), `Write into ${path}`));
     } else if (files.canWriteFolder) {
         card.append(h('h3', {}, `Write it into ${path}`), h('p', {}, 'Connect your shulib folder once (the top bar); then Export writes the three parts.'));

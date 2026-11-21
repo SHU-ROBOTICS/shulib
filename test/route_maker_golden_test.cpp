@@ -654,6 +654,28 @@ TEST_CASE("RMP1-O: each robot's claw spot is 15/2 - kClawGrabInsetIn ahead of it
     }
 }
 
+TEST_CASE("RMP1-Q: each robot's open front bay is centred on its claw spot, with its ledger's two radii; a robot without one is solid") {
+    // BUG CAUGHT: the bay centred on the robot's centre (or a second copy of the claw's inset drifting from it); the lip
+    // and body radii swapped; robot two's radii read from robot one's ledger (RED only once the two differ); a fixture
+    // robot given a bay (its square no longer solid: every node test of the goals would change).
+    CHECK(shulib::bench::robot_one_facts::kFrontBayLipRadiusIn.value() == 3.22);
+    CHECK(shulib::bench::robot_one_facts::kFrontBayBodyRadiusIn.value() == 2.80);
+    CHECK(shulib::bench::robot_two_facts::kFrontBayLipRadiusIn.value() == shulib::bench::robot_one_facts::kFrontBayLipRadiusIn.value());
+    CHECK(shulib::bench::robot_two_facts::kFrontBayBodyRadiusIn.value() == shulib::bench::robot_one_facts::kFrontBayBodyRadiusIn.value());
+    for (const char* id : {"one", "two"}) {
+        CAPTURE(id);
+        const std::string d = route_maker::describe(*route_maker::robotSource(id));
+        CHECK(d.find("\n  \"frontBay\": {\"centreForwardIn\": 6.268, \"lipRadiusIn\": 3.22, \"bodyRadiusIn\": 2.8},\n") != std::string::npos);
+    }
+    const auto two = route_maker::robotSource("two");
+    CHECK((*two->frontBayIn)[0] == shulib::bench::robot_two_facts::kFrontBayLipRadiusIn.value());
+    CHECK((*two->frontBayIn)[1] == shulib::bench::robot_two_facts::kFrontBayBodyRadiusIn.value());
+    for (const char* id : {"x", "y", "z"}) {
+        CAPTURE(id);
+        CHECK(route_maker::describe(*route_maker::robotSource(id)).find("frontBay") == std::string::npos);
+    }
+}
+
 TEST_CASE("RMP1: a robot that builds the shared route and declares a cascade marks its levels as its facts ledger's (the tripwire for robot two)") {
     // The shared routes move the cascade to LEDGER levels (`cascade[facts::lv(i).name]`); the page lets it
     // only on a robot whose description marks them (RC18) — both robots since ROB1-BT (route_maker_robots.hpp),

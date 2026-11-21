@@ -32,7 +32,7 @@ export function sendStage(line) {
     if (!t) {
         return null;
     }
-    if ((m = /^Building (robot \w+)'s Auton Tester/.exec(t))) {
+    if ((m = /^Building (.+?)'s Auton Tester/.exec(t))) {  // the robot as upload_auton.py names it
         return { kind: 'step', words: `Building ${m[1]}'s Auton Tester… (a few minutes the first time)` };
     }
     if (/^✓ BUILT\b/.test(t)) {

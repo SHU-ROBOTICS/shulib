@@ -224,7 +224,7 @@ test.describe('RMP1-E — the mechanisms in PREVIEW', { skip }, () => {
     test('robot one\'s, said; the plant\'s, said in About this run; a run with no mechanisms shows no strip; the strip goes with the run', async () => {
         const p = await previewed('mechanisms');
         const { page } = p;
-        assert.equal(await page.locator('.mech-strip h3').textContent(), 'Robot one\'s mechanisms');
+        assert.equal(await page.locator('.mech-strip h3').textContent(), 'White Bot\'s mechanisms');
         assert.match(await page.locator('.mech-strip [data-mech="cascade"] .ph').getAttribute('title'), /^PLACEHOLDER numbers/);
         await page.getByRole('button', { name: /About this run/ }).click();
         assert.match(await page.locator('.dock-details .ms-about').textContent(), /host test plant's too/);

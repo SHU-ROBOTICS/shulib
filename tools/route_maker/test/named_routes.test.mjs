@@ -3,7 +3,7 @@
 // built to slip past one rule, and each rule is pinned at its edge.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkRoute, applyFix, wallOvershoot, ROBOT_TWO_ONLY } from '../src/model/checks.mjs';
+import { checkRoute, applyFix, wallOvershoot, ROBOT_TWO_ONLY, nameProblem } from '../src/model/checks.mjs';
 import { newRoute, setStart, addStep, updateStep, plannedPoses, normalizeRoute } from '../src/model/route.mjs';
 import { newProject, loadProject, saveProject, addRoute, renameRouteAt, duplicateRoute, deleteRoute, freeName, routeCap } from '../src/model/project.mjs';
 import { exportRegion, routeIdents } from '../src/model/export.mjs';
@@ -91,7 +91,8 @@ test('D2: robot two always runs the skills route MIRRORED (ROB1-BT) -- an unmirr
     const plain = route([], START, { mirroredFor: undefined, together: undefined });
     const rcm = at(checkRoute(plain, [X], FIELD), 'RCM1');
     assert.equal(rcm.length, 1);
-    assert.match(rcm[0].words, /Robot two runs the skills route MIRRORED, always/);
+    assert.match(rcm[0].words, /^Black Bot runs the skills route MIRRORED, always/);
+    assert.equal(rcm[0].fix.words, 'Mirror it for Black Bot');
     const fixed = applyFix(plain, rcm[0].fix);
     assert.equal(fixed.mirroredFor, 'two');
     assert.deepEqual(at(checkRoute(fixed, [X], FIELD), 'RCM1'), []);
@@ -138,6 +139,16 @@ test('D2: every route in the ONE region, in order; each its own C++ names; the l
 const ONE = { ...X };  // robot x carries the C++'s pair numbers and mirror (route_maker_describe.hpp bakes them)
 const LEAD = { x: -36, y: 54.076, headingDeg: -90 };  // the team lead's first real start (the brief §1)
 
+test('RMP1-L: the first words a student meets name the right robot, exactly (RC3, RCT1, a mirrored name too long)', () => {
+    assert.deepEqual(at(checkRoute(addStep(newRoute(), { do: 'wait', seconds: 1 }), [ONE], FIELD), 'RC3').map((i) => i.words),
+        ['Place White Bot\'s start on the field first: every step is planned from it.']);
+    assert.deepEqual(at(checkRoute(route([], START, { together: undefined }), [ONE], FIELD), 'RCT1').map((i) => i.words),
+        ['Black Bot runs this route mirrored. Will both robots run it at the SAME time? Answer it, so the too-close check knows.']);
+    assert.equal(nameProblem('M'.repeat(26), true, ONE).words, 'Black Bot shows this route as "MMMMMMMMMMMMMMMMMMMMMMMMMM SKILLS MIR" '
+        + 'on one screen line, so a mirrored route\'s name is at most 25 characters.');
+    assert.equal(nameProblem('M'.repeat(25), true, ONE), null, '25 fits');
+});
+
 test('D3: a mirrored route asks, ONCE, both ways one click; a route not mirrored never asks', () => {
     const asked = at(checkRoute(route([], START, { together: undefined }), [ONE], FIELD), 'RCT1');
     assert.equal(asked.length, 1);
@@ -156,7 +167,7 @@ test('D5: the team lead\'s real start is TOO CLOSE together (4.35 in, at the sta
     assert.equal(close.length, 1);
     assert.equal(close[0].stepIndex, -1, 'at the START');
     assert.ok(Math.abs(close[0].pair.gap - 3.076 * Math.SQRT2) < 0.01, `${close[0].pair.gap}`);
-    assert.match(close[0].words, /At the START robot one at \(-36, 54\.076\) and robot two \(mirrored\) at \(-54\.076, 36\) are 4\.4 in apart: they must stay 6 in apart\. Move robot one's start away from the diagonal\./);
+    assert.match(close[0].words, /At the START White Bot at \(-36, 54\.076\) and Black Bot \(mirrored\) at \(-54\.076, 36\) are 4\.4 in apart: they must stay 6 in apart\. Move White Bot's start away from the diagonal\./);
     assert.deepEqual(at(checkRoute(route([], { ...LEAD, y: 57.076 }, { together: true }), [ONE], FIELD), 'RCP1'), [], '3 in further out: clear');
     assert.deepEqual(at(checkRoute(route([], LEAD, { together: false }), [ONE], FIELD), 'RCP1'), [], 'one at a time: never checked');
     // its one-click fix moves the start straight off the diagonal (along its normal: dx = dy) by the LEAST that clears it
@@ -227,7 +238,7 @@ test('D5: MID-PATH -- a clear start that drives toward the diagonal is caught at
     const hit = at(checkRoute(r, [ONE], FIELD), 'RCP1');
     assert.equal(hit.length, 1);
     assert.equal(hit[0].stepIndex, 1, 'step 2 crosses toward the line');
-    assert.match(hit[0].words, /During step 2 robot one at/);
+    assert.match(hit[0].words, /During step 2 White Bot at .* and Black Bot \(mirrored\) at .* Keep White Bot's whole robot 3 in off/);
     const p = hit[0].pair;
     assert.ok(p.gap < 6);
     const two = reflect(p.one, ONE.skillsMirror);
