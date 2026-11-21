@@ -18,6 +18,7 @@ the skills route by clicking and exports the C++. Students: read
 | `build.py` | stdlib Python: `--out DIR --describe build/test/shulib_route_maker` writes the SITE form (`app.html` + `src/`) and the ONE FILE (`shulib-route-builder.html`); refuses any URL but the XML namespaces and any laptop or runner path (RG1). Its output is never committed |
 | `goldens.mjs` | `node tools/route_maker/goldens.mjs --write` re-makes `test/goldens/route_maker/*.cpp` from their `.route.json` (the C++ suite compiles and runs them) — never `gl0_empty.cpp`, the contract's empty region kept by hand (no `.route.json`; its hash is pinned in `export.test.mjs`) — and the Controls tab's goldens and `rm_ct_*.cpp` refusals |
 | `src/model/route_lines.mjs` | the route → the LINES the preview engine runs (below) |
+| `src/model/gently.mjs` | (RMP1-P) **Leave gently** on a Back up (`reverseTo`, `backward`): the step's own `gentlyWaitS` (above 0, at most 2 s) and `gentlySpeedInPerS` (2–20 in/s; the step's care untouched, a slower typed top speed wins); on (0.5 s, 5 in/s) for a Back up ADDED or switched to Backwards right after a drop (a piston set off a `grabs` position or onto a `releases` one, as the robot's description marks them; only waits between), never on load; refused when its time limit (the library's 5 s if none) cannot cover the leg at that speed. Exported as the page's Wait, then the capped back-up (the onFail before each; `libraryCalls` counts the wait); Go around moves it to the first leg |
 | `wasm/CMakeLists.txt` | the preview engine: the REAL library in WebAssembly (below) |
 | `test/` | the node tests (`node --test tools/route_maker/test/*.test.mjs`); `test/page/` the browser tests; `test/wasm/` the engine's |
 
@@ -185,8 +186,8 @@ on its heap — a fresh instance frees it. `.preview()` THROWS if the module abo
 route, a run needs 16–32 KB of the 1 MB); that instance is dead: make a new one.
 
 **The lines** (`route_lines.mjs`): `shulib-route 1`, then `route robot=… name=… park=… stop=…`, `start x=… y=… h=…`
-(or `start relative`), and one `step do=<kind> key=value …` per page step. Every number is `numbers.mjs`'s text; a
-name is %-encoded; a mechanism goes by its `.name` and a ledger level by its preset's name (from the robot's
+(or `start relative`), and one `step do=<kind> key=value …` per page step (a back-up's `wait=<s>`, Leave gently, is
+its wait first). Every number is `numbers.mjs`'s text; a name is %-encoded; a mechanism goes by its `.name` and a ledger level by its preset's name (from the robot's
 description). The runner refuses, by name, any line the export could not have written.
 
 **The record — schema 1** (one JSON object, one top-level member per line; times are seconds from the arming, `s`

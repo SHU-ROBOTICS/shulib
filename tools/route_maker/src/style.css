@@ -133,6 +133,7 @@ button, input, select { font: inherit; color: inherit; }
 .step-title { font-weight: 600; font-size: var(--t-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .step-sub { color: var(--text-muted); font-size: var(--t-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .step-label { color: var(--accent-strong); font-weight: 650; }
+.step-sub .gently { padding: 0 6px; margin-right: 4px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong); font-weight: 650; }
 .start-card .step-icon { color: var(--red-alliance); }
 .empty-list { color: var(--text-muted); font-size: var(--t-sm); padding: var(--s-3); border: 1px dashed var(--border); border-radius: var(--radius-md); }
 .grip { cursor: grab; color: var(--text-muted); display: grid; place-items: center; height: 100%; }

@@ -13,6 +13,7 @@
 // cap's `270.5` a plain double. Every value is read into a named variable BEFORE a call (W8: the order of
 // a call's arguments is unspecified, and GCC and Clang differ). A line the export could not have written is
 // refused by name, as the compiler would refuse the C++.
+// RMP1-P: a back-up's `wait=<s>` (Leave gently) is that wait first, then the back-up (the onFail before each).
 //
 // THE RUN is RPV1's previewEntry, unchanged. Through its hooks: onBuilt hands over the clock, so every page
 // step is dated where it began and ended (exact attribution, A.3.10), and installs the mechanisms' tap below
@@ -243,6 +244,10 @@ inline void checkMechanismStep(const mech::MechanismTable& t, const StepWords& s
             (void)numberAt(w, k);
             ++known;
         }
+    }
+    if (w.has("wait") && w.kind == "reverseTo") {  // RMP1-P: Leave gently's wait, before a back-up only
+        (void)numberAt(w, "wait");
+        ++known;
     }
     if (known != w.kv.size()) {
         throw LinesError{"a " + w.kind + " step does not take one of its words"};
@@ -612,6 +617,7 @@ inline RoutineResult runRoute(comp::AutonContext& ctx) {
         const StepWords& s = g.route.steps[i];
         PageStep& p = g.page[i];
         const bool twoCalls = (s.kind == "driveTo" || s.kind == "reverseTo") && s.at("face") == "1";
+        const bool gentle = s.has("wait");  // RMP1-P: Leave gently
         const RoutineResult before = r.result();
         p.t0 = g.stack->now();
         try {
@@ -626,6 +632,12 @@ inline RoutineResult runRoute(comp::AutonContext& ctx) {
                 }
             };
             onFail();
+            if (gentle) {  // export.mjs's wait, then the back-up (its onFail before each)
+                const shulib::units::Time sec = quantity<shulib::units::Time>(s.at("wait"));
+                const char* name = g.keep.emplace_back("wait " + s.at("wait") + " s").c_str();
+                r.then([&ctx, sec] { return ctx.guard.pause(sec) == shulib::sequence::GuardedWaitResult::Satisfied; }, name);
+                onFail();
+            }
             if (twoCalls) {
                 const shulib::units::Length x = quantity<shulib::units::Length>(s.at("x"));
                 const shulib::units::Length y = quantity<shulib::units::Length>(s.at("y"));
@@ -642,7 +654,7 @@ inline RoutineResult runRoute(comp::AutonContext& ctx) {
         p.t1 = g.stack->now();
         p.libFrom = before.steps + 1;
         p.libTo = after.steps;
-        p.verdict = verdictOf(before, after, twoCalls ? 2 : 1, ctx.guard);
+        p.verdict = verdictOf(before, after, (twoCalls ? 2 : 1) + (gentle ? 1 : 0), ctx.guard);
     }
     return r.result();
 }

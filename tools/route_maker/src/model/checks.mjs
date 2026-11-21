@@ -20,6 +20,7 @@
 // Pure: no DOM, no file API.
 
 import { plannedPoses, MOTION_KINDS, MECHANISM_KINDS, CARE_MOTION_FIELDS, STEP_KINDS, ROUTE_NAME } from './route.mjs';
+import { gentlyProblems, isGentle, gentlyPatch } from './gently.mjs';
 import { CurvePath, checkCurve, curveCheckWords, CurveVerdict, kMaxCurvePoints } from './curve.mjs';
 import { squareCorners, dist, wrapDeg } from './geometry.mjs';
 import { libraryWords, tankNotSteeredWords } from './library_words.mjs';
@@ -311,6 +312,10 @@ export function checkRoute(route, robots, field, ctx = {}) {
     route.steps.forEach((s, i) => {
         const p = plan[i];
         const nmb = (v) => Number.isFinite(v);
+        const leg = p && p.from && p.to ? dist(p.from.x, p.from.y, p.to.x, p.to.y) : NaN;
+        for (const [code, f, words] of gentlyProblems(s, leg)) {  // RMP1-P: Leave gently's bounds and time (page rules)
+            out.push(issue(code, 'error', i, f, words, f === 'gentlyWait' ? libraryWords('guardPause') : ''));
+        }
         // care: the motion options are validated finite and >= 0 by the library; 0 = the robot's own.
         if (s.care) {
             for (const f of CARE_MOTION_FIELDS) {
@@ -737,8 +742,10 @@ export function applyFix(route, fix, addStep, updateStep) {
         case 'moveStart':
             return { ...route, start: fix.start };
         case 'detour': {  // RMP1-H: a point beside the structure first; both legs turned first (the corner)
-            const r = addStep(route, { do: route.steps[fix.stepIndex].do, x: fix.x, y: fix.y, faceFirst: true }, fix.stepIndex);
-            return updateStep(r, fix.stepIndex + 1, { faceFirst: true });
+            const was = route.steps[fix.stepIndex];
+            const g = isGentle(was) ? { gentlyWaitS: was.gentlyWaitS, gentlySpeedInPerS: was.gentlySpeedInPerS } : {};  // RMP1-P: Leave gently goes first
+            const r = addStep(route, { do: was.do, x: fix.x, y: fix.y, faceFirst: true, ...g }, fix.stepIndex);
+            return updateStep(r, fix.stepIndex + 1, { faceFirst: true, ...(isGentle(was) ? gentlyPatch(false) : {}) });
         }
         case 'liftPatch':
             return updateStep(route, fix.stepIndex, { up: undefined, down: undefined, to: undefined, bottom: undefined, preset: undefined, ...fix.patch });

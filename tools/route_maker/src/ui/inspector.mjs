@@ -12,6 +12,7 @@ import { ROUTE_NAME, startPose, MECHANISM_KINDS } from '../model/route.mjs';
 import { targetKind, unitOf, bottomOf, plannedHeights, findWord } from '../model/lift.mjs';
 import { heightPatch, barPick, asHeight, waitsFor, WAIT_PAIR, limitOf, limitHint, limitWords, homeCard } from '../model/mech_steps.mjs';
 import { reflect } from '../model/pair.mjs';
+import { isBackUp, isGentle, gentleSpeed, GENTLY, gentlyPatch } from '../model/gently.mjs';
 import { isHidden, isLocked } from '../model/step_view.mjs';
 import { touchOnPurpose } from './field_obstacles.mjs';
 
@@ -109,6 +110,27 @@ function failSection(step, i, app) {
         h('label', { class: 'fld' }, h('span', {}, 'Label (a name a skip can land on)'),
           h('input', { class: 'txt', type: 'text', value: step.label || '', name: 'label', 'aria-label': 'Label', maxlength: 29,
                        onchange: (e) => app.update(i, { label: e.target.value.trim() === '' ? undefined : e.target.value.trim() }) })));
+}
+
+/** RMP1-P: a Back up's first control -- "Leave gently": wait, then back out slowly; its two numbers under it when on. */
+function leaveGently(step, i, app, issuesOf) {
+    if (!isBackUp(step)) {
+        return null;
+    }
+    const on = isGentle(step);
+    const w = on ? step.gentlyWaitS : GENTLY.waitS;
+    const v = on ? gentleSpeed(step) : GENTLY.speedInPerS;
+    const said = (x, u) => (x === 0.5 ? '½' : Number.isFinite(x) ? fmt(x) : '?') + u;
+    const turn = step.do === 'reverseTo' && step.faceFirst ? 'turns at its own speed, ' : '';
+    const hole = (k) => (x) => app.update(i, { [k]: x === undefined ? null : x });  // emptied: still on, the check asks
+    return h('div', { class: 'section gently' },
+        toggle('Leave gently', `waits ${said(w, ' s')}, ${turn}then backs out slowly (${said(v, ' in/s')})`, on,
+               (x) => app.update(i, gentlyPatch(x)), 'leaveGently'),
+        on ? h('div', { class: 'field-row' },
+            numField('Wait first', step.gentlyWaitS, 's', hole('gentlyWaitS'),
+                     { placeholder: '0.5', bad: issuesOf('gentlyWait').length > 0, name: 'gentlyWait' }),
+            numField('Back out at', step.gentlySpeedInPerS, 'in/s', hole('gentlySpeedInPerS'),
+                     { placeholder: '5', bad: issuesOf('gentlySpeed').length > 0, name: 'gentlySpeed' })) : null);
 }
 
 // ── RMP1-J: a mechanism step, one idea at a time — the home card (D6), where it goes (D2), wait or keep driving (D3),
@@ -387,6 +409,7 @@ export function renderInspector(el, app) {
         viewLines(step, i, st, app),
         top.map((x) => issueBox(x, app)),
         card ? homeCardBox(card, app) : null,
+        leaveGently(step, i, app, issuesOf),  // RMP1-P
         body,
         touchOnPurpose(step, i, app),  // RMP1-H
         failSection(step, i, app),

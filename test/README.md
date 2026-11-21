@@ -66,7 +66,7 @@ The route builder (`tools/route_maker/`, a web page) has two halves of tests, an
   FIELD start on the host test plant (`route_maker_rig.hpp`). Behaviour is asserted only on robot x
   (`mechanism_fixtures.hpp`, numbers the test owns: a drive turned first and one not, reverse and turns, curves of 2
   and 16 points, every mechanism step, stop / carry on / skip, a wait across the 57 s cut, the home rule's twins,
-  the caps' spellings and both tolerances, and WG8 — every pair of numbers in each step different, for the preview
+  the caps' spellings and both tolerances, a Back up with Leave gently (GL24: the wait, then the capped back-up), and WG8 — every pair of numbers in each step different, for the preview
   engine's tests); robots one and two are smoke runs. A tripwire holds that a robot
   building the shared route and declaring a cascade has its levels marked as its facts ledger's (robot two, once its
   update gives it robot one's cascade). It also pins the committed fixture descriptions
@@ -90,7 +90,9 @@ The route builder (`tools/route_maker/`, a web page) has two halves of tests, an
   `tools/route_maker/README.md`). The same `route_maker_main.cpp` is the WebAssembly module (`tools/route_maker/wasm/`);
   its test build also compiles every golden's export in (`route_maker_goldens.cpp`, WG1) and a test-only looping
   step (WG7). One suite case, `route_maker_runner_test.cpp`: a preset found by NAME is the goal the compile-time
-  `m["name"]` builds, field for field (RM28), and a number is read as its unit literal. The rest are node's, on the
+  `m["name"]` builds, field for field (RM28), and a number is read as its unit literal; (RMP1-P) a back-up's `wait=` is
+  the export's wait, then the back-up, one page step — in the brain's order, and carrying on (or skipping) when it
+  fails, as the export does. The rest are node's, on the
   module and this native program: `tools/route_maker/test/wasm/` — WG1 (the
   runner and the exported C++: one record, byte for byte), WG2 (native vs WebAssembly: every step, pace and line
   exact, poses within 1e-5 in / 1e-6 rad, the golden `wg8_distinct_numbers` — every pair of numbers in each step

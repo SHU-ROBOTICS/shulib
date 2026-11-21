@@ -7,7 +7,7 @@
 // The route builder (tools/route_maker/, a web page) cannot read C++, so the robot's facts reach it through
 // this file: every mechanism of the robot's own list (its name, its declaration's C++ name, its kind, its
 // homing method, its unhomed volts (RMP1-B's controls), its presets or positions — a preset that is a level of robot one's facts ledger is marked
-// with its index, so the export names it `m[facts::lv(i).name]`), the drive the page plans on (a tank, the
+// with its index, so the export names it `m[facts::lv(i).name]`; a piston's `grabs` / `releases` positions, RMP1-P), the drive the page plans on (a tank, the
 // library's own tank-steering window and curve rules — MotionConfig's defaults, the numbers a Chassis is
 // built with when nothing overrides them), the field's numbers (localization/override_walls.hpp,
 // vision/override_elements.hpp) and the API version; since RMP1-C also each arm's and lift's home height, the
@@ -339,6 +339,17 @@ struct RobotSource {
                 if (s.pneumatic.start < s.pneumatic.positionCount) {  // RMP1-M: where it is at program start (a test ends there);
                     // null while its levels are owed (the unpowered position is then not known)
                     j += ", \"start\": " + (owed.directions ? std::string{"null"} : str(textOf(s.pneumatic.positions[s.pneumatic.start].name)));
+                }
+                for (const m::Confirm c : {m::Confirm::Sees, m::Confirm::StopsSeeing}) {  // RMP1-P: its `grabs` / `releases`
+                    std::string marked;                                                   // positions (Leave gently's drop)
+                    for (std::size_t p = 0; p < s.pneumatic.positionCount; ++p) {
+                        if (s.pneumatic.positions[p].confirm == c) {
+                            marked += (marked.empty() ? "" : ", ") + str(textOf(s.pneumatic.positions[p].name));
+                        }
+                    }
+                    if (!marked.empty()) {
+                        j += std::string{c == m::Confirm::Sees ? ", \"grabs\": [" : ", \"releases\": ["} + marked + "]";
+                    }
                 }
                 break;
             }

@@ -39,6 +39,7 @@ import { createPreview } from './preview.mjs';
 import { openMechMenu } from './mech_menu.mjs';
 import { newProject, loadProject, saveProject, PROJECT_FILE, addRoute, renameRouteAt, duplicateRoute, deleteRoute } from '../model/project.mjs';
 import { addStep, updateStep, removeStep, moveStep, duplicateStep, setStart, plannedPoses, normalizeRoute, startPose } from '../model/route.mjs';
+import { followGently } from '../model/gently.mjs';
 import { checkRoute, applyFix, TURN_FIRST_EDGE_DEG, LEVELS_FROM, noLevels } from '../model/checks.mjs';
 import { historyOf, commit, undo as undoH, redo as redoH, canUndo, canRedo } from '../model/undo.mjs';
 import { bearingDeg, wrapDeg } from '../model/geometry.mjs';
@@ -230,7 +231,7 @@ async function main() {
                     }
                     const kind = ui.tool;
                     ui.tool = 'select';  // one step at a time: the new step is selected, its details on the right
-                    edit(addStep(r, { do: kind, x: p.x, y: p.y, faceFirst }, at), at);
+                    edit(followGently(addStep(r, { do: kind, x: p.x, y: p.y, faceFirst }, at), at, undefined, robot()), at);  // RMP1-P D2
                     break;
                 }
                 case 'face':
@@ -272,7 +273,7 @@ async function main() {
             }
         },
         update(i, patch) {
-            edit(updateStep(route(), i, patch), ui.selected);
+            edit(followGently(updateStep(route(), i, patch), i, route().steps[i], robot()), ui.selected);  // RMP1-P D2
         },
         /** The inspector's start numbers. An emptied box never makes a hole; a start ALREADY missing parts (a
          *  hand-edited file) takes each one as it is typed, so a start missing two parts can be filled in one by one. */
