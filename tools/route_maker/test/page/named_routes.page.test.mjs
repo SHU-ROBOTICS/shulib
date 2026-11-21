@@ -181,7 +181,7 @@ test.describe('RMP1-C in a browser', { skip }, () => {
         assert.equal((await errorsOf(page))[0].code, 'RCP1');
         await page.locator('.pane.right [data-together="false"]').click();
         assert.deepEqual(await errorsOf(page), [], 'one at a time: never too close');
-        assert.ok(await page.locator('.pane.right input[name="mirrored"]').isDisabled(), 'robot two always runs the skills route mirrored');
+        assert.ok(!(await page.locator('.pane.right input[name="mirrored"]').isDisabled()), 'the skills route may be unmirrored too');
         // another route: the mirror turned on asks; turned off, robot two is hidden
         await openRoutes(page);
         await menu(page).getByRole('button', { name: 'New route' }).click();

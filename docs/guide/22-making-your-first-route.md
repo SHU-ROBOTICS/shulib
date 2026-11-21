@@ -72,9 +72,9 @@ so you always see where it goes. On the right, the route asks once: **do both ro
   there with `isMirrored(ctx)` in the code.
 - **No, one at a time**: the too-close check is off (a tank's half-turn step is still refused).
 
-There is no default: until it is answered, Export waits (PREVIEW does not: it plays robot one). Robot two always
-runs the skills route mirrored. For any other route, **Runs it mirrored** (on the right) turns the mirror off;
-robot two then runs it as written, and nothing blue is drawn.
+There is no default: until it is answered, Export waits (PREVIEW does not: it plays robot one). **Runs it mirrored**
+(on the right) turns the mirror off, for the skills route too; robot two then runs it as written, and nothing blue is
+drawn.
 
 ![Both robots at the same time, from a start 0.8 in too close to the diagonal: robot two (mirrored) in blue, both squares outlined red, and the one-click fix on the right](../assets/route-builder/robot-two.png)
 
