@@ -169,7 +169,7 @@ test('interleaved with other tags, a pros terminal\'s \\r, NULs and colour codes
 test('no sensor; detections not switched on; the camera not answering (PROS_ERR, 25, -1, not 24); a new boot forgets', () => {
     const none = feed([sink(0.4, FMT.none)]);
     assert.equal(none.none, true);
-    assert.equal(seesWords(none, 'robot one'), 'No camera on robot one: no AI Vision sensor on any port.');
+    assert.equal(seesWords(none, 'White Bot'), 'No camera on White Bot: no AI Vision sensor on any port.');  // the robot's name, as the card passes it (RMP1-L)
     const off = feed([sink(0.3, printf(FMT.port, 7, 2147483647)), sink(1.3, detections(0))]);
     assert.equal(seesWords(off), 'Camera on port 7 did not switch its detections on (2147483647).');
     assert.equal(seesWords(feed([sink(0.3, printf(FMT.port, 7, 2147483647))])), 'Camera on port 7 did not switch its detections on (2147483647).');

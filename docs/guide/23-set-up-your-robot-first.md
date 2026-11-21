@@ -32,9 +32,9 @@ Music: "Wallpaper" by Kevin MacLeod ([incompetech.com](https://incompetech.com))
 *Slots 3 and 4, from the laptop*
 
 Plug the brain into the laptop with a USB cable. **The easy way:** in VS Code, **Terminal → Run Task → Upload
-everything to robot one** (or two) puts all six programs on the robot, each in its slot, and ends with a ✓ or ✗ line
-for each. (Not the PROS extension's own Upload button: it builds the bench bot's test program.) Or, in a terminal,
-in the shulib folder, build and upload these two for **your** robot:
+everything to White Bot (robot one)** (or **… to Black Bot (robot two)**) puts all six programs on the robot, each in
+its slot, and ends with a ✓ or ✗ line for each. (Not the PROS extension's own Upload button: it builds the bench bot's
+test program.) Or, in a terminal, in the shulib folder, build and upload these two for **your** robot:
 
 | Robot | Build word |
 |---|---|
@@ -309,8 +309,8 @@ route on the robot in one button.
 
 To put a route on the robot after **Export**, plug the brain in by USB and run **one command** in the shulib folder —
 `python3 tools/upload_auton.py one` (robot two: `two`; on Windows, `python`) — or, in VS Code,
-**Terminal → Run Task → Upload routes to robot one**. It builds the Auton Tester, uploads it to slot 6 and ends with
-**✓ UPLOADED** or **✗** and what to fix.
+**Terminal → Run Task → Upload routes to White Bot (robot one)**. It builds the Auton Tester, uploads it to slot 6
+and ends with **✓ UPLOADED** or **✗** and what to fix.
 
 ## If something goes wrong
 

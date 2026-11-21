@@ -386,7 +386,7 @@ const ACTIONS = {
     const sw = await rectOf('.robot-pick');
     await spot(sw, 6);
     await pause(400);
-    const two = await page.getByRole('radio', {name: 'two'}).boundingBox();
+    const two = await page.getByRole('radio', {name: 'Black Bot'}).boundingBox();  // RMP1-L: the picker names the robots
     await clickAt({x: two.x, y: two.y, w: two.width, h: two.height});
     await pause(500);
   },
@@ -412,7 +412,7 @@ const ACTIONS = {
     await page.keyboard.press('Control+e');
     await page.locator('.drawer').waitFor();
     await pause(500);
-    await spot(await textRect("Export robot two's controls"), 10);
+    await spot(await textRect("Export Black Bot's controls"), 10);
   },
   async c17() {
     await spot(null);

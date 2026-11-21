@@ -5,9 +5,10 @@
 
 import { h, s, mount } from './dom.mjs';
 import { newCamera, readCamera, seesWords, itemWords, edgeWords, inPicture, freshS, ageS, IMAGE } from '../model/camera_log.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
-/** The robot in words: the one place this file names one. */
-const robotWords = (which) => (which === 'one' ? 'robot one' : which === 'two' ? 'robot two' : 'this robot');
+/** The robot in words: its name (RMP1-L's one source), or "this robot" when the watch does not say which. */
+const robotWords = (which) => (which === 'one' || which === 'two' ? robotName(which) : 'this robot');
 
 const cards = new WeakMap();  // a watch (run_log.mjs's state) → its card
 let hiddenAt = 0;  // when the page was last hidden: nothing paints while it is, so lines read after may be that old

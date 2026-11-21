@@ -179,6 +179,9 @@ test('writes: only between the three marker pairs, all or none; the file\'s own 
         assert.equal(t.why, 'noMarkers');
         assert.deepEqual(t.regions, ['control words', 'feel']);
     }
+    assert.equal(spliceRegions('int x;\n', id, regions, { base: {} }).words, 'src/team/robot_one_driver.hpp has no "controls" or '
+        + '"control words" or "feel" markers yet, so the route builder will not write into it (it gets them with Black Bot\'s update). '
+        + 'Until then use Copy.');  // RMP1-L: the robot named
     // a marker twice is not a region
     const twice = lf.replace('// [feel one]', '// [feel one]\n// [feel one]');
     assert.equal(spliceRegions(twice, id, regions, { base: r.hashes }).why, 'noMarkers');

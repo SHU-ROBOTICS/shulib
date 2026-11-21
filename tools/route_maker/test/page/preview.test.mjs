@@ -15,6 +15,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { standinScript, fixture } from '../standin_engine.mjs';
 import { poseAt, thinPath, sampleIndexAt, playbackOf } from '../../src/model/playback.mjs';
 import { squareCorners } from '../../src/model/geometry.mjs';
+import { frontBayOf, robotOutline } from '../../src/model/obstacles.mjs';
 import { TIMEOUT_WORDS } from '../../src/host/engine.mjs';
 import { noStructures } from './harness.mjs';
 
@@ -137,10 +138,12 @@ async function shot(page, name) {
     }
 }
 /** The page's picture points of the record's robot square at `t` (what the page must draw, from the record alone). */
-async function expectedSquare(page, samples, t) {
+/** The robot drawn at its record's pose: its square with its open front (RMP1-Q: robot `who`'s frontBay, as built). */
+async function expectedSquare(page, samples, t, who = 'one') {
     const pic = await page.evaluate(() => JSON.parse(document.getElementById('shulib-field').textContent));
     const q = poseAt(samples, t);
-    return squareCorners(q.x, q.y, q.headingDeg, 15).map((c) => [pic.originPx[0] + c.x * pic.pxPerIn, pic.originPx[1] - c.y * pic.pxPerIn]);
+    const bay = frontBayOf(JSON.parse(fs.readFileSync(path.join(SITE, 'robots.json'), 'utf8')).robots[who]);
+    return robotOutline(q, 15, bay).map((c) => [pic.originPx[0] + c.x * pic.pxPerIn, pic.originPx[1] - c.y * pic.pxPerIn]);
 }
 const drawn = (page, who, part = 'g-run-robot') => page.evaluate(([w, c]) => (document.querySelector(`.g-run.${w} .${c}`).getAttribute('points') || '')
     .trim().split(/\s+/).filter(Boolean).map((p) => p.split(',').map(Number)), [who, part]);
@@ -168,7 +171,7 @@ const aboutLineInView = (page, words) => page.evaluate((w) => {
     const line = [...box.querySelectorAll('p')].find((e) => e.textContent.startsWith(w));
     return !!line && box.scrollTop === 0 && line.getBoundingClientRect().bottom <= box.getBoundingClientRect().bottom;
 }, words);
-const NO_TWO = 'PREVIEW plays robot one: robot two\'s mirrored run is not in this build of the route builder yet.';
+const NO_TWO = 'PREVIEW plays White Bot: Black Bot\'s mirrored run is not in this build of the route builder yet.';
 function near(a, b, what) {
     assert.equal(a.length, b.length, `${what}: ${a.length} points drawn, ${b.length} in the record`);
     a.forEach((p, i) => assert.ok(Math.hypot(p[0] - b[i][0], p[1] - b[i][1]) < 0.01, `${what}: corner ${i} ${p} vs ${b[i]}`));
@@ -376,10 +379,10 @@ test.describe('PREVIEW in the page', { skip }, () => {
         await stop(page);
         assert.equal(await page.locator('.step.pv-ok').count(), 3, 'robot one\'s own steps all went');
         assert.equal(await page.locator('.step[data-step="1"] .step-lib.two').textContent(),
-                     `Robot two: Went THROUGH the blue Loader. On the robot it hits the blue Loader at ${hit.t.toFixed(2)} s, in step 2 (1.50 in past its face): the host test plant has no walls.`);
-        assert.match(await page.locator('.step[data-step="2"]').getAttribute('aria-label'), /Robot two: Skipped: the route had stopped$/);
+                     `Black Bot: Went THROUGH the blue Loader. On the robot it hits the blue Loader at ${hit.t.toFixed(2)} s, in step 2 (1.50 in past its face): the host test plant has no walls.`);
+        assert.match(await page.locator('.step[data-step="2"]').getAttribute('aria-label'), /Black Bot: Skipped: the route had stopped$/);
         assert.equal(await page.locator('.step[data-step="0"] .step-lib.two').count(), 0);
-        assert.equal(await page.locator('.dock .chip.error').textContent(), 'Robot one: FINISHED · robot two: FINISHED, but THROUGH the blue Loader');
+        assert.equal(await page.locator('.dock .chip.error').textContent(), 'White Bot: FINISHED · Black Bot: FINISHED, but THROUGH the blue Loader');
         await page.keyboard.press('Home');
         await page.waitForFunction(() => document.querySelector('.dock').getAnimations().length === 0);
         const box = await page.locator('.track').boundingBox();
@@ -388,11 +391,11 @@ test.describe('PREVIEW in the page', { skip }, () => {
         assert.deepEqual(await page.locator('.track').boundingBox(), box, 'a three-line sentence does not move the scrubber');
         assert.equal(await page.locator('.dock-row.foot .dock-words').evaluate((e) => e.offsetHeight), lines, 'the sentence keeps its two lines');
         assert.match(await page.locator('.dock-row.foot .dock-words').getAttribute('title'), /no walls\.$/, 'the whole sentence on hover');
-        assert.match(await page.locator('.dock-words').textContent(), /^Step 2: Robot two: Went THROUGH the blue Loader\./);
+        assert.match(await page.locator('.dock-words').textContent(), /^Step 2: Black Bot: Went THROUGH the blue Loader\./);
         await page.getByRole('button', { name: /About this run/ }).click();
         const about = await page.locator('.dock-details').textContent();
-        assert.match(about, /Robot two: FINISHED, but THROUGH the blue Loader/);
-        assert.match(about, /Every line the library printed for robot two \(\d+\)/);
+        assert.match(about, /Black Bot: FINISHED, but THROUGH the blue Loader/);
+        assert.match(about, /Every line the library printed for Black Bot \(\d+\)/);
         assert.deepEqual(await p.done(), []);
     });
 
@@ -452,7 +455,7 @@ test.describe('PREVIEW in the page', { skip }, () => {
         const st = await pv(q.page);
         assert.equal(st.phase, 'open', 'robot one still plays');
         assert.equal(st.two, false);
-        assert.equal(st.pairWords, 'Robot two\'s mirrored run was refused (REFUSED): the test\'s own refusal of robot two');
+        assert.equal(st.pairWords, 'Black Bot\'s mirrored run was refused (REFUSED): the test\'s own refusal of robot two');
         assert.deepEqual(await q.done(), []);
     });
 
@@ -577,7 +580,7 @@ test.describe('PREVIEW in the page', { skip }, () => {
         assert.equal(await page.locator('.step[data-step="1"] .ph').count(), 0);
         await page.getByRole('button', { name: /About this run/ }).click();
         const details = await page.locator('.dock-details').textContent();
-        assert.match(details, new RegExp(`${f.result.one.owed.length} of robot one's facts are PLACEHOLDERS`));
+        assert.match(details, new RegExp(`${f.result.one.owed.length} of White Bot's facts are PLACEHOLDERS`));
         for (const fact of f.result.one.owed) {
             assert.ok(details.includes(fact), fact);
         }
@@ -613,7 +616,7 @@ test.describe('PREVIEW in the page', { skip }, () => {
         await page.locator('.pair-mark').click();
         const t = (await pv(page)).t;
         assert.equal(t, f.result.verdict.failAt);
-        near(await drawn(page, 'two'), await expectedSquare(page, f.result.two.samples, t), 'robot two');
+        near(await drawn(page, 'two'), await expectedSquare(page, f.result.two.samples, t, 'two'), 'robot two');
         near(await drawn(page, 'one'), await expectedSquare(page, f.result.one.samples, t), 'robot one');
         assert.match(await page.locator('.dock-words').textContent(), /come too close\. auton 'skills': the two robots come within 6\.0 in/);
         await openFixture(page, 'pair_ok');
@@ -638,7 +641,7 @@ test.describe('PREVIEW in the page', { skip }, () => {
         await stop(page);
         await page.keyboard.press('End');
         for (const [who, k] of [['one', 7.5 - 1.232], ['two', 3]]) {
-            const body = await drawn(page, who);
+            const body = (await drawn(page, who)).slice(0, 4);  // the square's corners (RMP1-Q: its open front follows)
             const c = [body.reduce((a, q) => a + q[0], 0) / body.length, body.reduce((a, q) => a + q[1], 0) / body.length];
             const tip = (await drawn(page, who, 'g-run-front'))[0];
             const claw = await page.evaluate((w) => {
@@ -673,6 +676,27 @@ test.describe('PREVIEW in the page', { skip }, () => {
         assert.equal((await pv(page)).pairWords, NO_TWO);
         await page.getByRole('button', { name: /About this run/ }).click();
         assert.ok(await aboutLineInView(page, NO_TWO), 'About this run says it first, in view (not under the owed facts)');
+        // RMP1-L: robot two in the build, but an engine with no pair mode -- the worker's flag, said in the robots' names
+        await page.evaluate(([text, s]) => window.routeBuilder.useEngine({ text, sharedRoute: s }), [standinScript(ALL, { noPair: true }), SHARED]);
+        await preview(page);
+        await stop(page);
+        assert.equal((await pv(page)).two, false);
+        assert.equal((await pv(page)).pairWords, 'PREVIEW plays White Bot: Black Bot\'s mirrored run is not in this preview engine yet.');
+        // an engine built BEFORE RMP1-L (the helper serves a checkout's page with the last build's or the published engine):
+        // its worker's own sentence, in the old names, is said in the page's
+        await page.evaluate(([text, s]) => window.routeBuilder.useEngine({ text, sharedRoute: s }), [standinScript(ALL, { noPair: true,
+            oldWords: 'PREVIEW plays robot one: robot two\'s mirrored run is not in this preview engine yet.' }), SHARED]);
+        await preview(page);
+        await stop(page);
+        assert.equal((await pv(page)).pairWords, 'PREVIEW plays White Bot: Black Bot\'s mirrored run is not in this preview engine yet.');
+        // robot two's run, while it runs: its phase in its name
+        await page.evaluate(([text, s]) => window.routeBuilder.useEngine({ text, sharedRoute: s }), [standinScript(ALL, { pairDelayMs: 3000 }), SHARED]);
+        await page.locator('.field-svg').focus();
+        await page.keyboard.press('Control+Enter');
+        await page.locator('.dock-phase', { hasText: 'Running Black Bot\'s mirrored route…' }).waitFor({ timeout: 10000 });
+        await page.waitForFunction(() => window.routeBuilder.preview().phase !== 'running');
+        await stop(page);
+        assert.equal((await pv(page)).two, true);
         assert.deepEqual(await p.done(), []);
     });
 
@@ -740,7 +764,7 @@ test.describe('PREVIEW in the page', { skip }, () => {
         const p = await openPage();
         const { page } = p;
         await preview(page);
-        assert.match(await page.locator('.toast').textContent(), /Place robot one's start first/);
+        assert.match(await page.locator('.toast').textContent(), /Place White Bot's start first/);
         // a start and no step
         const empty = JSON.parse(fixture('ready').text);
         empty.routes[0].steps = [];

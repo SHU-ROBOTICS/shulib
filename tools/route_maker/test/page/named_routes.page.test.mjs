@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { SITE, skip, VARIANTS, launch, serve, openPage, shot } from './harness.mjs';
-import { squareCorners } from '../../src/model/geometry.mjs';
+import { frontBayOf, robotOutline } from '../../src/model/obstacles.mjs';
 
 let browser;
 let site;
@@ -157,16 +157,16 @@ test.describe('RMP1-C in a browser', { skip }, () => {
         await page.getByRole('button', { name: 'Got it' }).click();
         await startAt(page, -36, 54.076, -90);
         assert.equal(await page.locator('[data-twin]').count(), 1, 'robot two drawn');
-        assert.equal(await page.locator('.g-twin-label').textContent(), 'robot two (mirrored)');
+        assert.equal(await page.locator('.g-twin-label').textContent(), 'Black Bot (mirrored)');
         assert.equal(await page.locator('[data-mirror]').count(), 1, 'the diagonal drawn');
-        assert.match(await page.locator('.pane.right').textContent(), /Robot two starts at \(-54\.076, 36\) facing 0 deg/);
+        assert.match(await page.locator('.pane.right').textContent(), /Black Bot starts at \(-54\.076, 36\) facing 0 deg/);
         const q = (await errorsOf(page)).map((x) => x.code);
         assert.deepEqual(q, ['RCT1'], 'asked, no default');
         assert.ok(await page.locator('.ask-together.unanswered').isVisible());
         await page.locator('.pane.right [data-together="true"]').click();
         const close = await errorsOf(page);
         assert.deepEqual(close.map((x) => [x.code, x.stepIndex]), [['RCP1', -1]]);
-        assert.match(close[0].words, /At the START robot one at \(-36, 54\.076\) and robot two \(mirrored\) at \(-54\.076, 36\) are 4\.4 in apart/);
+        assert.match(close[0].words, /At the START White Bot at \(-36, 54\.076\) and Black Bot \(mirrored\) at \(-54\.076, 36\) are 4\.4 in apart/);
         assert.equal(await page.locator('.field-svg .g-too-close').count(), 2, 'both squares marked');
         await shot(page, 'too-close-light-1440');
         await page.locator('.pane.right .issue.error').getByRole('button', { name: /Move the start .* in away from the diagonal/ }).click();
@@ -215,13 +215,15 @@ test.describe('RMP1-C in a browser', { skip }, () => {
             a.forEach((q, i) => assert.ok(Math.hypot(q[0] - b[i][0], q[1] - b[i][1]) < 0.01, `${what} ${i}: ${q} vs ${b[i]}`));
         };
         // across y = -x: (x, y) -> (-y, -x), a heading h -> -90 - h (worked here by hand, not by the page's reflect)
-        near(await pts('.g-twin-robot'), squareCorners(-54.076, 36, -120, 15).map((c) => px(c.x, c.y)), 'robot two\'s square');
+        const two = JSON.parse(fs.readFileSync(`${SITE}/robots.json`, 'utf8')).robots.two;  // (`path` is this test's own below)
+        near(await pts('.g-twin-robot'), robotOutline({ x: -54.076, y: 36, headingDeg: -120 }, 15, frontBayOf(two)).map((c) => px(c.x, c.y)),
+             'robot two\'s square, its open front (RMP1-Q)');
         const rad = (-120 * Math.PI) / 180;
         near((await pts('.g-twin-front')).slice(0, 1), [px(-54.076 + Math.cos(rad) * 6.5, 36 + Math.sin(rad) * 6.5)], 'its front\'s tip');
         const path = await pts('.g-twin-path');
         near([path[0], path[path.length - 1]], [px(-54.076, 36), px(-36, 12)], 'its path, start to end');
         await page.locator('.start-card').click();
-        assert.match(await page.locator('.pane.right').textContent(), /Robot two starts at \(-54\.076, 36\) facing -120 deg/);
+        assert.match(await page.locator('.pane.right').textContent(), /Black Bot starts at \(-54\.076, 36\) facing -120 deg/);
         assert.deepEqual(await p.done(), []);
     });
 

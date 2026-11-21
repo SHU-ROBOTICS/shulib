@@ -473,8 +473,8 @@ test.describe('the route builder in a browser', { skip }, () => {
         assert.ok(written.includes(code.replace(/\n/g, '\r\n')));
         // RMP1-F: read back, then "Will it build?" names the autons line this folder lacks (robot one's), and only it
         const build = await page.locator('.drawer [data-result="ok"] .xr-build').textContent();
-        assert.match(build, /Robot one will not list the routes: src\/team\/robot_one_autons\.cpp is missing/);
-        assert.doesNotMatch(build, /Robot two will not/);
+        assert.match(build, /White Bot will not list the routes: src\/team\/robot_one_autons\.cpp is missing/);
+        assert.doesNotMatch(build, /Black Bot will not/);
         // and the project saved with it (the export's hash), into the folder
         const saved = JSON.parse(await page.evaluate(() => window.routeBuilder.memory.store['src/team/route_maker.json']));
         assert.match(saved.exports['src/team/skills_route.cpp#skills'], /^sha256:[0-9a-f]{64}$/);
@@ -912,13 +912,13 @@ test.describe('the route builder in a browser', { skip }, () => {
             await selectStep(page, v.viewport, 1);
             assert.equal(await page.locator('.pane.right [data-level]:not([data-level="bottom"])').count(), 0, 'no level list');
             // robot two, robot one's twin (ROB1-BT), builds the mirrored route: its cascade has none either, said on its own line
-            const said = (who) => `Robot ${who}'s cascade has no levels yet: record them at Bench Tests station 13.`;
+            const said = (who) => `${{ one: 'White Bot', two: 'Black Bot' }[who]}'s cascade has no levels yet: record them at Bench Tests station 13.`;
             assert.deepEqual((await errorsOf(page)).map((x) => [x.code, x.stepIndex, x.words]), [['RC18', 1, said('one')], ['RC18', 1, said('two')]]);
             for (const who of ['one', 'two']) {
                 assert.ok(await page.locator('.pane.right .issue.error').getByText(said(who)).isVisible(), who);
             }
             await openExport(page);
-            assert.match(await page.locator('.drawer .banner.error').textContent(), /Step 2: Robot one's cascade has no levels yet/);
+            assert.match(await page.locator('.drawer .banner.error').textContent(), /Step 2: White Bot's cascade has no levels yet/);
             await closeDrawer(page);
             assert.deepEqual(await p.done(), []);
         });
@@ -937,10 +937,10 @@ test.describe('the route builder in a browser', { skip }, () => {
             // (2) TODAY's folder: no src/team/skills_route.cpp yet (robot two's update adds it), robot two's line not there
             await page.evaluate(() => window.routeBuilder.useMemoryFolder({ 'src/team/autons.cpp': 'void registerAutons() {}\n' }));
             await openExport(page);
-            assert.ok(await page.getByText('src/team/skills_route.cpp is not in this folder yet: it arrives with robot two\'s update. Until then, use Copy.').isVisible());
+            assert.ok(await page.getByText('src/team/skills_route.cpp is not in this folder yet: it arrives with Black Bot\'s update. Until then, use Copy.').isVisible());
             assert.ok(await page.getByRole('button', { name: 'Write into src/team/skills_route.cpp' }).isDisabled());
             assert.ok(await page.getByRole('button', { name: 'Copy the code' }).isEnabled());
-            assert.ok(await page.getByText(/The line that registers the routes on robot two is missing/).isVisible());
+            assert.ok(await page.getByText(/The line that registers the routes on Black Bot \(robot two\) is missing from src\/team\/autons\.cpp/).isVisible());
             await settle(page);
             await shot(page, `export-copy-only-${v.tag}`);
             await closeDrawer(page);
@@ -948,7 +948,7 @@ test.describe('the route builder in a browser', { skip }, () => {
             await page.evaluate((m) => window.routeBuilder.useMemoryFolder({ 'src/team/skills_route.cpp': 'int x;\n', 'src/team/autons.cpp': m }), MIRRORED);
             await openExport(page);
             assert.ok(await page.getByText('src/team/skills_route.cpp has no ROUTE MAKER lines: someone removed them.').isVisible());
-            assert.ok(await page.getByText('Robot two registers every route').isVisible());
+            assert.ok(await page.getByText('Black Bot (robot two) registers every route: its line is in src/team/autons.cpp. ✓').isVisible());
             await settle(page);
             await shot(page, `export-no-markers-${v.tag}`);
             await closeDrawer(page);

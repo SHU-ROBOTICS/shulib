@@ -2,7 +2,8 @@
 """route_builder.py -- the route builder on this laptop, with Send to robot (RMP1-I).
 
     python3 tools/route_builder.py             open it in the browser (python on Windows; Ctrl+C stops it)
-    python3 tools/route_builder.py robot one   what is in each of robot one's slots, against the wanted table (or two)
+    python3 tools/route_builder.py robot white   what is in each of White Bot's slots, against the wanted table (or black;
+                                                 one and two work too: robot one and robot two in the code and the docs)
     python3 tools/route_builder.py self-test
 
 Serves THIS checkout's route builder (tools/route_maker/src, put together by tools/route_maker/build.py's own code) on
@@ -14,7 +15,7 @@ path (and in a header for a write or a send); the Host header checked; nothing s
 to files under src/team/, all or nothing, and none while a send runs. Python's standard library only.
 RMP1-K: Watch the robot reads the brain's USER port (`pros terminal`, the port from `pros lsusb` as upload_auton finds
 the system port) and streams its lines to the page, saved in build/robot_runs/; one reader at a time, closed for a
-send and reopened after, the helper's child. What is on robot one reads the slots over the SYSTEM port (tools/
+send and reopened after, the helper's child. What is on White Bot reads the slots over the SYSTEM port (tools/
 brain_slots.py, run by `pros user-script`: pros-cli's own V5Device) -- read-only, and through a running helper when there
 is one (one pros on the brain at a time).
 """
@@ -295,11 +296,11 @@ def slot_table(have):
 
 
 def robot_words(robot, rows, why):
-    """The table in a terminal's words (`python3 tools/route_builder.py robot one`)."""
+    """The table in a terminal's words (`python3 tools/route_builder.py robot white`); `robot` 'one' or 'two'."""
     if rows is None:
-        return f"Robot {robot}: {why}"
+        return f"{ua.NAMES[robot]}: {why}"
     ok, bad, _ = ua.marks()
-    out = [f"Robot {robot}: what is in each slot (read from the brain; nothing changed)"]
+    out = [f"{ua.NAMES[robot]}: what is in each slot (read from the brain; nothing changed)"]
     for r in rows:
         when = f"  uploaded {r['date'][:16].replace('T', ' ')}" if r["date"] else ""
         build = f"  [{r['description']}]" if r["description"] else ""
@@ -498,7 +499,7 @@ class Handler(BaseHTTPRequestHandler):
                 tab = False
 
         try:
-            say(f"Sending to robot {robot}...")
+            say(f"Sending to {ua.NAMES[robot]}...")
             try:
                 self.send_response(200)
                 for k, v in (("Content-Type", "application/x-ndjson; charset=utf-8"), ("Cache-Control", "no-store"),
@@ -654,16 +655,16 @@ def main(argv):
             browser, argv = False, argv[1:]
         else:
             root, url, argv = (Path(argv[1]), url, argv[2:]) if argv[0] == "--root" else (root, argv[1], argv[2:])
-    if len(argv) == 2 and argv[0] == "robot" and argv[1] in ("one", "two"):  # RMP1-K D5, in the terminal
-        root = Path(root).resolve()
-        via = robot_via_helper(root / "build" / "route_builder.json", root, argv[1])  # one pros on the brain at a time
+    if len(argv) == 2 and argv[0] == "robot" and ua.robot_id(argv[1]):  # RMP1-K D5, in the terminal (RMP1-L: white/black)
+        root, robot = Path(root).resolve(), ua.robot_id(argv[1])
+        via = robot_via_helper(root / "build" / "route_builder.json", root, robot)  # one pros on the brain at a time
         if via is None:
             have, why = read_slots(root)
             via = (slot_table(have) if have is not None else None, why)
-        print(robot_words(argv[1], *via), flush=True)
+        print(robot_words(robot, *via), flush=True)
         return 0 if via[0] is not None else 1
     if argv:
-        print("Say nothing to open it: python3 tools/route_builder.py   (or robot one, robot two, self-test)")
+        print("Say nothing to open it: python3 tools/route_builder.py   (or robot white, robot black, self-test)")
         return 2
     root = Path(root).resolve()
     state = root / "build" / "route_builder.json"
@@ -948,10 +949,16 @@ def self_test():
         os.environ["FAKE_CASE"] = "ok"
         st, lines, code, _ = stream(srv)
         text = "\n".join(lines)
-        want = [f"Building robot one's Auton Tester", "✓ BUILT", f"Uploading to slot {ua.SLOT} on /dev/ttyACM0",
+        want = ["Building White Bot's Auton Tester", "✓ BUILT", f"Uploading to slot {ua.SLOT} on /dev/ttyACM0",
                 f"✓ UPLOADED to slot {ua.SLOT}. On the brain: shulib Auton Tester → skills or left 1 → RUN"]
         at = [text.find(w) for w in want]
         check("Send: the lines in order", st == 200 and code == 0 and -1 not in at and at == sorted(at), text)
+        heard = sys.stdout.getvalue() if isinstance(sys.stdout, io.StringIO) else ""  # the helper's terminal (run() captures it)
+        check("the helper's terminal names the robot (RMP1-L)", "Sending to White Bot...\n" in heard, heard[-300:])
+        st, lines, code, _ = stream(srv, robot="two")
+        heard = sys.stdout.getvalue() if isinstance(sys.stdout, io.StringIO) else ""
+        check("... and Black Bot's send, Black Bot's", code == 0 and any(x.startswith("Building Black Bot's Auton Tester") for x in lines)
+              and "Sending to Black Bot...\n" in heard, (lines, heard[-300:]))
         check("a robot that is not one or two", ask(srv, "POST", "/api/send?robot=three")[0] == 400)
         check("Send needs the header", ask(srv, "POST", "/api/send?robot=one", header=False)[0] == 403)
 
@@ -1173,7 +1180,7 @@ def self_test():
         out = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--root", str(repo), "robot", "one"], capture_output=True,
                              text=True, encoding="utf-8", timeout=60, env=dict(os.environ, PYTHONIOENCODING="utf-8"))
         check("python3 tools/route_builder.py robot one: each slot's whole line (its upload time and its build's tag)", out.returncode == 0
-              and "  ✓ slot 6: shulib Auton Tester  uploaded 2026-11-20 06:00  [v0.1.1-470-gabc1234 | skills]\n" in out.stdout
+              and out.stdout.startswith("White Bot: what is in each slot") and "  ✓ slot 6: shulib Auton Tester  uploaded 2026-11-20 06:00  [v0.1.1-470-gabc1234 | skills]\n" in out.stdout
               and "  ✓ slot 8: VEXcode  uploaded 2026-11-20 08:00  [Made with PROS]\n" in out.stdout, out.stdout + out.stderr)
         bad = dict(good, **{"2": ["shulib Auton Tester", "x", "2026-11-20T02:00:00"], "8": ["somebody's old code", "", ""]})
         del bad["6"]
@@ -1185,11 +1192,15 @@ def self_test():
               and rows[5]["fix"].endswith("(it is in slot 2 now)"), rows[5])
         check("the old code's slot left alone, whatever is in it", rows[7]["ok"] and rows[7]["have"] == "somebody's old code", rows[7])
         check("the PROS button's slot empty: still fine (it is optional)", rows[4]["ok"] and rows[4]["have"] is None, rows[4])
-        out = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--root", str(repo), "robot", "one"], capture_output=True,
+        out = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--root", str(repo), "robot", "White"], capture_output=True,
                              text=True, encoding="utf-8", timeout=60, env=dict(os.environ, PYTHONIOENCODING="utf-8"))
-        check("python3 tools/route_builder.py robot one: the table in the terminal", out.returncode == 0
-              and "✗ slot 2: shulib Auton Tester -- slot 2 holds shulib Auton Tester: upload shulib Competition there" in out.stdout
+        check("python3 tools/route_builder.py robot White (RMP1-L): the table in the terminal, in White Bot's name", out.returncode == 0
+              and out.stdout.startswith("White Bot: what is in each slot") and "✗ slot 2: shulib Auton Tester -- slot 2 holds shulib Auton Tester: upload shulib Competition there" in out.stdout
               and "✓ slot 1: shulib Drive  uploaded 2026-11-20 01:00" in out.stdout, out.stdout + out.stderr)
+        out = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--root", str(repo), "robot", "grey"], capture_output=True,
+                             text=True, encoding="utf-8", timeout=60, env=dict(os.environ, PYTHONIOENCODING="utf-8"))
+        check("a robot it does not know: how to say it, in the names", out.returncode == 2 and out.stdout
+              == "Say nothing to open it: python3 tools/route_builder.py   (or robot white, robot black, self-test)\n", out.stdout + out.stderr)
         os.environ["FAKE_SLOTS"] = json.dumps(dict(good, **{"2": "unread"}))
         rows = json.loads(ask(srv, "POST", "/api/robot?robot=one")[1])["rows"]
         check("a slot whose file cannot be read: said so, never 'empty' or 'holds ?: upload'", not rows[1]["ok"] and rows[1]["unread"]
@@ -1224,11 +1235,12 @@ def self_test():
                                  text=True, encoding="utf-8", timeout=60, env=dict(os.environ, PYTHONIOENCODING="utf-8"))
             srv.checking = False
             check("robot one beside a running route builder: asks it, and its 'busy' stands (no pros of its own)", out.returncode == 1
-                  and "the route builder running on this checkout says: The brain is busy" in out.stdout
+                  and out.stdout.startswith("White Bot: the route builder running on this checkout says: The brain is busy")
                   and not (work / "calls.txt").exists(), out.stdout + out.stderr)
-            out = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--root", str(repo), "robot", "one"], capture_output=True,
+            out = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--root", str(repo), "robot", "black"], capture_output=True,
                                  text=True, encoding="utf-8", timeout=60, env=dict(os.environ, PYTHONIOENCODING="utf-8"))
-            check("... and its table when it is free", out.returncode == 0 and "✓ slot 2: shulib Competition" in out.stdout, out.stdout + out.stderr)
+            check("... and its table when it is free (robot black: Black Bot's)", out.returncode == 0 and "✓ slot 2: shulib Competition" in out.stdout
+                  and out.stdout.startswith("Black Bot: what is in each slot"), out.stdout + out.stderr)
         finally:
             srv.checking = False
             state.unlink(missing_ok=True)
@@ -1447,10 +1459,17 @@ def self_test():
           and tasks["args"] == ["tools/route_builder.py"] and tasks["isBackground"] and tasks["windows"]["command"] == "python", tasks)
     every = json.loads("".join(x for x in (TOOLS.parent / ".vscode/tasks.json").read_text(encoding="utf-8").splitlines(True)
                                if not x.lstrip().startswith("//")))["tasks"]
-    for robot in ("one", "two"):
-        t = [x for x in every if x["label"] == f"What is on robot {robot}"]
-        check(f"VS Code's task 'What is on robot {robot}' (RMP1-K D5)", len(t) == 1 and t[0]["args"] == ["tools/route_builder.py", "robot", robot]
+    for robot, label in (("one", "White Bot (robot one)"), ("two", "Black Bot (robot two)")):  # RMP1-L D3: the names, the bridge
+        t = [x for x in every if x["label"] == f"What is on {label}"]
+        check(f"VS Code's task 'What is on {label}' (RMP1-K D5)", len(t) == 1 and t[0]["args"] == ["tools/route_builder.py", "robot", robot]
               and t[0]["windows"]["command"] == "python", t)
+        t = [x for x in every if x["label"] in (f"Upload routes to {label}", f"Upload everything to {label}")]
+        check(f"VS Code's two upload tasks for {label}", [x["args"] for x in t] == [["tools/upload_auton.py", robot], ["tools/upload_auton.py", robot, "all"]], t)
+    picker = json.loads("".join(x for x in (TOOLS.parent / ".vscode/tasks.json").read_text(encoding="utf-8").splitlines(True)
+                                if not x.lstrip().startswith("//")))["inputs"][0]["options"]
+    check("VS Code's robot picker: the names, the values one and two", picker == [{"label": "White Bot (robot one)", "value": "one"},
+                                                                                  {"label": "Black Bot (robot two)", "value": "two"}], picker)
+    check("no task still says 'robot one' or 'robot two' alone", not [x["label"] for x in every if re.search(r"(?<!\()robot (one|two)", x["label"])], every)
 
     def run(case, *args):  # a crash is a named failure, and the next case still runs
         try:

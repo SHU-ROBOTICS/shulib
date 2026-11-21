@@ -2,6 +2,7 @@
 // the three-line "your first route" coach on an empty field (dismissible, back from Help).
 
 import { h, icon } from './dom.mjs';
+import { robotName, robotBridge } from '../model/robot_names.mjs';
 
 export const SHORTCUTS = [
     ['V or Esc', 'Select (and cancel what is being added)'],
@@ -49,7 +50,7 @@ export function openHelp(app) {
     const dlg = h('div', { class: 'dialog', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'help-title' },
         h('div', { class: 'row' }, h('h2', { id: 'help-title' }, 'Help'), h('span', { class: 'spacer' }),
           h('button', { class: 'btn icon ghost', 'aria-label': 'Close', onclick: close }, icon('close'))),
-        h('p', {}, 'Build your routes on the real field (the skills route and any other you name: the Route button at the top): place robot one\'s start, add steps, and export the C++. Everything is in inches, degrees and seconds; 0 degrees faces the right wall and 90 faces blue. The dashed path is the PLAN — where the library is told to go.'),
+        h('p', {}, `Build your routes on the real field (the skills route and any other you name: the Route button at the top): place the start of ${robotBridge('one')}, add steps, and export the C++. Everything is in inches, degrees and seconds; 0 degrees faces the right wall and 90 faces blue. The dashed path is the PLAN — where the library is told to go.`),
         h('p', {}, 'A red mark is something the robot would refuse; its fix is one click away. Nothing is invented for you: a time limit stays empty until you type it.'),
         h('p', {}, 'The Controls tab: click a button on the controller to give it a job, or a used one to change it; the driving feel is its step 2. Ctrl+Z / Ctrl+Shift+Z undo and redo there too, and Ctrl+E exports the driver file\'s three parts.'),
         h('p', {}, 'The Mechanisms tab: every mechanism on the robot — its ports, its buttons, its levels, the routes that use it — and Test, which moves it on the robot while the robot stays where it is.'),
@@ -66,7 +67,7 @@ export function coachCard(app) {
     return h('div', { class: 'coach', role: 'note', 'aria-label': 'Your first route' },
         h('h3', {}, 'Your first route'),
         h('ol', {},
-          h('li', {}, 'Click the field where robot one starts; drag its red knob to turn it.'),
+          h('li', {}, `Click the field where ${robotName('one')} starts; drag its red knob to turn it.`),
           h('li', {}, 'Pick ', h('strong', {}, 'Drive'), ' (D) and click where it drives to.'),
           app.preview && app.preview.available()
               ? h('li', {}, 'Press ', h('strong', {}, 'PREVIEW'), ' to watch the robot drive it, then ', h('strong', {}, 'Export'), ' for the code.')

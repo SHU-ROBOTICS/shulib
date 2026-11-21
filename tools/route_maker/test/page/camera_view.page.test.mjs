@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
-import { SITE, SHOTS, REPO, skip, launch, shot } from './harness.mjs';
+import { SITE, SHOTS, BROWSER, REPO, skip, launch, shot } from './harness.mjs';
 import { saveProject, newProject } from '../../src/model/project.mjs';
 import { newRoute, setStart, addStep } from '../../src/model/route.mjs';
 
@@ -38,7 +38,8 @@ const NO_CAM = [...BOOT.slice(0, 3), '[t=   0.50] [CAS] R1 0 R2 0', '[t=   0.55]
 const NO_SENSOR = [...BOOT.slice(0, 3), '[t=   0.40] [CAM] no AI Vision sensor on any port: nothing to trace', '[t=   0.55] [DRV] the last line'];
 const VARIANTS = (SHOTS ? [['light', 1440, 900], ['dark', 1440, 900], ['light', 1280, 800], ['dark', 1280, 800]] : [['light', 1440, 900]])
     .map(([scheme, width, height]) => ({ scheme, viewport: { width, height }, tag: `${scheme}-${width}` }));
-const WORK = path.join(REPO, 'build', 'route_builder_camera_pagetest');
+// one stand-in checkout per browser: the gate runs Firefox and Chromium at once, from one tree
+const WORK = path.join(REPO, 'build', `route_builder_camera_pagetest_${BROWSER}`);
 const TOOL = path.join(REPO, 'tools', 'route_builder.py');
 const UNPLUG = path.join(WORK, 'unplug');  // the fake terminal ends as an unplugged brain's does when this file exists
 
@@ -315,7 +316,7 @@ test.describe('RMP1-N: what the camera sees, in Watch the robot', { skip }, () =
     });
 
     test('no [CAM] line: no Camera tab; no sensor: the card with one sentence and no picture', async () => {
-        for (const [lines, want] of [[NO_CAM, null], [NO_SENSOR, 'No camera on robot one: no AI Vision sensor on any port.']]) {
+        for (const [lines, want] of [[NO_CAM, null], [NO_SENSOR, 'No camera on White Bot: no AI Vision sensor on any port.']]) {
             replay(lines);
             const p = await opened(VARIANTS[0]);
             const { page } = p;

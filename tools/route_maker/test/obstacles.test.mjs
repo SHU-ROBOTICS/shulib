@@ -167,7 +167,7 @@ test('robot two (mirrored): its reflected path is checked too — the Loaders ar
     const [e] = mine(r);
     assert.equal(e.code, 'RCO3');
     assert.ok(ROBOT_TWO_ONLY.has('RCO3'));
-    assert.match(e.words, /^Robot two runs this mirrored, and its 15 in square goes 3\.1 in into the right Loader on the red wall during this step \(the Loaders are not mirror images\): it is solid/);
+    assert.match(e.words, /^Black Bot runs this mirrored, and its 15 in square goes 3\.1 in into the right Loader on the red wall during this step \(the Loaders are not mirror images\): it is solid/);
     assert.deepEqual(mine({ ...r, mirroredFor: undefined }), [], 'robot one alone: the right wall has no Loader');
 });
 
@@ -248,7 +248,7 @@ test('the overhang on a mirrored route (the page\'s default): robot two places i
     const X16 = { ...X, drive: { ...X.drive, footprintIn: 16 } };
     const r = westOf(RED, 0.4, undefined, {});
     const [two] = codes(r, [X, X16]);
-    assert.equal(two, 'RCO3 Robot two runs this mirrored, and its 16 in square goes 0.9 in into the red goal by the red wall during this step: it is solid. Move the point so robot two\'s path clears it too.',
+    assert.equal(two, 'RCO3 Black Bot runs this mirrored, and its 16 in square goes 0.9 in into the red goal by the red wall during this step: it is solid. Move the point so Black Bot\'s path clears it too.',
         'no Loader in it: no Loader words');
     assert.deepEqual(codes({ ...r, steps: [{ ...r.steps[0], touches: [RED.id] }] }, [X, X16]), [], 'the switch on robot one\'s goal lifts robot two\'s twin');
     assert.match(codes({ ...r, steps: [{ ...r.steps[0], touches: [ob('red-goal-red-wall').id] }] }, [X, X16])[0], /^RCO3 /,
@@ -386,7 +386,7 @@ test('the start\'s 0.5 in allowance at its edge; robot two\'s mirrored start ins
     assert.deepEqual(start(1.0).map((i) => [i.code, i.stepIndex]), [['RCO1', -1]]);
     const two = mine(route({ x: 60.965, y: -58.764, headingDeg: 180 }, [], { mirroredFor: 'two', together: false }));
     assert.deepEqual(two.map((i) => [i.code, i.stepIndex, i.obstacle.id]), [['RCO3', -1, 'loader-red-wall-right']]);
-    assert.match(two[0].words, /^Robot two \(mirrored\) starts \d\.\d in inside the right Loader on the red wall/);
+    assert.match(two[0].words, /^Black Bot \(mirrored\) starts \d\.\d in inside the right Loader on the red wall: it is solid\. Move White Bot's start/);
     assert.ok(ROBOT_TWO_ONLY.has(two[0].code));
 });
 

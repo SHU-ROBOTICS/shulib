@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "madeWith": "shulib route builder",
+  "routes": [
+    {
+      "name": "skills",
+      "kind": "skills",
+      "robot": "one",
+      "mirroredFor": "two",
+      "together": false,
+      "start": {
+        "x": 60,
+        "y": -2.505,
+        "headingDeg": -120
+      },
+      "endActionAtS": 57,
+      "hardStopAtS": 59,
+      "steps": [
+        {
+          "do": "set",
+          "mechanism": "claw",
+          "position": "closed"
+        },
+        {
+          "do": "startHome",
+          "mechanism": "cascade",
+          "boundS": 2,
+          "care": {
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "waitUntilDone",
+          "mechanism": "cascade",
+          "boundS": 2,
+          "care": {
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "move",
+          "mechanism": "cascade",
+          "to": 10.5,
+          "boundS": 2,
+          "care": {
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "driveTo",
+          "x": 49.525,
+          "y": -21.504,
+          "faceFirst": true,
+          "care": {
+            "timeoutS": 2.5,
+            "toleranceIn": 1,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "move",
+          "mechanism": "cascade",
+          "to": 0,
+          "boundS": 2,
+          "care": {
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "set",
+          "mechanism": "claw",
+          "position": "open"
+        },
+        {
+          "do": "wait",
+          "seconds": 0.5
+        },
+        {
+          "do": "reverseTo",
+          "x": 57.286,
+          "y": -4.276,
+          "faceFirst": true,
+          "care": {
+            "timeoutS": 7,
+            "maxSpeedInPerS": 5,
+            "toleranceIn": 1,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "curveTo",
+          "points": [
+            {
+              "x": 60.5,
+              "y": -16.174
+            },
+            {
+              "x": 60,
+              "y": -31.005
+            },
+            {
+              "x": 50.564,
+              "y": -43.067
+            }
+          ],
+          "care": {
+            "timeoutS": 4,
+            "maxSpeedInPerS": 20,
+            "toleranceIn": 1,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "set",
+          "mechanism": "claw",
+          "position": "closed"
+        },
+        {
+          "do": "face",
+          "x": 50.55,
+          "y": -28.425,
+          "care": {
+            "timeoutS": 4,
+            "maxTurnDegPerS": 90,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "move",
+          "mechanism": "cascade",
+          "to": 10.5,
+          "boundS": 3,
+          "care": {
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "face",
+          "x": 51.839,
+          "y": -33.713,
+          "care": {
+            "timeoutS": 4,
+            "maxTurnDegPerS": 90,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "driveTo",
+          "x": 51.839,
+          "y": -33.713,
+          "faceFirst": false,
+          "care": {
+            "timeoutS": 2.5,
+            "toleranceIn": 1,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "move",
+          "mechanism": "cascade",
+          "to": 4,
+          "boundS": 3,
+          "care": {
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "set",
+          "mechanism": "claw",
+          "position": "open"
+        },
+        {
+          "do": "wait",
+          "seconds": 0.5
+        },
+        {
+          "do": "backward",
+          "inches": 4,
+          "care": {
+            "timeoutS": 2.5,
+            "maxSpeedInPerS": 5,
+            "toleranceIn": 1,
+            "onFail": "carryOn"
+          }
+        }
+      ]
+    }
+  ],
+  "robots": {},
+  "exports": {}
+}

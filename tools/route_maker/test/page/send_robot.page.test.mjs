@@ -26,7 +26,8 @@ const PROJECT = saveProject({ ...newProject('the test'), routes: [
     addStep(at(newRoute('left 1'), -36, -60), { do: 'wait', seconds: 2 })] });
 const VARIANTS = (SHOTS ? [['light', 1440, 900], ['dark', 1440, 900], ['light', 1280, 800], ['dark', 1280, 800]] : [['light', 1440, 900]])
     .map(([scheme, width, height]) => ({ scheme, viewport: { width, height }, tag: `${scheme}-${width}` }));
-const WORK = path.join(REPO, 'build', 'route_builder_pagetest');
+// one stand-in checkout per browser: the gate runs Firefox and Chromium at once, from one tree
+const WORK = path.join(REPO, 'build', `route_builder_pagetest_${BROWSER}`);
 const TOOL = path.join(REPO, 'tools', 'route_builder.py');
 
 let browser;
@@ -178,7 +179,7 @@ test.describe('RMP1-I: Send to robot', { skip }, () => {
             const p = await opened(v);
             const { page } = p;
             assert.equal(await page.getByRole('button', { name: 'Connect your shulib folder' }).count(), 0, 'no folder to connect');
-            assert.equal(await page.locator('#send').textContent(), 'Send to robot one');
+            assert.equal(await page.locator('#send').textContent(), 'Send to White Bot');
             assert.ok(await page.locator('#send').evaluate((b) => b.classList.contains('primary')), 'Send is the one highlight');
             assert.ok(!(await page.locator('#export').evaluate((b) => b.classList.contains('primary'))));
             await shot(page, `send-topbar-${v.tag}`);
@@ -187,13 +188,13 @@ test.describe('RMP1-I: Send to robot', { skip }, () => {
             assert.match(disk, /e\.name = "skills";/);
             assert.ok(!/[^\r]\n/.test(disk), 'the file\'s CRLF kept');
             const card = drawer(page).locator('.send-card');
-            assert.equal(await card.locator('.btn.primary').textContent(), 'Send to robot one');
-            assert.equal(await card.locator('[data-send="two"]').textContent(), 'Send to robot two');
+            assert.equal(await card.locator('.btn.primary').textContent(), 'Send to White Bot');
+            assert.equal(await card.locator('[data-send="two"]').textContent(), 'Send to Black Bot');
             assert.equal(await drawer(page).locator('.xr-next code').count(), 0, 'no commands to copy: one button');
             await shot(page, `send-result-${v.tag}`, true);
             await watch(page);
             await card.locator('.btn.primary').click();
-            await page.locator('.send-steps li.now', { hasText: 'Building robot one' }).waitFor();
+            await page.locator('.send-steps li.now', { hasText: 'Building White Bot' }).waitFor();
             assert.equal(await page.locator('#send').textContent(), 'Sending…');
             assert.ok(await page.locator('#send').isDisabled(), 'one send at a time');
             assert.ok(await page.locator('#export').isDisabled(), 'nothing written while it builds');
@@ -206,9 +207,9 @@ test.describe('RMP1-I: Send to robot', { skip }, () => {
             assert.equal(await ok.locator('.xr-title').textContent(), `UPLOADED to slot ${TESTER.slot}`);
             assert.equal(await ok.locator('.send-brain').textContent(), 'On the brain: shulib Auton Tester → skills or left 1 → RUN');
             const seen = await page.evaluate(() => window.__seen);
-            const order = ['Building robot one', '✓BUILT', `Uploading to slot ${TESTER.slot}`, `UPLOADED to slot ${TESTER.slot}`].map((w) => seen.findIndex((s) => s.includes(w)));
+            const order = ['Building White Bot', '✓BUILT', `Uploading to slot ${TESTER.slot}`, `UPLOADED to slot ${TESTER.slot}`].map((w) => seen.findIndex((s) => s.includes(w)));
             assert.ok(!order.includes(-1) && order.every((x, k) => k === 0 || x > order[k - 1]), `in order: ${JSON.stringify(seen)}`);
-            assert.equal(await page.locator('#send').textContent(), 'Send to robot one');
+            assert.equal(await page.locator('#send').textContent(), 'Send to White Bot');
             assert.ok(!(await page.locator('#export').isDisabled()), 'Export again once it has ended');
             // make on every core (`make -jN`, N this computer's: tools/upload_auton.py's JOBS, 2026-11-20)
             assert.deepEqual(calls().split('\n').map((c) => c.replace(/^make -j\d+ /, 'make -jN ')),
@@ -243,7 +244,7 @@ test.describe('RMP1-I: Send to robot', { skip }, () => {
         await page.locator('#send').click();
         await drawer(page).locator('[data-result="ok"]', { hasText: 'Written and checked' }).waitFor();
         assert.match(fs.readFileSync(path.join(made.root, FILE), 'utf8'), /e\.name = "left 1";/, 'written before the send');
-        await page.locator('.send-steps li', { hasText: 'Building robot one' }).waitFor();
+        await page.locator('.send-steps li', { hasText: 'Building White Bot' }).waitFor();
         await page.keyboard.press('Escape');
         await page.locator('.toast', { hasText: `✓ UPLOADED to slot ${TESTER.slot}: On the brain: shulib Auton Tester → skills or left 1 → RUN` }).waitFor({ timeout: 30000 });
         assert.equal(await page.locator('#send').isDisabled(), false);
@@ -259,15 +260,15 @@ test.describe('RMP1-I: Send to robot', { skip }, () => {
         await drawer(p.page).locator('[data-result="ok"]', { hasText: 'Written and checked' }).waitFor();
         await new Promise((ok) => setTimeout(ok, 500));
         assert.equal(calls(), '', 'nothing built or uploaded');
-        assert.equal(await drawer(p.page).locator('.xr-build li.bad', { hasText: 'Robot one will not list the routes' }).count(), 1, 'the ✗ stays');
+        assert.equal(await drawer(p.page).locator('.xr-build li.bad', { hasText: 'White Bot will not list the routes' }).count(), 1, 'the ✗ stays');
         assert.ok(await drawer(p.page).locator('[data-send="one"]').isDisabled());
-        assert.match(await drawer(p.page).locator('[data-lacks="one"]').textContent(),
-            /src\/team\/robot_one_autons\.cpp is missing addTeamRoutes\(registry, TeamRobot::One\);.*tell the coordinator/);
+        assert.equal(await drawer(p.page).locator('[data-lacks="one"]').textContent(), 'White Bot is not sent to: '
+            + 'src/team/robot_one_autons.cpp is missing addTeamRoutes(registry, TeamRobot::One); — tell the coordinator.');
         assert.ok(!(await drawer(p.page).locator('[data-send="two"]').isDisabled()), 'robot two\'s line is there: it can be sent to');
         await shot(p.page, 'send-not-listed-light-1440', true);
         await drawer(p.page).locator('[data-send="two"]').click();  // robot two: sent, and robot one's ✗ stays on screen
         await p.page.locator('.send-panel [data-result="ok"]').waitFor({ timeout: 30000 });
-        assert.equal(await drawer(p.page).locator('.xr-build li.bad', { hasText: 'Robot one will not list the routes' }).count(), 1);
+        assert.equal(await drawer(p.page).locator('.xr-build li.bad', { hasText: 'White Bot will not list the routes' }).count(), 1);
         assert.match(calls(), /^make -j\d+ ROBOT=tank PROGRAM=autontest/);
         assert.deepEqual(await p.done(), []);
         teamFiles('ok');  // the line there when the drawer opened, gone by the time Send is pressed: read again, not sent
@@ -309,7 +310,7 @@ test.describe('RMP1-I: Send to robot', { skip }, () => {
             await writeFromDrawer(p.page);
             await drawer(p.page).locator('.send-card .btn.primary').click();
             await p.page.locator('.send-panel [data-result="error"]', { hasText: 'Not sent (tools/upload_auton.py ended with 1)' }).waitFor({ timeout: 30000 });
-            assert.equal(await p.page.locator('#send').textContent(), 'Send to robot one');
+            assert.equal(await p.page.locator('#send').textContent(), 'Send to White Bot');
             assert.equal(calls(), '');
             assert.deepEqual(await p.done(), []);
         } finally {
@@ -324,7 +325,7 @@ test.describe('RMP1-I: Send to robot', { skip }, () => {
         try {
             await writeFromDrawer(page);
             await drawer(page).locator('.send-card .btn.primary').click();
-            await page.locator('.send-steps li', { hasText: 'Building robot one' }).waitFor();
+            await page.locator('.send-steps li', { hasText: 'Building White Bot' }).waitFor();
             await stopHelper();
             const bad = page.locator('.send-panel [data-result="error"]');
             await bad.waitFor({ timeout: 30000 });  // upload_auton's own "✗ STOPPED (Ctrl+C)", or the helper's GONE
