@@ -24,6 +24,7 @@ import { renderInspector } from './inspector.mjs';
 import { openExportDrawer } from './export_drawer.mjs';
 import { openHelp, coachCard } from './help.mjs';
 import { TOOLS, mechanismActions, KIND_LABEL } from './words.mjs';
+import { robotName } from '../model/robot_names.mjs';
 import { round3 } from '../model/numbers.mjs';
 import { targetKind } from '../model/lift.mjs';
 import { makeFiles, memoryHost } from '../host/files.mjs';
@@ -49,6 +50,7 @@ import { createControlsTab } from './controls_tab.mjs';
 import { createMechTab } from './mech_tab.mjs';
 import { setView, isHidden, isLocked, sectionsOf, indicesOf } from '../model/step_view.mjs';
 
+const [ONE, TWO] = [robotName('one'), robotName('two')];  // the robots' names (RMP1-L)
 const DRAFT_KEY = 'shulib-route-builder:draft';
 const SAVED_KEY = 'shulib-route-builder:saved';  // the project text last saved or opened (the draft is "unsaved" only when it differs)
 const THEME_KEY = 'shulib-route-builder:theme';
@@ -218,8 +220,8 @@ async function main() {
                 if (ask && window.matchMedia('(max-width: 1100px)').matches) {
                     els.app.dataset.right = 'open';  // the question is on the right: a narrow window shows it
                 }
-                toast(ask ? 'Robot one\'s start is placed; robot two\'s mirrored one is the blue square. On the right: do both robots run this at the same time?'
-                    : 'Robot one\'s start is placed. Drag its red knob to turn it, then add a step.');
+                toast(ask ? `${ONE}'s start is placed; ${TWO}'s mirrored one is the blue square. On the right: do both robots run this at the same time?`
+                    : `${ONE}'s start is placed. Drag its red knob to turn it, then add a step.`);
                 return;
             }
             const at = insertAt();
@@ -374,7 +376,7 @@ async function main() {
         },
         addRoute(name) {
             editSet(addRoute(hist.present, name));
-            toast(`Route "${route().name}" added: place robot one's start on the field.`);
+            toast(`Route "${route().name}" added: place ${ONE}'s start on the field.`);
         },
         renameRoute(k, name) {
             if (name === undefined) {
@@ -473,11 +475,11 @@ async function main() {
     }
     function robotsWords() {
         const r = route();
-        const list = routeRobots(baked, r).map((x) => x.name);
+        const list = routeRobots(baked, r).map((x) => robotName(x.id));
         const shared = baked.sharedRoute && baked.sharedRoute.present;
-        return `The route is written in robot one's numbers${r.mirroredFor ? '; robot two runs it MIRRORED' : '; robot two runs it as written'}. `
+        return `The route is written in ${ONE}'s numbers; ${TWO} runs it ${r.mirroredFor ? 'MIRRORED' : 'as written'}. `
             + `It is checked on ${list.join(' and ')}'s mechanisms`
-            + (shared ? '.' : `; robot two's update (the shared skills-route file) is not in this build of the route builder yet, so robot two is checked once it is.`);
+            + (shared ? '.' : `; ${TWO}'s update (the shared skills-route file) is not in this build of the route builder yet, so ${TWO} is checked once it is.`);
     }
     function toast(text, cls = '') {
         const t = h('div', { class: `toast ${cls}`, role: 'status' }, text);
@@ -492,7 +494,7 @@ async function main() {
         }
         if (id === 'straight') {  // D9: "drive forward _ in" from where the robot is
             if (!route().start) {
-                toast('Place robot one\'s start first: click the field where it starts.');
+                toast(`Place ${ONE}'s start first: click the field where it starts.`);
                 return;
             }
             const at = insertAt();
@@ -502,7 +504,7 @@ async function main() {
         }
         if (id === 'wait') {
             if (!route().start) {
-                toast('Place robot one\'s start first: click the field where it starts.');
+                toast(`Place ${ONE}'s start first: click the field where it starts.`);
                 return;
             }
             const at = insertAt();
@@ -519,7 +521,7 @@ async function main() {
     /** RMP1-J D1: M's menu in two steps (mech_menu.mjs); the step it adds is selected, its details on the right. */
     function openMechanismMenu() {
         if (!route().start) {
-            toast('Place robot one\'s start first: click the field where it starts.');
+            toast(`Place ${ONE}'s start first: click the field where it starts.`);
             return;
         }
         const at = insertAt();
@@ -836,7 +838,7 @@ async function main() {
               [['route', 'Route', 'curve'], ['controls', 'Controls', 'mechanism'], ['mechanisms', 'Mechanisms', 'motor']].map(([id, t, ic]) => h('button', {
                   role: 'tab', class: `tab${ui.tab === id ? ' on' : ''}`, 'aria-selected': String(ui.tab === id), id: `tab-${id}`,
                   onclick: () => showTab(id) }, icon(ic), t))),
-            ui.tab === 'route' ? h('span', { class: 'chip robot hide-narrow', title: 'The route is written in robot one\'s numbers' }, 'Robot one') : null,
+            ui.tab === 'route' ? h('span', { class: 'chip robot hide-narrow', title: `The route is written in ${ONE}'s numbers` }, ONE) : null,
             ui.tab === 'route' ? routesMenu.button() : null,
             h('span', { class: `chip ${saveWords[1]}`, id: 'save-state', role: 'status' }, saveWords[0]),
             h('span', { class: 'spacer' }),
@@ -881,8 +883,8 @@ async function main() {
             return null;
         }
         return h('button', { class: 'btn big primary', id: 'send', disabled: panel.busy(), onclick: () => openExportDrawer(app, { send: panel.robot() }),
-                             title: `Write the routes into src/team/skills_route.cpp, then build and upload them to robot ${panel.robot()}` },
-                 icon('send'), panel.busy() ? 'Sending…' : `Send to robot ${panel.robot()}`);
+                             title: `Write the routes into src/team/skills_route.cpp, then build and upload them to ${robotName(panel.robot())}` },
+                 icon('send'), panel.busy() ? 'Sending…' : `Send to ${robotName(panel.robot())}`);
     }
     function renderStatus() {
         if (ui.tab === 'mechanisms') {
@@ -944,8 +946,8 @@ async function main() {
         const startHole = !noStart && !startPose(route().start);  // a hand-edited file's start missing a number
         const focusWords = ui.focus ? `Focus: ${ui.focusAt === 'start' ? 'the start' : `step ${ui.focusAt + 1}`} and its neighbours. Esc or O shows all` : '';  // RMP1-G
         els.modeHint.hidden = ui.coach || !(noStart || startHole || hints[ui.tool] || focusWords);  // the coach card says it already, over the same spot
-        els.modeHint.textContent = noStart ? 'Click the field where robot one starts'
-            : startHole ? 'Robot one\'s start is missing a number: select the start (the top of the list) and type it' : hints[ui.tool] || focusWords;
+        els.modeHint.textContent = noStart ? `Click the field where ${ONE} starts`
+            : startHole ? `${ONE}'s start is missing a number: select the start (the top of the list) and type it` : hints[ui.tool] || focusWords;
         mount(els.coach, ui.coach ? coachCard(app) : null);
         renderTop();
         renderStepList(els.steps, app);

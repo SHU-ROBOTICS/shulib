@@ -1,6 +1,6 @@
 // engine.mjs — THE PREVIEW ENGINE's interface (RMP1 brief A.6; RMP1-A2u). The route tab calls only this:
 //   makeEngine() -> {available, why, preview(route, robots, onPhase) -> Promise<outcome>, cancel()}
-//   outcome: {ok: true, result: {one, two, verdict}, pairWords} | {ok: false, words, cancelled}
+//   outcome: {ok: true, result: {one, two, verdict}, pairWords, noPair?} | {ok: false, words, cancelled}
 // The engine runs in a Web Worker (worker.mjs): the page never freezes. A run that has not answered in 20 s is
 // stopped and the page says so; the next PREVIEW makes a new Worker (A.3.10). Loading the engine (a slow connection
 // downloading it) gets 60 s of its own. Where the Worker's script is: a file beside the page (the site form), inside

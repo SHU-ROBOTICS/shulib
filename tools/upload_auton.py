@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """upload_auton.py -- build a program, upload it to its slot, and say plainly whether it worked (RMP1-F D5).
 
-    python3 tools/upload_auton.py one              robot one's Auton Tester (make ROBOT=one PROGRAM=autontest), slot 6
-    python3 tools/upload_auton.py one drive        robot one's Drive (PROGRAM=drive), slot 1 -- the driver controls
-    python3 tools/upload_auton.py one competition  robot one's Competition (PROGRAM=competition), slot 2
-    python3 tools/upload_auton.py one bench        Bench Tests (PROGRAM=tester), slot 3; `calibrate` slot 4, `tune` slot 7
-    python3 tools/upload_auton.py one all          ALL SIX, one after another (Drive, Competition, the Auton Tester,
-                                                   Bench Tests, Calibrate, Tune), and a line for each at the end
-    python3 tools/upload_auton.py two ...          robot two (ROBOT=tank), the same
+    python3 tools/upload_auton.py white              White Bot's Auton Tester (make ROBOT=one PROGRAM=autontest), slot 6
+    python3 tools/upload_auton.py white drive        White Bot's Drive (PROGRAM=drive), slot 1 -- the driver controls
+    python3 tools/upload_auton.py white competition  White Bot's Competition (PROGRAM=competition), slot 2
+    python3 tools/upload_auton.py white bench        Bench Tests (PROGRAM=tester), slot 3; `calibrate` slot 4, `tune` slot 7
+    python3 tools/upload_auton.py white all          ALL SIX, one after another (Drive, Competition, the Auton Tester,
+                                                     Bench Tests, Calibrate, Tune), and a line for each at the end
+    python3 tools/upload_auton.py black ...          Black Bot (ROBOT=tank), the same
+    (`one` is White Bot and `two` Black Bot, as before: robot one and robot two in the code and the docs.)
     python3 tools/upload_auton.py self-test
 
 Then `pros upload --slot <its slot> --name "<its name>" --description "<git describe>[ | <the routes>]" . <the brain's
@@ -36,6 +37,8 @@ ALL = ("drive", "competition", "tester", "bench", "calibrate", "tune")  # `all`:
 SLOT, NAME = PROGRAMS["tester"][1], PROGRAMS["tester"][2]
 JOBS = os.cpu_count() or 1  # make's parallel jobs (the team lead, 2026-11-20: "i want to easily be able to iterate")
 ROBOTS = {"one": "one", "two": "tank"}
+NAMES = {"one": "White Bot", "two": "Black Bot"}  # what people see (the team lead, 2026-11-20): the Python tools' one spelling
+ALIASES = {"white": "one", "black": "two"}
 SKILLS = "src/team/skills_route.cpp"
 PROS_HELP = "https://pros.cs.purdue.edu/v5/getting-started/"
 TERMINAL = "the PROS terminal (VS Code: PROS, then Integrated Terminal)"
@@ -49,6 +52,12 @@ ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 NO_BRAIN = "No brain found. Plug the brain in with USB (not the controller), turn it on, then run this again."
 IN_REGION = ("That is the route builder's code (between the ROUTE MAKER lines): re-export from the route builder, never "
              "edit it by hand.")
+
+
+def robot_id(word):
+    """'one' or 'two' for one/two/white/black (any capitals), else None."""
+    w = word.lower()
+    return w if w in ROBOTS else ALIASES.get(w)
 
 
 def marks():
@@ -131,6 +140,7 @@ def build_error(text, root):
     owed = list(dict.fromkeys((m.group(1), m.group(2), m.group(3)) for m in OWED.finditer(text)))
     if owed:
         who, _, ledger = owed[0]
+        who = NAMES.get(who.split()[1], who)  # the compiler's "robot one", in the name people use
         return [f"{who}'s build refuses while a fact it needs is OWED (not measured or typed yet):"] + \
                [f"  - {name}" for _, name, _ in owed] + [f"Type them in {ledger} (or ask), then run this again."]
     lines = text.splitlines()
@@ -254,9 +264,9 @@ def main(argv):
     while len(argv) >= 2 and argv[0] in ("--root", "--wait"):  # the self-test's stand-in repository and short waits
         root, wait = (Path(argv[1]), wait) if argv[0] == "--root" else (root, float(argv[1]))
         argv = argv[2:]
-    if not 1 <= len(argv) <= 2 or argv[0] not in ROBOTS or (len(argv) == 2 and argv[1] not in (*PROGRAMS, "all")):
-        print("Say which robot, and which program if not the Auton Tester: python3 tools/upload_auton.py one   "
-              "(or two; then drive, competition, tester, bench, calibrate, tune or all)")
+    if not 1 <= len(argv) <= 2 or not robot_id(argv[0]) or (len(argv) == 2 and argv[1] not in (*PROGRAMS, "all")):
+        print("Say which robot, and which program if not the Auton Tester: python3 tools/upload_auton.py white   "
+              "(or black; one and two work too; then drive, competition, tester, bench, calibrate, tune or all)")
         return 2
     if len(argv) == 2 and argv[1] == "all":  # each in turn, as if asked one by one; then one line each
         ok, bad, _to = marks()
@@ -271,7 +281,7 @@ def main(argv):
         print("\n" + "\n".join(f"{ok if c == 0 else bad} slot {PROGRAMS[n][1]} {PROGRAMS[n][2]}" for n, c in done))
         return 0 if all(c == 0 for _n, c in done) else 1
     ok, bad, to = marks()
-    which = argv[0]
+    which = robot_id(argv[0])
     program, slot, name = PROGRAMS[argv[1] if len(argv) == 2 else "tester"]
     words = {"autontest": "Auton Tester", "drive": "Drive", "competition": "Competition", "tester": "Bench Tests",
              "calibrate": "Calibrate", "tune": "Tune"}[program]
@@ -284,7 +294,7 @@ def main(argv):
     log.parent.mkdir(parents=True, exist_ok=True)
     log.write_text("", encoding="utf-8")
     cmd = [make, f"-j{JOBS}", f"ROBOT={ROBOTS[which]}", f"PROGRAM={program}"]  # every core: a full build ~3x faster
-    print(f"Building robot {which}'s {words}: make ROBOT={ROBOTS[which]} PROGRAM={program} (a few minutes the "
+    print(f"Building {NAMES[which]}'s {words}: make ROBOT={ROBOTS[which]} PROGRAM={program} (a few minutes the "
           "first time; Ctrl+C stops it)...", flush=True)
     if env and Path(make).parent == Path(env.get("PROS_TOOLCHAIN", "")) / "bin":
         print(f"  (make from the PROS toolchain: {make})", flush=True)
@@ -348,6 +358,9 @@ if tool == "make":
         for _ in range(2):
             print("src/robots/robot_one_facts.hpp:651:1: error: static assertion failed: robot one: OWED -- the cascade's motor ports (src/robots/robot_one_facts.hpp)")
             print("src/robots/robot_one_facts.hpp:652:1: error: static assertion failed: robot one: OWED -- the AI Vision camera's port (src/robots/robot_one_facts.hpp)")
+        sys.exit(2)
+    if case == "owed2":  # robot two's ledger (robot_two_facts.hpp:82's words)
+        print("src/robots/robot_two_facts.hpp:90:1: error: static assertion failed: robot two: OWED -- the right side toggle's run direction (src/robots/robot_two_facts.hpp)")
         sys.exit(2)
     where = {"region": "C:\\Users\\team\\shulib\\src\\team\\skills_route.cpp:6:5", "edge": "src/team/skills_route.cpp:11:1",
              "plumbing": "src/team/skills_route.cpp:12:1", "elsewhere": "src/team/autons.cpp:40:3", "curly": "src/team/autons.cpp:40:3"}
@@ -557,12 +570,18 @@ def self_test():
 
     make1, lsusb = f"make -j{JOBS} ROBOT=one PROGRAM=autontest", "pros lsusb"
     upload = f"pros upload --slot 6 --name {NAME} --description no git | skills, left 1"  # no repository above the stand-in
-    case("ok", "one", 0, ["✓ BUILT", "✓ UPLOADED to slot 6. On the brain: shulib Auton Tester → skills or left 1 → RUN"],
+    case("ok", "one", 0, ["Building White Bot's Auton Tester: make ROBOT=one PROGRAM=autontest", "✓ BUILT",
+                          "✓ UPLOADED to slot 6. On the brain: shulib Auton Tester → skills or left 1 → RUN"],
          calls=[make1, lsusb, upload + " . /dev/ttyACM0"])
-    case("ok", "two", 0, ["✓ UPLOADED to slot 6"], calls=[f"make -j{JOBS} ROBOT=tank PROGRAM=autontest", lsusb, upload + " . /dev/ttyACM0"])
-    case("owed", "one", 1, ["✗ NOT BUILT", "robot one's build refuses while a fact it needs is OWED (not measured or typed yet):\n"
+    case("ok", "two", 0, ["Building Black Bot's Auton Tester: make ROBOT=tank", "✓ UPLOADED to slot 6"], calls=[f"make -j{JOBS} ROBOT=tank PROGRAM=autontest", lsusb, upload + " . /dev/ttyACM0"])
+    case("owed", "one", 1, ["✗ NOT BUILT", "White Bot's build refuses while a fact it needs is OWED (not measured or typed yet):\n"
                             "    - the cascade's motor ports\n    - the AI Vision camera's port\n  Type them in src/robots/robot_one_facts.hpp"],
-         unwanted=["✓ BUILT", "UPLOADED"], calls=[make1])
+         unwanted=["✓ BUILT", "UPLOADED", "robot one's build"], calls=[make1])
+    case("owed2", "black", 1, ["Black Bot's build refuses while a fact it needs is OWED (not measured or typed yet):\n"
+                               "    - the right side toggle's run direction\n  Type them in src/robots/robot_two_facts.hpp"],
+         unwanted=["White Bot", "robot two's build"], calls=[f"make -j{JOBS} ROBOT=tank PROGRAM=autontest"])
+    case("ok", "ONE", 0, ["Building White Bot's Auton Tester: make ROBOT=one PROGRAM=autontest"], calls=[make1, lsusb, upload + " . /dev/ttyACM0"])
+    case("ok", "Two", 0, ["Building Black Bot's Auton Tester: make ROBOT=tank"])  # the old words, any capitals
     case("region", "one", 1, ["✗ NOT BUILT", "src/team/skills_route.cpp:6: 'r' was not declared in this scope",
                               "re-export from the route builder"], unwanted=["[ERRORS]", "Error 1"])
     case("edge", "one", 1, ["src/team/skills_route.cpp:11: 'r'", "re-export from the route builder"])  # the END line is the region's
@@ -609,12 +628,20 @@ def self_test():
     case("ok", "one", 1, ["✗ pros not found."], calls=[], path=work / "makeonly", tc=work / "bare" / "pros-toolchain-test")
 
     case("ok", "three", 2, ["Say which robot"], calls=[])
+    # RMP1-L: White Bot and Black Bot (the team lead, 2026-11-20) -- `white`/`black`, any capitals; one/two still work
+    case("ok", "white drive", 0, ["Building White Bot's Drive: make ROBOT=one PROGRAM=drive", "✓ UPLOADED to slot 1"],
+         calls=[f"make -j{JOBS} ROBOT=one PROGRAM=drive", lsusb, "pros upload --slot 1 --name shulib Drive --description no git . /dev/ttyACM0"])
+    case("ok", "Black", 0, ["Building Black Bot's Auton Tester: make ROBOT=tank PROGRAM=autontest", "✓ UPLOADED to slot 6"],
+         calls=[f"make -j{JOBS} ROBOT=tank PROGRAM=autontest", lsusb, upload + " . /dev/ttyACM0"])
+    case("ok", "WHITE tune", 0, ["Building White Bot's Tune: make ROBOT=one PROGRAM=tune"],
+         calls=[f"make -j{JOBS} ROBOT=one PROGRAM=tune", lsusb, "pros upload --slot 7 --name shulib Tune --description no git . /dev/ttyACM0"])
+    case("ok", "whitebot", 2, ["Say which robot", "python3 tools/upload_auton.py white"], calls=[])
     # the team lead, 2026-11-20 ("how easy is it to export the driver controls"): Drive and Competition, each to its slot
-    case("ok", "one drive", 0, ["Building robot one's Drive: make ROBOT=one PROGRAM=drive", "✓ BUILT",
+    case("ok", "one drive", 0, ["Building White Bot's Drive: make ROBOT=one PROGRAM=drive", "✓ BUILT",
                                 "✓ UPLOADED to slot 1. On the brain: shulib Drive (the driver controls are in it)"],
          unwanted=["Auton Tester", "RUN"],
          calls=[f"make -j{JOBS} ROBOT=one PROGRAM=drive", lsusb, "pros upload --slot 1 --name shulib Drive --description no git . /dev/ttyACM0"])
-    case("ok", "two competition", 0, ["Building robot two's Competition: make ROBOT=tank PROGRAM=competition",
+    case("ok", "two competition", 0, ["Building Black Bot's Competition: make ROBOT=tank PROGRAM=competition",
                                       "✓ UPLOADED to slot 2. On the brain: shulib Competition → pick the auton on its screen"],
          unwanted=["Auton Tester"],
          calls=[f"make -j{JOBS} ROBOT=tank PROGRAM=competition", lsusb,
@@ -624,7 +651,7 @@ def self_test():
     case("question", "one drive", 1, ['pros upload --slot 1 --name "shulib Drive" --description "no git"'])  # its own slot in the hand command
     case("ok", "one autontest", 2, ["Say which robot, and which program"], calls=[])  # the words are drive/competition/tester
     case("ok", "one drive extra", 2, ["Say which robot"], calls=[])
-    case("ok", "one bench", 0, ["Building robot one's Bench Tests: make ROBOT=one PROGRAM=tester", "✓ UPLOADED to slot 3. On the brain: Bench Tests"],
+    case("ok", "one bench", 0, ["Building White Bot's Bench Tests: make ROBOT=one PROGRAM=tester", "✓ UPLOADED to slot 3. On the brain: Bench Tests"],
          calls=[f"make -j{JOBS} ROBOT=one PROGRAM=tester", lsusb, "pros upload --slot 3 --name Bench Tests --description no git . /dev/ttyACM0"])
     case("ok", "two tune", 0, ["✓ UPLOADED to slot 7. On the brain: shulib Tune"],
          calls=[f"make -j{JOBS} ROBOT=tank PROGRAM=tune", lsusb, "pros upload --slot 7 --name shulib Tune --description no git . /dev/ttyACM0"])

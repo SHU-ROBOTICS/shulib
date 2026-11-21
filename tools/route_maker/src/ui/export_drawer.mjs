@@ -12,6 +12,7 @@ import { exportRegion } from '../model/export.mjs';
 import { teamRoutesLine, SKILLS_ROUTE_FILE, ROBOT_ONE_AUTONS_FILE, ROBOT_TWO_AUTONS_FILE } from '../model/region.mjs';
 import { copyText } from '../host/files_download.mjs';
 import { exportSummary } from '../model/to_robot.mjs';
+import { robotName, robotBridge } from '../model/robot_names.mjs';
 import { resultCard, copyButton, willItBuild, pastePicture, nextCard } from './to_robot.mjs';
 
 /** Open the export drawer. */
@@ -104,13 +105,13 @@ export async function openExportDrawer(app, { send = null } = {}) {
                 result.querySelectorAll('.xr-build').forEach((x) => !x.querySelector('.bad') && x.remove());  // the build answers it now
                 await panel.start(r);
                 buttons.forEach((b, i) => { b.disabled = lacks(robots[i]); });
-            } }, icon('send'), `Send to robot ${r}`));
+            } }, icon('send'), `Send to ${robotName(r)}`));
         return h('section', { class: 'card xr-next send-card', 'aria-labelledby': 'send-title' },
             h('h3', { id: 'send-title' }, 'Next: send it to the robot'),
             h('p', { class: 'muted' }, 'Plug the BRAIN in with USB (not the controller), then:'),
             h('div', { class: 'row' }, buttons),
             robots.filter(lacks).map((r) => h('p', { class: 'xr-warn', 'data-lacks': r },
-                `Robot ${r} is not sent to: ${r === 'one' ? ROBOT_ONE_AUTONS_FILE : ROBOT_TWO_AUTONS_FILE} is missing ${teamRoutesLine(r === 'one' ? 'One' : 'Two')} `
+                `${robotName(r)} is not sent to: ${r === 'one' ? ROBOT_ONE_AUTONS_FILE : ROBOT_TWO_AUTONS_FILE} is missing ${teamRoutesLine(r === 'one' ? 'One' : 'Two')} `
                 + '— tell the coordinator.')),
             app.baked.build.differs ? h('p', { class: 'xr-warn' }, app.baked.build.differs) : null,
             panel.element);
@@ -234,15 +235,15 @@ export async function openExportDrawer(app, { send = null } = {}) {
         if (connected && !ready) {
             const banner = h('div', { class: 'banner warn', tabindex: '-1' }, icon('warn'),
                 h('div', {}, st.state === 'noFile'
-                    ? `${SKILLS_ROUTE_FILE} is not in this folder yet: it arrives with robot two's update. Until then, use Copy.`
+                    ? `${SKILLS_ROUTE_FILE} is not in this folder yet: it arrives with ${robotName('two')}'s update. Until then, use Copy.`
                     : [st.state === 'noMarkers' ? `${SKILLS_ROUTE_FILE} has no ROUTE MAKER lines: someone removed them.` : st.words,
                         h('div', { class: 'xr-fix' }, h('strong', {}, 'The fix: '), putBack())]));
             steps.append(banner);
             fixFirst = st.state === 'noFile' ? null : banner;
         }
         for (const [robot, file] of connected ? [['One', ROBOT_ONE_AUTONS_FILE], ['Two', ROBOT_TWO_AUTONS_FILE]] : []) {
-            steps.append(h('p', { class: 'hint', 'data-line': robot }, lines[robot] === 'present' ? `Robot ${robot.toLowerCase()} registers every route: its line is in ${file}. ✓`
-                : `The line that registers the routes on robot ${robot.toLowerCase()} is missing from ${file}: tell the coordinator. The line: ${teamRoutesLine(robot)}`));
+            steps.append(h('p', { class: 'hint', 'data-line': robot }, lines[robot] === 'present' ? `${robotBridge(robot.toLowerCase())} registers every route: its line is in ${file}. ✓`
+                : `The line that registers the routes on ${robotBridge(robot.toLowerCase())} is missing from ${file}: tell the coordinator. The line: ${teamRoutesLine(robot)}`));
         }
     } else {
         steps.append(h('p', { class: 'muted' }, 'This browser cannot write into a folder (Chrome or Edge can), so it is two steps:'),

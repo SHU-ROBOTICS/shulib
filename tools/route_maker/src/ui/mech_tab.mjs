@@ -6,13 +6,14 @@ import { h, icon, mount } from './dom.mjs';
 import { fmt } from '../model/numbers.mjs';
 import { unitOf, homeEnd } from '../model/lift.mjs';
 import { testRefusal, testerRefusal, testResults, OLD_FACTS } from '../model/check_route.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
 const KEY = 'shulib-route-builder:mech-tests';  // the last result of each card, with its time (this browser only)
 const KIND_ICON = { lift: 'lift', arm: 'arm', power: 'motor', pneumatic: 'piston', flywheel: 'motor' };
 const TONE_ICON = { ok: 'check', warn: 'warn', bad: 'error', '': 'play' };
 
-/** A robot as the page names it (one place: RMP1-L's names replace this line). */
-export const robotWords = (which) => ({ one: 'robot one', two: 'robot two' }[which] || `robot ${which}`);
+/** A robot as the page names it: RMP1-L's one source, robot_names.mjs. */
+export const robotWords = (which) => robotName(which);
 
 /** What `m` is, in a few plain words. */
 export function whatItIs(m, held) {

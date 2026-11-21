@@ -13,6 +13,7 @@ import { renderFeel } from './feel_tab.mjs';
 import { openControlsExport } from './controls_export.mjs';
 import { findWords } from '../model/check_route.mjs';
 import { findWord } from '../model/lift.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
 const KIND = { arm: 'arm', lift: 'lift', power: 'motor', pneumatic: 'piston', flywheel: 'flywheel' };
 const PARTNER = { L1: 'L2', L2: 'L1', R1: 'R2', R2: 'R1', Up: 'Down', Down: 'Up', Left: 'Right', Right: 'Left', X: 'B', B: 'X', Y: 'A', A: 'Y' };
@@ -76,7 +77,7 @@ export function createControlsTab(app) {
                 meta[id].base = baseFromExports(id);
                 return { controls: c.state, driving: drivingFromSaved(saved.driving) };
             }
-            meta[id].locked = `src/team/route_maker.json's controls for ${robot.name} cannot be read here (${c.words || 'no driving block'}): `
+            meta[id].locked = `src/team/route_maker.json's controls for ${robotName(id)} cannot be read here (${c.words || 'no driving block'}): `
                 + 'open it in the newest route builder. Below is the driver file, read only.';
         }
         if (r && r.ok) {
@@ -217,7 +218,7 @@ export function createControlsTab(app) {
             const lines = job ? [`${b} · ${job.name}`, job.word] : b === rezero ? [`${b} · re-zero`, 'driving feel'] : [`${b} · free`];
             over.push(callout(p.side, p.ly, p.x, p.y, lines, kind + sel, () => press(b), under, b));
         }
-        return s('svg', { class: 'pad', viewBox: '0 0 1000 462', role: 'group', 'aria-label': `${robot().name}'s controller: click a button` }, under, over);
+        return s('svg', { class: 'pad', viewBox: '0 0 1000 462', role: 'group', 'aria-label': `${robotName(ui.robot)}'s controller: click a button` }, under, over);
     }
     /** A label: one or two lines in a pill at its side's column, its leader (drawn under the buttons) to (tx, ty). */
     function callout(side, y, tx, ty, lines, kind, onclick, under, b) {
@@ -557,7 +558,7 @@ export function createControlsTab(app) {
             h('span', { class: 'spacer' }),
             ids.length > 1 ? h('div', { class: 'robot-pick' }, h('span', { class: 'muted' }, 'Robot'), h('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Robot' }, ids.map((id) => h('button', {
                 role: 'radio', 'aria-checked': String(ui.robot === id), class: ui.robot === id ? 'on' : '',
-                onclick: () => { ui.robot = id; ui.sel = null; ui.pick = null; render(); app.changed(); } }, baked.robots[id].name.replace('robot ', ''))))) : null);
+                onclick: () => { ui.robot = id; ui.sel = null; ui.pick = null; render(); app.changed(); } }, robotName(id))))) : null);
         el.body.setAttribute('aria-labelledby', `ctl-step-${ui.step}`);
         if (ui.step === 'feel') {
             mount(el.body, renderFeel(feelApi));
@@ -565,10 +566,10 @@ export function createControlsTab(app) {
             if (el.body.firstChild !== el.buttons) {
                 mount(el.body, el.buttons);
             }
-            mount(el.pad, h('div', { class: 'card-head' }, h('h2', {}, `${robot().name}'s controller`),
+            mount(el.pad, h('div', { class: 'card-head' }, h('h2', {}, `${robotName(ui.robot)}'s controller`),
                 h('span', { class: 'hint' }, 'Click a button to give it a job.'),
                 h('span', { class: 'legend', 'aria-hidden': 'true' }, h('i', { class: 'used' }), 'has a job', h('i', { class: 'free' }), 'free')), controller());
-            el.pad.setAttribute('aria-label', `${robot().name}'s controller`);
+            el.pad.setAttribute('aria-label', `${robotName(ui.robot)}'s controller`);
             mount(el.editor, editor());
             fitLabels();
         }
@@ -618,7 +619,7 @@ export function createControlsTab(app) {
                 const mine = hist[id].present !== loaded[id];
                 const theirs = app.project().robots && app.project().robots[id] && app.project().robots[id].controls;
                 if (keepChanged && mine && !theirs) {
-                    out.kept.push(baked.robots[id].name);
+                    out.kept.push(robotName(id));
                     continue;
                 }
                 const next = load(id);
@@ -626,7 +627,7 @@ export function createControlsTab(app) {
                 hist = { ...hist, [id]: undoable ? commit(hist[id], next) : historyOf(next) };
                 loaded = { ...loaded, [id]: next };
                 if (mine) {
-                    out[undoable ? 'back' : 'lost'].push(baked.robots[id].name);
+                    out[undoable ? 'back' : 'lost'].push(robotName(id));
                 }
             }
             if (out.kept.length) {

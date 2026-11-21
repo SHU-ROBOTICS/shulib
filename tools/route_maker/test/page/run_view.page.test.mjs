@@ -174,7 +174,7 @@ test.describe('RMP1-K: check the mechanisms, watch the run, what is on the robot
                 ['the cascade finds its bottom, goes to 6 in, then 18 in', 'the claw goes to closed, then open', 'the right toggle runs 0.8 s at 8 V']);
             assert.equal(await dlg.locator('.rk-safe').textContent(), 'The robot stays where it is — clear the mechanisms\' paths.');
             assert.equal(await dlg.locator('.btn.primary').count(), 1, 'one highlight');
-            assert.equal(await dlg.locator('.btn.primary').textContent(), 'Send the check to robot one');
+            assert.equal(await dlg.locator('.btn.primary').textContent(), 'Send the check to White Bot');
             await shot(page, `check-${v.tag}`);
             await dlg.locator('.btn.primary').click();
             await page.locator('.send-panel [data-result="ok"]').waitFor({ timeout: 30000 });
@@ -263,14 +263,64 @@ test.describe('RMP1-K: check the mechanisms, watch the run, what is on the robot
                 assert.deepEqual(mine(await p.done()), []);
             });
 
+        test(`[${v.tag}] RMP1-L: White Bot and Black Bot -- the top bar's Send, the inspector's headings, the export drawer's lines and buttons`, async () => {
+            teamFiles(REAL_LOG);
+            const p = await opened(v);
+            const { page } = p;
+            // .btn never wraps: the name must fit the bar instead (below ~1240 px this bar ran past the screen before RMP1-L too)
+            for (const width of [1280, 1366, v.viewport.width]) {
+                await page.setViewportSize({ width, height: v.viewport.height });
+                const send = await page.locator('#send').evaluate((e) => ({ r: e.getBoundingClientRect().right, s: e.scrollWidth, c: e.clientWidth }));
+                const bar = await page.locator('.topbar').evaluate((e) => ({ s: e.scrollWidth, c: e.clientWidth }));
+                assert.ok(send.r <= width && send.s <= send.c + 1, `${width} px: Send to White Bot whole, on the screen (${JSON.stringify(send)})`);
+                assert.ok(bar.s <= bar.c + 1, `${width} px: nothing in the top bar runs past it (${bar.s} > ${bar.c})`);
+            }
+            assert.equal(await page.locator('#send').textContent(), 'Send to White Bot');
+            await page.locator('.start-card').click();
+            const heads = await page.locator('.pane.right h3').allTextContents();
+            assert.ok(heads.includes('White Bot\'s start') && heads.includes('Black Bot'), heads.join(' | '));
+            await shot(page, `names-topbar-${v.tag}`);
+            await page.locator('#export').click();
+            const d = page.locator('.drawer');
+            await d.locator('[data-line]').first().waitFor();
+            assert.deepEqual(await d.locator('[data-line]').allTextContents(), [  // D2: the bridge, once, where a file is named
+                'White Bot (robot one) registers every route: its line is in src/team/robot_one_autons.cpp. ✓',
+                'Black Bot (robot two) registers every route: its line is in src/team/autons.cpp. ✓']);
+            await shot(page, `names-lines-${v.tag}`);
+            await d.getByRole('button', { name: `Write into ${FILE}` }).click();
+            await d.locator('.send-card').waitFor();
+            assert.deepEqual(await d.locator('.send-card [data-send]').allTextContents(), ['Send to White Bot', 'Send to Black Bot']);
+            await shot(page, `names-drawer-${v.tag}`);
+            assert.deepEqual(await p.done(), []);
+        });
+
+        test(`[${v.tag}] RMP1-L: the check sent to Black Bot says so, and builds Black Bot's`, async () => {
+            fs.writeFileSync(path.join(WORK, 'live.log'), LIVE.join('\n'));
+            teamFiles(path.join(WORK, 'live.log'));
+            const p = await opened(v);
+            const { page } = p;
+            await menu(page, '#check-mechs');
+            const dlg = page.locator('.rk-dialog');
+            assert.deepEqual(await dlg.locator('[data-check]').allTextContents(), ['Send the check to White Bot', 'Send the check to Black Bot']);
+            await dlg.locator('[data-check="two"]').click();
+            assert.equal(await dlg.locator('p', { hasText: /^Sending / }).textContent(), 'Sending "skills mechs" to Black Bot…');
+            await page.locator('.send-panel [data-result="ok"]').waitFor({ timeout: 30000 });
+            await dlg.locator('#rk-back', { hasText: 'src/team/skills_route.cpp holds the team\'s routes again' }).waitFor({ timeout: 10000 });
+            const made2 = fs.readFileSync(made.env.FAKE_CALLS, 'utf8').split(/\r?\n/).filter((c) => / ROBOT=/.test(c));
+            assert.ok(made2.length && made2.every((c) => / ROBOT=tank /.test(c)), made2.join(' | '));
+            assert.deepEqual(await p.done(), []);
+        });
+
         test(`[${v.tag}] What is on robot one: each slot against the wanted table, the first wrong one highlighted`, async () => {
             teamFiles(REAL_LOG);
             const p = await opened(v);
             const { page } = p;
             await page.locator('#route-switch').click();
+            assert.deepEqual(await page.locator('[data-slots]').allTextContents(), ['What is on White Bot', 'What is on Black Bot']);
             await page.locator('[data-slots="one"]').click();
             const dlg = page.locator('.rk-dialog');
             await dlg.locator('.rk-slots').waitFor({ timeout: 30000 });
+            assert.equal(await dlg.locator('h2').textContent(), 'What is on White Bot');
             assert.equal(await dlg.locator('.rk-verdict').textContent(),
                 'Fix this first: slot 2 holds shulib Auton Tester: upload shulib Competition there.');
             assert.equal(await dlg.locator('tr.first').getAttribute('data-slot'), '2');

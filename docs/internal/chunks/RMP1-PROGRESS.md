@@ -6670,3 +6670,309 @@ No browser or helper of mine left running (the Firefox running at 19:56 is anoth
   PREVIEW case). Firefox's first run was OOM-killed by the 6 GB scope (its files in parallel; journal: "oom-kill") —
   re-run one file at a time: the numbers above.
 - **Stopped here: uncommitted, for the coordinator.**
+
+## RMP1-L — White Bot and Black Bot: the robots' names in what people see
+
+- **Executor:** Opus 5.5 (subagent), worktree `.claude/worktrees/rmp1-l`, branch `rmp1-l` from efca9b6. Started
+  2026-11-20 (log opened before any change). Brief: `RMP1-L-white-bot-black-bot.md` (the coordinator's, lands here).
+- **14:44 host build** (briefing generated with no suite binary first; `shulib_tests` + `shulib_route_maker` built, 0
+  warnings; briefing regenerated after). No C++, src/, include/ or Makefile change in this chunk.
+- **D1 — the page.** New `src/model/robot_names.mjs`: `robotName(id)` ('one' → "White Bot", 'two' → "Black Bot",
+  another id "robot <id>") and `robotBridge(id)` ("White Bot (robot one)"). In `model/` (not `ui/words.mjs`, the brief's
+  example) because the checks (`checks.mjs`, `obstacles.mjs`), `driver_file.mjs` and `route_lines.mjs` say robot names
+  too and a model module never imports `ui/`. 94 replacements in 22 page files (scripted, each old text asserted to occur
+  exactly as often as expected): the top bar's chip and **Send to White Bot**, the export drawer's Send buttons and
+  autons-file lines, Will it build?, Next's robot buttons, the inspector's "White Bot's start" / "Black Bot" sections,
+  the step list, the field's "Black Bot (mirrored)", PREVIEW (phases, the dock's chips, About this run, the mechanism
+  strip), the routes menu (rows; **What is on White Bot**), Check the mechanisms, the slot dialog, the help and the coach
+  card, the toasts and the mode hint, every check message (RC3, RC17/18/20/25, RCL2, RCM1 and its fix, RCT1, RCP1, RCO3,
+  the mirrored-name rule), the Controls tab (heading, the robot picker — it said "one"/"two" —, its read-only and kept /
+  lost words), the controls export's title, `files.mjs`'s and `driver_file.mjs`'s "Black Bot's update". Every
+  `robot.name` (the C++ description's "robot one") the page showed now goes through `robotName(robot.id)`.
+- **The worker (a delta):** `worker.mjs` is a classic script with no imports, and it said "PREVIEW plays robot one: robot
+  two's mirrored run is not in this preview engine yet." It now sends `noPair: true` in its `done` (pairWords '') and
+  `preview.mjs` words it from the one source (`noTwo('preview engine')`, beside the existing "build of the route builder").
+- **Kept (acceptance):** `export.mjs` (the C++ and its comments: ROBOT ONE's numbers — goldens byte for byte), the
+  record's `robotLine` ("Previewing ROBOT ONE's mechanisms", C++ runner text) and the pair verdict's sentence (library),
+  the slot table's words (route_builder.py's WANTED), data keys, `ROBOT=`, file names, URLs.
+- **D2 — the bridge:** `robotBridge` in exactly two places: the export drawer's autons-file lines ("White Bot (robot one)
+  registers every route: its line is in src/team/robot_one_autons.cpp. ✓", and the missing-line words) and the help's
+  first paragraph ("place the start of White Bot (robot one)").
+- **D3 — tasks.json:** "Upload routes to White Bot (robot one)" / "… Black Bot (robot two)", "Upload everything to …",
+  "What is on …"; the picker "White Bot (robot one)" / "Black Bot (robot two)", values one/two; args unchanged.
+- **D4 — Python:** `upload_auton.py` `NAMES`, `ALIASES`, `robot_id(word)` (one/two/white/black, any capitals); "Building
+  White Bot's Drive: make ROBOT=one PROGRAM=drive"; the OWED words name the robot ("White Bot's build refuses …", the
+  compiler's own "robot one" mapped). `route_builder.py robot white|black|one|two` (through `ua.robot_id`), its table
+  headed "White Bot: what is in each slot", "Sending to White Bot..."; the HTTP API keeps `?robot=one|two`. The page's
+  `sendStage` reads "Building <any name>'s Auton Tester".
+- **Tests updated (never deleted or loosened):** node — `checks.test.mjs` (startTitle; RC18 no-levels words),
+  `named_routes.test.mjs` (RCM1 anchored `^Black Bot`, its fix words now asserted; RCP1 at the start and mid-path, the
+  mid-path one now asserting the whole "White Bot … Black Bot (mirrored) … Keep White Bot's" sentence), `obstacles.test.mjs`
+  (RCO3 ×3, the start one now asserting the "Move White Bot's start" half too), `preview_worker.test.mjs` (the no-pair
+  `done` deep-equal with `noPair: true`), `files_local.test.mjs` (sendStage "Building Black Bot's Auton Tester"). Page —
+  `controls`, `export_robot` (its negative `doesNotMatch` widened to the new words AND the old, so it cannot pass
+  trivially), `send_robot`, `preview`, `page`, `run_view`, `mechanisms`, `named_routes`. upload self-test (the Building
+  lines, the OWED words with "robot one's build" unwanted), helper self-test (the Building line; the table headed by the
+  name; the task pins).
+- **Tests added:** `test/robot_names.test.mjs` (3: the names and the bridge; no page file but `robot_names.mjs` spells
+  White/Black Bot in any capitals; no code line of the page — comments dropped — says robot one/two or builds
+  `robot ${…}`, only `export.mjs`'s C++); `standin_engine.mjs` `noPair` option + `preview.test.mjs` (an engine with no
+  pair mode: the page's words in the names); `run_view.page.test.mjs` "RMP1-L" (Send on one line at the Export button's
+  height, the inspector's two headings, the drawer's two bridge lines exactly, the two Send buttons; shots); the controls
+  test asserts "Black Bot's controller" and the read-only words; the slots test asserts the menu items and the dialog's
+  title. upload self-test +4 (white drive → ROBOT=one; `Black` → tank; `WHITE tune`; `whitebot` refused), helper
+  self-test +4 (both upload tasks per robot, the picker exactly, no label with a bare "robot one"; `robot White` and
+  `robot black` in the terminal, each headed by its name).
+- **Mutations (driver `scratch/rmp1-l/mutate.py`: each file backed up under `scratch/rmp1-l/mut/`, restored in a
+  `finally` and on SIGTERM/SIGHUP, its timestamp bumped; every page verdict on a site rebuilt AFTER the mutation; logs and
+  `verdicts.txt` beside it) — 11 / 11 RED, each by the right line:**
+  M1 the name source returns "robot one" → node 6 fail (startTitle, RC18 words, RCP1 ×2, RCO3, the names test) and the
+  page's RMP1-L test (Send's words). M2 the slot dialog bypasses it (`What is on robot ${robot}`) → the source scan names
+  that line; the page's slot test ("What is on robot one" ≠ "What is on White Bot"). M3 alias `white` → `two` →
+  upload self-test (`white drive` built ROBOT=tank, "Building Black Bot's Drive") and helper self-test (`robot White`
+  headed "Black Bot"). M4 an export golden touched (gl12_fail_stop.cpp's "ROBOT ONE's numbers" → "White Bot's") →
+  export.test 1 fail. M4b export.mjs renamed the same way → export.test 3 fail (the goldens prove the C++ unchanged).
+  M5 the worker drops `noPair` → preview_worker.test. M5b the page ignores `noPair` → preview page test (pairWords '').
+  M6 the bridge dropped → the names test and the page's drawer lines. M7 a task label back to "What is on robot one" →
+  helper self-test (the pin, and "no label says robot one alone"). M8 the send parser back to `(robot \w+)` →
+  files_local.test. M9 the terminal table headed "Robot one:" → helper self-test ×2.
+- **Screenshots (Chromium, light/dark, 1440×900 and 1280×800; `scratch/rmp1-l/shots/`), each read:** `names-topbar-*`
+  (Send to White Bot on one line, as tall as Export; the inspector's WHITE BOT'S START / BLACK BOT headings; "The robots"
+  sentence), `names-lines-*` (the drawer's two bridge lines, each one line at 1280), `names-drawer-*` (Send to White Bot
+  / Send to Black Bot), `slots-*` (What is on White Bot), `check-*` (Send the check to White Bot / Black Bot, one row at
+  1280), `controls-*` / `controls-export-*` (the robot picker "White Bot | Black Bot" and "White Bot's controller"; Export
+  White Bot's controls). Nothing wraps or crowds: "White Bot"/"Black Bot" are as long as "robot one"/"robot two"; only
+  the Controls picker ("one"/"two" before) and the two bridge lines grew, and both fit. The top bar's name chip is hidden
+  on the helper page below 1600 px, as before (style.css).
+- **Prose review (grepped ~15:00 during the mutation run, hits read):** `grep -rn "Upload routes to robot|Upload everything to robot|What is
+  on robot|Run Task → What is on robot"` over docs/ (outside internal), README.md, the route builder's README → the task
+  names in where-your-code-goes (2), guide 23 (2), guide 22 (1), the README (1): renamed (the task's name only); the
+  changelog's earlier 2.10/2.11 entries (lines 52–53, 72): dated history, left, the new entry says the tasks were
+  renamed. `grep "Send to robot (one|two)|What is on robot|Robot one's start|robot two (mirrored)|Send the check to
+  robot|PREVIEW plays robot one|Building robot"` → the page's own labels as the docs quote them: guide 22 (lines 36, 59,
+  62, 78, 223, 259, 262 + its send-mid.png, 287, 289, 305, 308 + slots.png), guide 23:307, route-builder.md:35, the
+  changelog (history); and the docs video (`tools/docs_video/make_a_route/`: beats.json m29, record.mjs 310 and 566,
+  README 12). **Left by the brief** ("the docs after the 21st"): owed with the docs pass, pictures and video re-made.
+  `grep "upload_auton.py one|route_builder.py robot one"` → 31 hits, every one still true (`one` works).
+- **Gates on the final tree (2026-11-20 15:03–15:44 EST; runner `scratch/rmp1-l/gates.sh`, logs in `scratch/rmp1-l/gates/`):**
+  briefing generated with the suite binary removed, host build (0 warnings), briefing regenerated after; the bounded suite
+  **green — 3,911 cases / 3,777,634 assertions** (no C++ changed); `src_build_gate.py check` **PASS (14 builds)**; the ARM
+  header gate over all 260 lines OK; the CI greps (PROS-free, sim-free, LF — `robot_names.mjs` added to the LF list) hold;
+  api_doc_tool check-fresh / check-examples / self-test / check-coverage / check-removability OK (no `///` comment changed:
+  docs/api not regenerated); doc_staleness_audit self-test OK and the audit clean; briefing `check` current; node **268 /
+  268**; route_builder self-test **146 OK** (+4); upload_auton self-test **59 OK** (+4); the site rebuilt 15:42:56 right
+  before the page suites; **Chromium 119 pass / 8 skipped / 0 fail**; Firefox: the gate's run ended after 11 s with no
+  summary (its `| tail` hid the exit; most likely the 6 G scope's OOM kill — the same caps passed at 14:52, 122/4/0), so it
+  was re-run alone on the same site: **Firefox 123 pass / 4 skipped / 0 fail** (`gates/pages-firefox2.log`, full output).
+  The skips are the engine-only and pictures-only tests, as before. No helper or browser process left running.
+- **`src_build_gate.py self-test`:** the gate's first run was wrapped in a SIGTERM `timeout 1200` and was killed at
+  20 min (exit 124) — against the standing lesson ("never a SIGTERM timeout, never shorter than ~20 min"); `git status`
+  of src/, include/, test/ and the Makefile was clean after it (the self-test runs in its own copy). Re-run under
+  `timeout -s INT 3600`: result below.
+- **Resumed 2026-11-20 16:31 EST** (`date`) by a fresh executor after the usage-limit pause stopped the run inside the
+  `src_build_gate.py self-test` re-run (its copy `build/src-gate-selftest/` last touched 16:15; no process of this
+  worktree left running). `git diff -- src/ Makefile include/ test/` empty: no gate plant left behind. Plan: re-read the
+  diff, rebuild from source (a killed run may leave a stale link), re-run every gate on the final tree, finish the
+  src gate self-test.
+- **16:3x review of the partial work (resumed):** read the whole diff; it matches the entries above. Checked: no page
+  code reads `robot.name` any more; `upload_auton.py`'s `who.split()[1]` is safe (`OWED` only matches `robot one|two`);
+  the send handler still refuses any `robot` but one/two before `ua.NAMES[robot]`; every mutated file is byte-equal to
+  its pre-mutation backup (`cmp` of all 11 `mut/*.bak`), and `export.mjs` and `test/` are unchanged against efca9b6.
+  The only text fix: `style.css`'s comment called the top bar chip "the "Robot one" chip" → "the robot's name chip"
+  (a comment; the names test scans .mjs/.js/.html only). Six screenshots re-read (`names-topbar` light 1280 / dark
+  1440, `slots` dark 1280, `names-lines` light 1280, `names-drawer` dark 1280, `controls` light 1280): nothing wraps or
+  crowds; the shots predate only that comment.
+- **Gates re-run on a fresh build (16:31–16:38; runner `scratch/rmp1-l/gates2.sh`, logs `scratch/rmp1-l/gates2/`):**
+  both binaries removed, briefing generated, host build 0 warnings, briefing regenerated (suite line 3,911 / 3,777,634);
+  the bounded suite **green — 3,911 cases / 3,777,634 assertions**; ARM header gate 260 lines OK; CI greps hold (the two
+  new files LF); api_doc_tool five OK; doc_staleness self-test OK + audit clean; briefing `check` current; node **268 /
+  268**; route_builder self-test **146 OK**; upload_auton self-test **59 OK**; the site rebuilt 16:36:24, then
+  **Chromium 119 pass / 8 skipped / 0 fail**, **Firefox 123 pass / 4 skipped / 0 fail** (full output kept, no `| tail`).
+  No browser or helper process left running.
+- **`src_build_gate.py self-test` (the 16:38 re-run): OK** — "398 detector cases, each against a real build" (17:22,
+  `gates2/srcself.log`; it swept the copy the 15:xx killed run left). It ran on the final tree: the last source change
+  is `style.css` at 16:32:24, before it started. The `check` that followed was stopped by the second pause (~17:29:
+  `gates2/srcgate.log` empty, `build/src-gate-facts/` and the ignored `bin/`/`.d/` last touched then).
+- **Resumed again 2026-11-20 18:40 EST** (`date`) by a fresh executor after the second pause. `git diff -- src/ Makefile
+  include/ test/` empty; no file outside `build/`, `bin/`, `.d/` changed since 16:38; no process of this worktree
+  running. Plan: a fresh build (both binaries removed first), every gate again, the src gate `check`, then report.
+- **Gates on a fresh build (18:41–19:01 EST; runner `scratch/rmp1-l/gates3.sh`, logs `scratch/rmp1-l/gates3/`):** both
+  binaries removed, briefing generated, host build 0 warnings, briefing regenerated; the bounded suite **green — 3,911
+  cases / 3,777,634 assertions**; ARM header gate 260 lines OK; CI greps hold (both new files LF); api_doc_tool five OK;
+  doc_staleness self-test OK + audit clean; briefing `check` current; node **268 / 268**; route_builder self-test **146
+  OK**; upload_auton self-test **59 OK**; the site rebuilt 18:44:26, then **Chromium 119 pass / 8 skipped / 0 fail**;
+  Firefox's first run was killed at 10 s by its 6 G scope's OOM killer (`journalctl --user`: "killed by the OOM killer",
+  after 3 passing tests; no test failed), re-run alone on the same site at 19:00: **Firefox 123 pass / 4 skipped / 0
+  fail** (`gates3/pages-firefox2.log`); `src_build_gate.py check` **PASS (all 14 builds; 4 refused naming exactly their
+  owed facts)** (18:45–19:00, under `timeout -s INT 3600`); its self-test's OK (17:22) stands: no source changed since.
+  No browser or helper process left running. RMP1-L is done; nothing committed (the coordinator's).
+
+### RMP1-L review findings and their disposition *(2026-11-20, a fresh executor, the same worktree; started 20:24 EST, `date`)*
+
+Three reviewers (correctness, tests, docs) returned 17 findings; overlaps merged below (guide 22's missed task/picker
+words are one item; the Controls recorder is one; the `robot.name` data path is one; the LF/count wording is one). Each
+re-checked against the tree before anything changed. Appended as each lands. Mutation backups and logs:
+`scratch/rmp1-l/fix/`.
+
+- **Resumed 2026-11-20 22:05 EST** (`date`) by a fresh executor after the 5-hour usage limit stopped the first fix run
+  at 20:29. What it left: only this section's heading and `scratch/rmp1-l/fix/taskgrep.py` (a cross-line grep); no
+  source file changed after 20:20. Checked before anything else: `git diff -- src/ Makefile include/ test/goldens`
+  empty; all 11 `mut/*.bak` byte-equal to their worktree files, and the correctness reviewer's two backups
+  (`review-correctness/bak/`) too (the reviewers mutated their own copies); no process of this worktree running. The
+  suite binary is removed and rebuilt from source before any suite result is trusted.
+- **1. Guide 22's task and picker names (correctness #1, docs #13 — real).** The builder's grep was one line at a time:
+  22:329–330 ("Upload⏎routes to robot one**") split over a line break, and 22:432–433 named the VS Code picker's old
+  choice **Robot one** and "pick **two**". Renamed, the task's and the picker's names only: "**Upload routes to White
+  Bot (robot one)** (or **… Black Bot (robot two)**)", "→ **White Bot (robot one)** → **Drive**", "Robot two: pick
+  **Black Bot** in steps 1–5" (both pickers those steps use now say it). Re-checked with a grep that reads ACROSS line
+  breaks (`scratch/rmp1-l/fix/taskgrep.py`: each newline and its indent read as one space): the hits left are the
+  changelog's dated 2.10/2.11 entries (52, 53, 72, 195: history), the page's own labels quoted in guide 22 (305 "What is
+  on robot one." and 308's picture text, 441 "pick **one** or **two**" — the Controls tab's picker), route-builder.md:35
+  (the page's menu item) and the docs video README:12 (it describes the DRAWN VS Code card in the recorded video). All
+  owed with the docs pass after the 21st (the brief); listed below. The original prose-review line said "guide 22 (1)":
+  guide 22 had TWO task-name mentions (306 and 329–330) plus the picker at 432 — corrected here.
+- **2. The Controls-tab video recorder (correctness #2, docs #15 — real: it would crash, not just say old words).**
+  `tools/docs_video/controls_tab/record.mjs:389` found the robot radio by the name `'two'` and :415 spotlit the text
+  "Export robot two's controls"; both gone. Fixed now (selectors, not wording): `{name: 'Black Bot'}` and "Export Black
+  Bot's controls". The same locator and the same h2 text are asserted by the new `names.page.test.mjs`, so both are
+  proven to find their element; the recorder itself was not run end to end (it records minutes of video with Kokoro).
+  Its narration (beats c03, c13, c15, c16, c16b: "robot one/two") is owed with the re-record.
+- **3. robots.json's own names ("robot one") could come back unseen (correctness #3, tests #6 — real).** Two guards:
+  `robot_names.test.mjs` gained a scan that fails on a page code line reading a robot description's `.name`
+  (`robot.name`, `robot().name`, `x.robot.name`, `robots[..].name`, `one.name`, `routeRobots(..).map((x) => x.name)`;
+  the scan proves it sees each form); and the new `test/page/names.page.test.mjs` bakes robots whose names are
+  `LEAK one` / `LEAK two` (the page's own `useRobots` hook) and walks the first screen, the start's inspector ("The
+  robots" sentence), the routes menu, Black Bot's controller, the Controls export drawer and an empty mechanism menu,
+  failing if `LEAK` or any "robot one/two" other than the "White Bot (robot one)" bridge is in the text, a tooltip, an
+  aria-label or an SVG title. The exported C++ shown in a `<pre>` is left out of that read: its comments say "robot
+  one" byte for byte (the first run caught exactly that — the driver file's comments — and the acceptance keeps them).
+- **4. An engine built before RMP1-L (correctness #4 — real, under that skew).** Checked: `route_builder.py:facts()`
+  serves this checkout's page modules but the engine from `build/route_maker_site` or the published-site cache, so an
+  old worker's own "PREVIEW plays robot one: robot two's mirrored run is not in this preview engine yet." would reach
+  About this run. Fixed at the page: `preview.mjs` reads a `pairWords` ending "mirrored run is not in this preview
+  engine yet." as `noPair` and says it in the names. Test: the stand-in engine's new `oldWords` option rewrites the
+  worker's `done` as the old worker sent it (no `noPair`, the old sentence); `preview.test.mjs` asserts the page's
+  words.
+- **5. The most-seen names were unpinned (tests #5, major — real).** Pinned exactly: node — RC3 ("Place White Bot's
+  start on the field first: …"), RCT1 ("Black Bot runs this route mirrored. …") and the mirrored-name rule ("Black Bot
+  shows this route as "MM…M SKILLS MIR" … at most 25 characters", 25 fits) in `named_routes.test.mjs`; the driver
+  file's no-markers words (`controls.test.mjs`) and `files.mjs`'s no-file words (`host.test.mjs`), each "Black Bot's
+  update". Page (`names.page.test.mjs`) — the empty field's hint "Click the field where White Bot starts", the top
+  bar's chip and its title, "Place White Bot's start first: …" (M with no start), the start-placed toast (mirrored and
+  as written), the robots' sentence, the routes menu's rows ("Black Bot mirrored · one at a time", "Black Bot as
+  written"), the as-written hint "Black Bot runs it as written, from White Bot's start: …", the pad's aria-label after
+  picking Black Bot, "Export Black Bot's controls", "White Bot declares no mechanism yet.".
+- **6. The help's bridge (tests #7 — real).** `names.page.test.mjs` opens Help (its button) and asserts "place the start
+  of White Bot (robot one), add steps" in its first paragraph and exactly ONE "(robot one|two)" in the whole dialog.
+- **7. Black Bot's OWED words (tests #8 — real, and live: robot two's builds refuse on owed facts).** upload_auton's
+  fake make gained an `owed2` case printing a `robot_two_facts.hpp` "robot two: OWED -- …" line; the case `black`
+  wants "Black Bot's build refuses while a fact it needs is OWED …" and refuses "White Bot" and "robot two's build".
+- **8. D4's terminal words (tests #9 — real).** route_builder self-test: the busy case now asserts the table's head
+  starts "White Bot: the route builder running on this checkout says: The brain is busy"; the Send case reads the
+  helper's captured terminal for "Sending to White Bot..." and sends to robot two once ("Building Black Bot's Auton
+  Tester", "Sending to Black Bot..."); `robot grey` prints exactly the usage line with "robot white, robot black".
+  upload self-test: `ONE` (White Bot's build, the same calls) and `Two` (Black Bot's) — the old words in any capitals.
+- **9. Wrong-robot sites (tests #10 — real).** Pinned where a test reaches the state: the drawer's "White Bot is not
+  sent to: src/team/robot_one_autons.cpp is missing … — tell the coordinator." exactly (`send_robot.page`); a new
+  run_view test sends the check to Black Bot (`[data-check="two"]`: both buttons' words, then 'Sending "skills mechs"
+  to Black Bot…', and every make call `ROBOT=tank`); PREVIEW's phase "Running Black Bot's mirrored route…" (the
+  stand-in's new `pairDelayMs` holds robot two's run 3 s so the phase is read); the routes menu's rows, the as-written
+  hint and the pad's aria-label (item 5).
+- **10. "Send stays on one line" could not fail (tests #11 — real).** `.btn` is `white-space: nowrap`, so the two
+  heights were always equal. Replaced: at 1280, 1366 and the test's width, #send's right edge is on the screen, its
+  words fit inside it, and the top bar does not run past itself — checked before the label's text, in the gated run
+  (light-1440 resizes to 1280). Measured on the way (Chromium, a probe that swapped the label): the helper's top bar
+  (with Send) runs past the screen below ~1240 px with "Send to robot one" (182 px) exactly as with "Send to White
+  Bot" (183 px): **pre-existing since RMP1-I's Send, not this chunk's** (the static page's "top bar fits" test runs
+  1101–1920 without Send). At 1280 it fits with 7 px to spare. Not changed here (a layout change, outside a text chunk):
+  **for the coordinator** — a 1101–1239 px laptop on the helper page loses Send off the right edge.
+- **11. The LF wording and the counts (tests #12, docs #16 — real, the record's wording).** The gates line's "the LF
+  list" is this executor's local `gates3.sh`; `.github/workflows/ci.yml`'s CR1 step still samples two files
+  (`gl0_empty.cpp`, `export.mjs`), and `tools/route_maker/.gitattributes` (`* text=auto eol=lf`) keeps every new file
+  LF on checkout. The "31 hits" for `upload_auton.py one|route_builder.py robot one` re-counted: 13 in the public docs
+  and READMEs (docs/ outside internal, README.md, tools/**/*.md), 22 with docs/internal, 27 in the whole repository
+  (`git grep`); every one still true (`one` works). **The remaining "robot one/two" in what the tools show**, each with
+  why it stays: the page — only `model/export.mjs` (the C++ and its comments; `robot_names.test.mjs` enforces it over
+  every code line), plus "whole robot ${fmt(..)} in" (checks.mjs, a size) and the lines quoted from the library or the
+  robot (the record's "Previewing ROBOT ONE's mechanisms", the pair verdict, a brain's log); `upload_auton.py` — the
+  stand-in compiler's OWED lines (359–360, 363: the compiler's own words, which `build_error` maps to the names), the
+  self-test's `unwanted` words, and the help text's bridge "robot one and robot two in the code and the docs" (11);
+  `route_builder.py` — the self-test's stand-in robots.json (737, the description's `name`), its check labels, and the
+  docstring's bridge (6); `.vscode/tasks.json` — the labels' "(robot one)" bridge and two comments.
+- **12. Merge item (docs #14 — real; not fixable on this base).** Integrate (2b5dbad) gained after efca9b6 a changelog
+  instruction "**What you must do:** upload everything to each robot again (VS Code: **Upload everything to robot
+  one**)" — at the merge, that task name becomes **Upload everything to White Bot (robot one)**. Also at the merge:
+  integrate's RMP1-M/N/O/P page code adds robot words of its own (`robotWords` → 'robot one' in two modules, "Robot
+  ${to[0]}'s build does not take the routes yet", "Send the test/check to robot ${r}"): `robot_names.test.mjs` WILL fail
+  on them by design — route each through `robotName`; the RMP1-L changelog entry goes in date order among integrate's
+  11-20 entries; regenerate the briefing after the merge.
+- **13. "The ONE place" said twice (docs #17 — real).** `robot_names.mjs`' header now says it is the page's one
+  spelling and names the other two; `upload_auton.py`'s `NAMES` says "the Python tools' one spelling"; the route
+  builder README says a rename changes three places (`robot_names.mjs`, `upload_auton.py` `NAMES`, `.vscode/tasks.json`'s
+  labels, pinned by the helper's self-test) and names the two new guards.
+- **Owed after the 21st (the brief: the docs then), now complete:** guide 22 — 36, 59, 62, 78, 223, 259, 262 (+
+  send-mid.png), 277–278 ("Send to robot one (or two)"), 287, 289, 305 and 308 (+ slots.png), 428 ("robot one's
+  controller"), 441 ("pick **one** or **two**"); guide 23:307; route-builder.md:35; the docs video `make_a_route`
+  (beats.json m29, record.mjs 310 and 566 — DRAWN cards, they do not break the recorder —, README 12) and `controls_tab`
+  (beats c03, c13, c15, c16, c16b; its two selectors are fixed now, item 2); the changelog's dated entries stay.
+- **The fix round's tests, each proven able to fail (22:20–22:27 EST; driver `scratch/rmp1-l/fix/mutate2.py`, each file
+  backed up under `fix/mut/`, restored in a `finally` and on SIGTERM/SIGHUP, its timestamp bumped; every page verdict on
+  a site rebuilt AFTER the mutation; logs and `verdicts.txt` beside it) — 25 / 25 RED, each by the line meant
+  (read in its log):** J1 RCT1 says White Bot, J2 the mirrored-name rule says White Bot, J3 RC3 says Black Bot →
+  `named_routes.test`; J7 the driver file's words, J8 `files.mjs`'s → `controls.test`, `host.test`; G8 the empty mechanism
+  menu, G9 the Controls export's title, G11 the robots' sentence each read the description's `.name` → the scan AND the
+  LEAK walk ("the first screen: a name read from robots.json is shown"); G1 ONE/TWO swapped, G13 the chip says Black Bot,
+  G5 the help's bridge dropped, G6 the routes menu says White Bot mirrored, G3 the as-written hint swapped, G12 the pad
+  always White Bot → `names.page`; G2 the drawer's warning names Black Bot → `send_robot.page` (exact text); G4 the
+  check's 'Sending … to White Bot…' when sent to Black Bot → the new run_view test; G10 PREVIEW's phase says White Bot
+  → the phase wait times out; O1 the old engine's sentence shown as sent → "PREVIEW plays robot one: …" ≠ the names;
+  M5b2 the page ignores `noPair` → pairWords ''; T1 a longer name ("White Bot the Brave") → "1280 px: Send to White Bot
+  whole, on the screen" (right edge 1292); P1 OWED on robot two said White Bot → upload self-test `owed2`; P4 `ONE`
+  refused → `ok` exit 2; P2 the table's head "Robot one:" → the busy case; P3 "Sending to robot one..." → the terminal
+  case; P6 the old usage line → the usage case. Every mutated file `cmp`-equal to its backup after.
+- **The builder's 11 mutants re-run on this round's tree (22:24–22:27; `mutate.py`, verdicts appended to `mut/`):**
+  M1–M4b, M5, M6–M9 RED again; M5b's exact text no longer exists (the `oldNoPair` read sits beside `noPair` now), so it
+  ran as M5b2 above. All 11 files `cmp`-equal to their backups after; `test/goldens` and `export.mjs` unchanged.
+- **Gates on the final tree (22:27–23:40 EST; runner `scratch/rmp1-l/fix/gates.sh`, `set -o pipefail`, no `| tail`
+  hiding an exit; logs `scratch/rmp1-l/fix/gates/`):** both binaries removed, briefing generated, host build 0
+  warnings, briefing regenerated; the bounded suite **green — 3,911 cases / 3,777,634 assertions** (no C++ changed);
+  ARM header gate 260 lines OK; CI greps hold (the local LF check now also covers `names.page.test.mjs`); api_doc_tool
+  check-fresh / check-examples / self-test / check-coverage / check-removability OK (no `///` comment changed: docs/api not
+  regenerated); doc_staleness self-test OK + audit clean; briefing `check` current; node **270 / 270** (+2); route_builder
+  self-test **149 OK** (+3); upload_auton self-test **62 OK** (+3); the site rebuilt 22:31:57 (after the last mutation's
+  restore), then **Firefox 126 pass / 4 skipped / 0 fail** and **Chromium 122 pass / 8 skipped / 0 fail** (+3 each: the
+  two names tests, the check sent to Black Bot); `src_build_gate.py check` **PASS (14 builds; 4 refused naming exactly
+  their owed facts)**; `src_build_gate.py self-test` **OK (398 detector cases)** (22:49–23:40, `timeout -s INT`). `git
+  diff -- src include Makefile test/goldens` empty; no browser or helper process of this worktree left running. Every
+  finding dispositioned above; nothing committed (the coordinator's).
+
+## RMP1-L — the merge into integrate *(2026-11-20/21, worktree `merge-l`)*
+
+- `git merge --no-ff rmp1-l` (20c5d9e, base efca9b6) onto integrate 2b5dbad, which had merged RMP1-M, -N, -O and -P
+  and the coordinator's fixes since that base. **Conflicts, each kept both sides:** the imports of `route_lines.mjs`
+  (gently + robot_names), `controls_tab.mjs` (findWords/findWord + robotName), `field_view.mjs` (claw + robotName),
+  `inspector.mjs` (claw + robotName), `words.mjs` (homeEnd/findWord + robotName); `run_view.mjs`'s Send button
+  (integrate's `to` and "test"/"check" words, RMP1-L's `robotName(r)`); the route builder README (the model row names
+  `claw.mjs` AND `robot_names.mjs`; the RMP1-N, RMP1-M and RMP1-L paragraphs in that order); the changelog (RMP1-L's
+  11-20 entry first, newest first, above integrate's seven); this log (both); the briefing (regenerated, not merged).
+- **Integrate's own robot words since efca9b6, routed through the one source** (RMP1-L's `robot_names.test.mjs` named
+  three code lines and one false hit): `mech_tab.mjs`'s `robotWords` (its comment: "RMP1-L's names replace this
+  line") is now `robotName` — the Mechanisms tab's robot picker and "… has no mechanisms in its robot file.";
+  `camera_view.mjs`'s `robotWords` gives `robotName` for one/two ("No camera on White Bot: …"), "this robot" when the
+  watch names none, as before; `run_view.mjs`'s refusal "Robot ${to[0]}'s build does not take the routes yet" →
+  `robotName(to[0])`. The false hit: `run_view.mjs`'s `one.name` was a MECHANISM ("Test the cascade"), read by the scan
+  as a robot's description name — the local renamed `mech` (the scan not loosened). Comments only: `camera_log.mjs`
+  ("the robot's name (robot_names.mjs)"), `run_view.mjs`'s header ("What is on the robot").
+- **Tests updated (old words → the names, none deleted):** `mech_tab.test.mjs` (`robotWords` → White Bot, Black Bot),
+  `camera_log.test.mjs` (`seesWords(none, 'White Bot')`), `camera_view.page.test.mjs` ("No camera on White Bot: …"),
+  `mech_tab.page.test.mjs` (the picker's radios by name, "Send the test to White Bot" / "… Black Bot", and the
+  no-route-file refusal now asserted EXACTLY: "Black Bot's build does not take the routes yet: nothing is sent." — it
+  was a regex without the robot).
+- **Docs:** the changelog's cascade entry named the old task ("**Upload everything to robot one**", the RMP1-L review's
+  item 12) → "**Upload everything to White Bot (robot one)**"; RMP1-L's entry lists the Mechanisms tab and the Camera
+  tab; the README's RMP1-M paragraph says `robotWords` is `robotName` now. **Owed with the docs pass after the 21st
+  (as RMP1-L left guide 22's page labels):** RMP1-M's new page quotes in guide 22's "The mechanisms on the robot"
+  (574 "every mechanism on robot one (or **robot two**)", 579 the picture's alt text "The Mechanisms tab, robot one",
+  584 "**Send the test to robot one**"), the picture re-made then; `docs/route-builder.md` gained no robot name.
+- The robots goldens regenerated through `describe --robot x|y|z`: byte-identical. The briefing regenerated in this
+  worktree (its suite line's assertion count depends on the source path's length: the main tree's differs by 2).

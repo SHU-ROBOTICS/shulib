@@ -327,7 +327,7 @@ shows its number, `class 0` (on 2026-11-20 the camera printed no names).
 ![The Camera tab: "Sees: AprilTag 3, redBluePin (87 %), colour 2", the tag boxed in yellow with its 3, the Pin boxed in blue with its name and score, the colour boxed in pink with its number](../assets/route-builder/camera.png)
 
 **What is on robot one.** Each slot against what should be there: the first wrong one is red, with its fix. It only
-reads. (In VS Code: **Terminal → Run Task → What is on robot one**.)
+reads. (In VS Code: **Terminal → Run Task → What is on White Bot (robot one)**.)
 
 ![What is on robot one: slot 2 holds shulib Auton Tester, highlighted: upload shulib Competition there](../assets/route-builder/slots.png)
 
@@ -351,7 +351,7 @@ The result is never silent: green (**Written and checked** with the routes and t
 **Overwrite**. Then **Will it build?** (what the page checked; the C++ compiler checks the rest) and **Next**: the
 build and upload commands for robot one or two, each with **Copy**, or one command for both
 ([chapter 16](16-testing-an-auton-on-the-bench.md)). The quickest: in VS Code, **Terminal → Run Task → Upload
-routes to robot one** (or two) — it runs `python3 tools/upload_auton.py one` and ends with **✓ UPLOADED** or **✗** and
+routes to White Bot (robot one)** (or **… Black Bot (robot two)**) — it runs `python3 tools/upload_auton.py one` and ends with **✓ UPLOADED** or **✗** and
 what to fix. On the brain: **shulib Auton Tester** (slot 6) → the route → **RUN**.
 
 ![After Write: Written and checked, the routes and their steps, "Will it build?", and Next with robot one's commands](../assets/route-builder/export-written.png)
@@ -453,8 +453,8 @@ project that uses them: download it again.
 2. Click a button; a free (dashed) one: pick its mechanism, then its job.
 3. **2 · Driving feel**: set the dead zone and the curve.
 4. **Export** (**Ctrl+E**) → **Write into src/team/robot_one_driver.hpp**.
-5. Put it on the robot: VS Code **Terminal → Run Task → Upload a program to a robot** → **Robot one** → **Drive**,
-   then again with **Competition** (both run the driver file). Robot two: pick **two** in steps 1–5.
+5. Put it on the robot: VS Code **Terminal → Run Task → Upload a program to a robot** → **White Bot (robot one)** → **Drive**,
+   then again with **Competition** (both run the driver file). Robot two: pick **Black Bot** in steps 1–5.
 
 <video controls preload="metadata" poster="../../assets/video/controls-tab.jpg" src="../../assets/video/controls-tab.mp4" style="max-width:100%"></video>
 

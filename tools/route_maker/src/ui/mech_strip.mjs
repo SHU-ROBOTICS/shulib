@@ -4,8 +4,8 @@
 
 import { h, s, mount } from './dom.mjs';
 import { fmt } from '../model/numbers.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
-const WHO = { one: 'Robot one', two: 'Robot two' };
 
 function ph(m) {
     return m.placeholder ? h('span', { class: 'ph', title: m.placeholder }, 'PLACEHOLDER') : null;
@@ -74,7 +74,7 @@ export function createStrip(host) {
             host.classList.toggle('with-strip', on);
             if (on && rec !== shown) {
                 rows = rec.mechanisms.map((m) => (m.kind === 'lift' || m.kind === 'arm' ? liftRow(m) : m.kind === 'pneumatic' ? pistonRow(m) : motorRow(m)));
-                mount(el, h('h3', {}, `${WHO[rec.robot] || 'The robot'}'s mechanisms`), rows.map((r) => r.el));
+                mount(el, h('h3', {}, `${rec.robot ? robotName(rec.robot) : 'The robot'}'s mechanisms`), rows.map((r) => r.el));
                 lit = -1;
             }
             shown = on ? rec : null;

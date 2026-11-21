@@ -6,6 +6,7 @@ import { copyText } from '../host/files_download.mjs';
 import { robotCommands, TESTER } from '../model/to_robot.mjs';
 import { ROUTE_NAME } from '../model/route.mjs';
 import { SKILLS_ROUTE_FILE } from '../model/region.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
 /** A result card: `kind` 'ok' (its icon ✓), 'error' (!) or 'warn' (a question); its title, then `body`. */
 export function resultCard(kind, title, ...body) {
@@ -38,7 +39,7 @@ export function willItBuild(kind, missing = null) {
                 : line('✓', 'The downloaded file has exactly this code between its two ROUTE MAKER lines: replace yours with it.'),
         missing === null ? line('•', 'Not checked here: the addTeamRoutes line in each robot\'s autons file (Edge or Chrome checks it once the folder is connected).')
             : missing.length === 0 ? line('✓', 'Both robots register every route: each autons file has its addTeamRoutes line.')
-            : missing.map((m) => line('✗', `Robot ${m.robot} will not list the routes: ${m.file} is missing ${m.line} — tell the coordinator.`)),
+            : missing.map((m) => line('✗', `${robotName(m.robot)} will not list the routes: ${m.file} is missing ${m.line} — tell the coordinator.`)),
         line('→', 'The C++ compiler checks the rest when you build: that is the next step.')));
 }
 
@@ -76,8 +77,8 @@ export function nextCard(names) {
         helper.replaceChildren(h('span', {}, 'Or all of it in one command, which says plainly ✓ or ✗ (it needs Python 3, from python.org; without it, use 1 and 2):'),
             h('div', { class: 'xr-cmd' }, h('code', { 'data-cmd': 'the one command' }, c.helper), copyButton(c.helper, 'the one command')));
     };
-    for (const [which, label] of [['one', 'Robot one'], ['two', 'Robot two']]) {
-        seg.append(h('button', { type: 'button', 'data-robot': which, onclick: () => show(which) }, label));
+    for (const which of ['one', 'two']) {
+        seg.append(h('button', { type: 'button', 'data-robot': which, onclick: () => show(which) }, robotName(which)));
     }
     show('one');
     return h('section', { class: 'card xr-next', 'aria-labelledby': 'xr-next-title' },

@@ -28,6 +28,7 @@ import { reflect, stepPoses } from '../model/pair.mjs';
 import { obstacleShapes } from './field_obstacles.mjs';
 import { mechBadges } from './mech_badges.mjs';
 import { clawSpotOf, clawAt, centreForClaw, clawLeg, isClawStep } from '../model/claw.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
 const KNOB_IN = 15;  // the heading knob sits this far ahead of the start's centre
 
@@ -376,7 +377,7 @@ export function createFieldView(host, app) {
         out.push(s('g', { class: 'g-twin', 'data-twin': '' }, square(t0, 'g-twin-robot'), s('polygon', { class: 'g-twin-front', points: frontPoints(t0) }),
                              claw(t0, false, {}, app.baked.robots[route.mirroredFor] || null)));
         const q = P(t0.x, t0.y + app.size() / 2 + 2.5);
-        out.push(s('text', { class: 'g-twin-label', x: q.px, y: q.py }, 'robot two (mirrored)'));
+        out.push(s('text', { class: 'g-twin-label', x: q.px, y: q.py }, `${robotName('two')} (mirrored)`));
         const hit = app.issues().find((x) => x.code === 'RCP1' && x.pair);
         if (hit) {
             out.push(square(hit.pair.one, 'g-too-close'), square(hit.pair.two, 'g-too-close'));

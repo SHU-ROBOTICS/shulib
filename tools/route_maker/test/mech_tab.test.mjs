@@ -176,7 +176,7 @@ test('D1: a card in plain words -- what it is, its ports and which way each turn
                     { name: 'right', steps: [{ do: 'run', mechanism: 'rightToggle' }, { do: 'set', mechanism: 'claw' }] }];
     assert.deepEqual(routesUsing(routes, 'claw'), [{ k: 0, name: 'skills', step: 1 }, { k: 2, name: 'right', step: 1 }]);
     assert.deepEqual(routesUsing(routes, 'cascade'), []);
-    assert.deepEqual(['one', 'two'].map(robotWords), ['robot one', 'robot two']);
+    assert.deepEqual(['one', 'two'].map(robotWords), ['White Bot', 'Black Bot']);  // RMP1-L's names, through its one source
 });
 
 test('D5: "find the bottom" (or the top) wherever a person reads it -- never "home"', () => {

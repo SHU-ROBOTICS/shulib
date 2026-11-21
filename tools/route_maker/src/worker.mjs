@@ -30,9 +30,8 @@
             }
             const result = { one: one.record, two: null, verdict: null };
             let pairWords = '';
-            if (pair && !eng.pair) {
-                pairWords = 'PREVIEW plays robot one: robot two\'s mirrored run is not in this preview engine yet.';
-            } else if (pair) {
+            const noPair = pair && !eng.pair;  // no pair mode: the page says so, in its robots' names (RMP1-L)
+            if (pair && eng.pair) {
                 const eng2 = await make(say);
                 say({ phase: 'two' });
                 const two = eng2.pair(route, robots);
@@ -43,7 +42,7 @@
                 result.verdict = two.verdict;
                 pairWords = two.record ? '' : two.words || '';
             }
-            say({ done: { ok: true, result, pairWords } });
+            say({ done: { ok: true, result, pairWords, ...(noPair ? { noPair } : {}) } });
         } catch (e) {
             instance = null;
             say({ done: { ok: false, words: `The preview engine stopped: ${e && e.message ? e.message : e}` } });

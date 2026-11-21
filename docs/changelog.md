@@ -16,6 +16,23 @@
 
 ## API 2.11
 
+### 2026-11-20 — What people see: White Bot and Black Bot
+
+> Written when it was built (the team lead: "we will name the bots White Bot and Black bot instead of 1 and two" —
+> what people see, today). **No library change.**
+
+**What changed:** robot one is **White Bot** and robot two **Black Bot** wherever the route builder names a robot
+(its buttons — **Send to White Bot** —, headings, checks, PREVIEW's words, the Controls and Mechanisms tabs, Watch the
+robot's Camera tab), in `tools/upload_auton.py`'s and `tools/route_builder.py`'s sentences ("Building White Bot's
+Drive: make ROBOT=one PROGRAM=drive"), and in the VS Code tasks, which say both: **Upload routes to White Bot (robot
+one)**, **Upload everything to Black Bot (robot two)**, **What is on White Bot (robot one)**; the robot picker too.
+Both tools take `white` and `black` as well as `one` and `two` (`python3 tools/upload_auton.py white drive`).
+
+**Not changed:** the exported C++ (byte for byte), what the robot and the library print (they still say robot one),
+`ROBOT=one` / `ROBOT=tank`, file names, `route_maker.json`, and the rest of these docs (after the competition).
+
+**What you must do:** nothing. `one` and `two` still work everywhere they did.
+
 ### 2026-11-20 — Robot two's programs build: its wiring is robot one's
 
 > Written when it was decided (the team lead: "Use White Bot's"). **No library change:** robot two's facts file.
@@ -86,7 +103,7 @@ forth on the string's slack. Both robots' cascades now hold on gains tuned on ro
 0.001`, `src/robots/mechanism_table.hpp`): held at 8 in, it stayed within 0.03 in at about 0 V. All six programs
 were re-uploaded to robot one with it.
 
-**What you must do:** upload everything to each robot again (VS Code: **Upload everything to robot one**).
+**What you must do:** upload everything to each robot again (VS Code: **Upload everything to White Bot (robot one)**).
 
 ### 2026-11-20 — See what the camera sees, in the route builder
 

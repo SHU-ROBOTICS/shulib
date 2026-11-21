@@ -14,14 +14,18 @@ import { routeKey, playbackOf, poseAt, sampleIndexAt, stepAt, stepTime, mechanis
 import { plannedHeights } from '../model/lift.mjs';
 import { ROBOT_TWO_ONLY } from '../model/checks.mjs';
 import { measureEmptyLimits } from '../model/mech_steps.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
 const PHASES = {
     starting: 'Starting the preview engine…',
     running: 'Running the route through the real library on the host test plant…',
-    two: 'Running robot two\'s mirrored route…',
+    two: `Running ${robotName('two')}'s mirrored route…`,
 };
 const TITLE = 'PREVIEW: run this route through the real library and watch the robot drive it here (Ctrl+Enter)';
-const NO_TWO = 'PREVIEW plays robot one: robot two\'s mirrored run is not in this build of the route builder yet.';
+/** PREVIEW without robot two's run: not in this build (`where`), or not in its engine (the worker's `noPair`). */
+const noTwo = (where) => `PREVIEW plays ${robotName('one')}: ${robotName('two')}'s mirrored run is not in this ${where} yet.`;
+/** An engine built before RMP1-L words it itself (no `noPair`), in the old names: said in the page's. */
+const oldNoPair = (w) => /mirrored run is not in this preview engine yet\.$/.test(w || '');
 
 /** The controller. `app` is the shell (app.mjs), `els` its elements, `engine` engine.mjs's, `toast` the shell's. */
 export function createPreview(app, els, engine, baked, toast) {
@@ -160,7 +164,7 @@ export function createPreview(app, els, engine, baked, toast) {
         // RMP1-C: robot two's errors (together? too close? skills mirrored?) are the export's -- robot one runs the same route;
         // RMP1-J D4: an EMPTY mechanism time limit runs with none (the cut), so PREVIEW measures it -- Export still asks
         const err = app.issues().find((x) => x.level === 'error' && !ROBOT_TWO_ONLY.has(x.code) && !(x.field === 'boundS' && x.empty));
-        const notReady = !r.start ? 'Place robot one\'s start first: click the field where it starts.'
+        const notReady = !r.start ? `Place ${robotName('one')}'s start first: click the field where it starts.`
             : !r.steps.length ? 'Add a step first: PREVIEW plays the route\'s steps.'
                 : err ? `PREVIEW runs a route the robot would run: fix ${err.stepIndex >= 0 ? `step ${err.stepIndex + 1}` : 'the start'} first. ${err.words}` : '';
         if (notReady) {
@@ -214,9 +218,9 @@ export function createPreview(app, els, engine, baked, toast) {
             toast(st.words, 'error');
             return;
         }
-        let pairWords = out.pairWords || (r.mirroredFor && !robots.two ? NO_TWO : '');
+        let pairWords = out.noPair || oldNoPair(out.pairWords) ? noTwo('preview engine') : out.pairWords || (r.mirroredFor && !robots.two ? noTwo('build of the route builder') : '');
         if (res.two && !moved(res.two)) {
-            pairWords = `Robot two's mirrored run was refused (${res.two.word}): ${res.two.why || 'no reason given'}`;
+            pairWords = `${robotName('two')}'s mirrored run was refused (${res.two.word}): ${res.two.why || 'no reason given'}`;
             Object.assign(res, { two: null, verdict: null });
         }
         const names = (robot) => r.steps.map((x) => ((robot.mechanisms || []).find((m) => m.ident === x.mechanism) || {}).name || '');
@@ -227,7 +231,7 @@ export function createPreview(app, els, engine, baked, toast) {
         const runRec = { key, play: playbackOf(res, { one: names(one), two: two ? names(two) : [] }, solid), pairWords, mechs, route: r, filled };
         if (r.together === false && runRec.play.pair) {  // RMP1-C D6: one robot at a time -- robot two's run shown, no gap verdict
             runRec.play.pair = null;
-            runRec.pairWords = 'One robot at a time (this route\'s answer): robot two\'s mirrored run is shown, the too-close check is not.';
+            runRec.pairWords = `One robot at a time (this route's answer): ${robotName('two')}'s mirrored run is shown, the too-close check is not.`;
         }
         cache.set(key, runRec);
         if (cache.size > 8) {

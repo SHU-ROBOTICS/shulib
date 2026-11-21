@@ -130,7 +130,7 @@ test.describe('RMP1-F: export to the robot', { skip }, () => {
             assert.match(await next.textContent(), /On the brain: shulib Auton Tester \(slot 6\) → one of: skills, left 1 → RUN/);
             assert.match(await next.textContent(), /make ends with no line saying "error".*pros says "Finished uploading"/);
             await shot(page, `xr-written-${v.tag}`, true);
-            await next.getByRole('button', { name: 'Robot two' }).click();
+            await next.getByRole('button', { name: 'Black Bot' }).click();
             assert.equal(await cmd('the build command'), 'make ROBOT=tank PROGRAM=autontest');
             assert.equal(await cmd('the one command'), robotCommands('two', { windows }).helper);
             await next.getByRole('button', { name: 'Copy the build command' }).click();
@@ -185,7 +185,7 @@ test.describe('RMP1-F: export to the robot', { skip }, () => {
         await card.waitFor();
         assert.equal(await card.locator('.xr-title').textContent(), `Not written into ${FILE}`);
         assert.match(await card.textContent(), /no ROUTE MAKER lines.*someone removed them.*The fix: ask the coordinator to put back its one pair of ROUTE MAKER lines \(git checkout src\/team\/skills_route\.cpp/);
-        assert.doesNotMatch(await card.textContent(), /robot two's update|use Copy/, 'that update has landed; Copy pastes over lines that are not there');
+        assert.doesNotMatch(await card.textContent(), /Black Bot's update|robot two's update|use Copy/, 'that update has landed; Copy pastes over lines that are not there');
         assert.equal(await drawer(page).getByRole('button', { name: 'Copy the code' }).count(), 0, 'nowhere: Copy pastes over lines that are not there');
         await page.keyboard.press('Escape');
         // the same file when the drawer opens: the banner says so, with the same fix, Write waits, no Copy, focus on the fix

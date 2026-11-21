@@ -315,7 +315,7 @@ test.describe('RMP1-N: what the camera sees, in Watch the robot', { skip }, () =
     });
 
     test('no [CAM] line: no Camera tab; no sensor: the card with one sentence and no picture', async () => {
-        for (const [lines, want] of [[NO_CAM, null], [NO_SENSOR, 'No camera on robot one: no AI Vision sensor on any port.']]) {
+        for (const [lines, want] of [[NO_CAM, null], [NO_SENSOR, 'No camera on White Bot: no AI Vision sensor on any port.']]) {
             replay(lines);
             const p = await opened(VARIANTS[0]);
             const { page } = p;

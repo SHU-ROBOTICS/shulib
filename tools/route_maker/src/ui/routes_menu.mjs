@@ -6,6 +6,7 @@ import { h, icon, ask, askText, openMenu } from './dom.mjs';
 import { nameProblem } from '../model/checks.mjs';
 import { ROUTE_NAME } from '../model/route.mjs';
 import { freeName, routeCap } from '../model/project.mjs';
+import { robotName } from '../model/robot_names.mjs';
 
 /** The switcher over `app` (app.mjs): {button(), rename(k)}. */
 export function createRoutesMenu(app) {
@@ -63,7 +64,7 @@ export function createRoutesMenu(app) {
         const rows = app.routes().map((r, k) => {
             const errors = app.issuesOf(k).filter((x) => x.level === 'error').length;
             const skills = r.name === ROUTE_NAME;
-            const how = r.mirroredFor ? `robot two mirrored${r.together === true ? ' · together' : r.together === false ? ' · one at a time' : ''}` : 'robot two as written';
+            const how = r.mirroredFor ? `${robotName('two')} mirrored${r.together === true ? ' · together' : r.together === false ? ' · one at a time' : ''}` : `${robotName('two')} as written`;
             return h('div', { class: 'route-row', 'data-route': r.name },
                 h('button', { class: 'menu-item route-pick', role: 'menuitemradio', 'aria-checked': String(k === at), onclick: () => app.switchRoute(k) },
                   h('span', { class: 'route-dot', 'data-state': errors ? 'error' : r.steps.length ? 'ok' : 'empty', title: errors ? `${errors} error${errors === 1 ? '' : 's'}` : '' }),
@@ -85,7 +86,7 @@ export function createRoutesMenu(app) {
                   `Check the mechanisms of "${app.routes()[at].name}"`),
                 h('button', { class: 'menu-item', id: 'watch-robot', onclick: () => rv.watch() }, icon('play'), 'Watch the robot'),
                 ['one', 'two'].map((r) => h('button', { class: 'menu-item', 'data-slots': r, onclick: () => rv.slots(r) }, icon('list'),
-                    `What is on robot ${r}`))] : null], 'Routes');
+                    `What is on ${robotName(r)}`))] : null], 'Routes');
     }
 
     function button() {
