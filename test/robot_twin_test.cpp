@@ -148,19 +148,16 @@ TEST_CASE("twin: robot two's facts are robot one's facts -- the same names, stag
     CHECK(ids2.size() == n2);
 }
 
-TEST_CASE("twin: robot two's build facts are robot one's VALUES (the same build); its five wiring facts stay OWED until station 13 on robot two") {
+TEST_CASE("twin: robot two's facts are robot one's VALUES (the same build) -- its five wiring facts too, since 2026-11-20; only the camera stays OWED") {
     // BUG CAUGHT: a robot-two wiring fact (a side toggle's direction, a piston's open level) typed without anyone
     // having watched robot two move — robot two's homing programs would then build unchecked; a build fact typed
     // as a number that is not robot one's (the same build: the team lead, 2026-11-20, "Use robot one's"); robot one's
-    // camera (still owed on robot one) claimed as typed on robot two. (When station 13's answers are typed, the
-    // coordinator re-pins this case in the same change.)
+    // camera (still owed on robot one) claimed as typed on robot two. RE-PINNED 2026-11-20: the team lead, asked to
+    // fill robot two's five wiring facts from robot one's ("Use White Bot's"), so robot two's Drive could be
+    // uploaded -- each typed as robot one's VALUE, its source saying it is not yet watched on robot two.
     CHECK(two::kRobotTwoFactCount == one::kRobotOneFactCount);
     const auto stillOwed = [](std::string_view n) {
-        return n == "the right side toggle's run direction" || n == "the left side toggle's run direction" ||
-               n == "the claw's line level that OPENS it" ||
-               n == "the front toggle's line level that pushes it OUT (open)" ||
-               n == "the ramp's line level that puts it DOWN" || n == "the AI Vision camera's port" ||
-               n == "where the AI Vision camera sits";
+        return n == "the AI Vision camera's port" || n == "where the AI Vision camera sits";
     };
     int owedHere = 0;
     for (std::size_t i = 0; i < static_cast<std::size_t>(two::kRobotTwoFactCount); ++i) {
@@ -170,8 +167,8 @@ TEST_CASE("twin: robot two's build facts are robot one's VALUES (the same build)
         owedHere += f.typed ? 0 : 1;
         if (f.typed) CHECK(one::kRobotOneFacts[i].typed);  // never a number robot one does not have
     }
-    CHECK(owedHere == 7);
-    CHECK(two::kRobotTwoOwedCount == 7);
+    CHECK(owedHere == 2);
+    CHECK(two::kRobotTwoOwedCount == 2);
     // the values: robot one's, fact for fact
     CHECK(two::kCascadePorts.value().first == one::kCascadePorts.value().first);
     CHECK(two::kCascadePorts.value().second == one::kCascadePorts.value().second);
@@ -187,11 +184,18 @@ TEST_CASE("twin: robot two's build facts are robot one's VALUES (the same build)
     }
     CHECK(two::kCalibratePulseYawFloorDeg.value() == one::kCalibratePulseYawFloorDeg.value());
     CHECK(two::kCalibrateRestYawRateDegPerS.value() == one::kCalibrateRestYawRateDegPerS.value());
-    // ...so robot two's Bench Tests and Calibrate build now; its other programs wait on the five wiring facts.
+    // the five wiring facts: robot one's values, said as not yet watched on robot two
+    CHECK(two::kClawOpenLevel.value() == one::kClawOpenLevel.value());
+    CHECK(two::kRightToggleDirection.value().reversed == one::kRightToggleDirection.value().reversed);
+    CHECK(two::kLeftToggleDirection.value().reversed == one::kLeftToggleDirection.value().reversed);
+    CHECK(two::kFlipperOpenLevel.value() == one::kFlipperOpenLevel.value());
+    CHECK(two::kRampDownLevel.value() == one::kRampDownLevel.value());
+    CHECK(std::string_view{two::kClawOpenLevel.source}.find("not yet watched on robot two") != std::string_view::npos);
+    // ...so every robot-two program builds (the camera's two gate none)
     CHECK(two::owedFor(sb::Program::BenchTests) == 0);
     CHECK(two::owedFor(sb::Program::Calibrate) == 0);
-    CHECK(two::owedFor(sb::Program::Drive) == 5);
-    CHECK(two::owedFor(sb::Program::Tune) == 5);
+    CHECK(two::owedFor(sb::Program::Drive) == 0);
+    CHECK(two::owedFor(sb::Program::Tune) == 0);
 }
 
 TEST_CASE("twin: the driver files' plumbing is robot one's, but for the robot's name -- each robot's buttons, feel and header map are its OWN") {

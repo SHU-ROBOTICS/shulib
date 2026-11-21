@@ -252,7 +252,8 @@ The checks it runs before it will move anything, each one a way tag data can be 
 
 **The limits, which are larger here than for the GPS:**
 
-- **No camera has ever been pointed at a tag by this project.** The corner-to-pose maths is
+- **The corrector has never seen a real camera's tag.** A camera first reported tags to this project
+  on 2026-11-20, as ids and boxes in shulib Drive's trace, never as corners. The corner-to-pose maths is
   proven against synthetic images computed from geometry, and the corrector against a simulated
   camera with invented noise. It has never seen a lens.
 - **The tag map is the most dangerous input in the library.** Sensor noise averages out; a wrong

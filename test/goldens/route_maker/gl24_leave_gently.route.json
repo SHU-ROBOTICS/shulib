@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "madeWith": "shulib route builder",
+  "routes": [
+    {
+      "name": "skills",
+      "kind": "skills",
+      "robot": "x",
+      "mirroredFor": "two",
+      "together": false,
+      "start": {
+        "x": -36,
+        "y": -55.7,
+        "headingDeg": 0
+      },
+      "endActionAtS": 57,
+      "hardStopAtS": 59,
+      "steps": [
+        {
+          "do": "set",
+          "mechanism": "hood",
+          "position": "up"
+        },
+        {
+          "do": "backward",
+          "inches": 4,
+          "gentlyWaitS": 0.5,
+          "gentlySpeedInPerS": 5
+        },
+        {
+          "label": "out",
+          "do": "reverseTo",
+          "x": -44,
+          "y": -50,
+          "faceFirst": true,
+          "gentlyWaitS": 1,
+          "gentlySpeedInPerS": 8,
+          "care": {
+            "maxSpeedInPerS": 12,
+            "onFail": "carryOn"
+          }
+        },
+        {
+          "do": "turnTo",
+          "headingDeg": 90
+        }
+      ]
+    },
+    {
+      "name": "gently slow",
+      "kind": "skills",
+      "robot": "x",
+      "mirroredFor": "two",
+      "together": false,
+      "start": {
+        "x": -36,
+        "y": -55.7,
+        "headingDeg": 0
+      },
+      "endActionAtS": 57,
+      "hardStopAtS": 59,
+      "steps": [
+        {
+          "do": "set",
+          "mechanism": "hood",
+          "position": "up"
+        },
+        {
+          "do": "backward",
+          "inches": 4,
+          "gentlyWaitS": 0.5,
+          "gentlySpeedInPerS": 5
+        }
+      ]
+    }
+  ],
+  "robots": {},
+  "exports": {}
+}

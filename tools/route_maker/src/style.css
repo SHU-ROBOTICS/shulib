@@ -20,6 +20,7 @@
   --field-dim: rgba(255, 255, 255, 0);
   --accent-fill: rgba(122, 61, 184, .12); --accent-fill-strong: rgba(122, 61, 184, .26); --robot-fill: rgba(201, 48, 44, .28);
   --robot-two-fill: rgba(37, 99, 201, .28); --band-fill: rgba(151, 90, 0, .16);
+  --claw: #0b7a43;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -33,6 +34,7 @@
     --field-dim: rgba(10, 8, 16, .22);
     --accent-fill: rgba(166, 120, 224, .16); --accent-fill-strong: rgba(166, 120, 224, .32); --robot-fill: rgba(239, 107, 101, .32);
     --robot-two-fill: rgba(107, 156, 240, .32); --band-fill: rgba(231, 165, 59, .2);
+    --claw: #3ddc84;
     color-scheme: dark;
   }
 }
@@ -46,6 +48,7 @@
   --field-dim: rgba(10, 8, 16, .22);
   --accent-fill: rgba(166, 120, 224, .16); --accent-fill-strong: rgba(166, 120, 224, .32); --robot-fill: rgba(239, 107, 101, .32);
   --robot-two-fill: rgba(107, 156, 240, .32); --band-fill: rgba(231, 165, 59, .2);
+  --claw: #3ddc84;
   color-scheme: dark;
 }
 @media (prefers-reduced-motion: reduce) { :root { --motion-fast: 0ms; --motion: 0ms; } }
@@ -133,6 +136,7 @@ button, input, select { font: inherit; color: inherit; }
 .step-title { font-weight: 600; font-size: var(--t-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .step-sub { color: var(--text-muted); font-size: var(--t-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .step-label { color: var(--accent-strong); font-weight: 650; }
+.step-sub .gently { padding: 0 6px; margin-right: 4px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong); font-weight: 650; }
 .start-card .step-icon { color: var(--red-alliance); }
 .empty-list { color: var(--text-muted); font-size: var(--t-sm); padding: var(--s-3); border: 1px dashed var(--border); border-radius: var(--radius-md); }
 .grip { cursor: grab; color: var(--text-muted); display: grid; place-items: center; height: 100%; }
@@ -695,6 +699,17 @@ input.num.bad { border-color: var(--failed); }
 .field-svg .faded { opacity: .18; pointer-events: none; }
 .field-svg .faded .g-handle, .g-step.locked .g-handle { pointer-events: none; }
 .g-step.locked .g-handle { fill: var(--surface-2); stroke-dasharray: 3 3; cursor: default; }
+/* RMP1-O: the claw's cross; a drive's is a handle */
+.g-claw { pointer-events: none; }
+.g-claw line { stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.g-claw-arm { stroke: var(--claw); stroke-width: 3; }
+.g-claw-halo { stroke: var(--surface); stroke-width: 6; opacity: .85; }
+.g-claw.big .g-claw-arm { stroke-width: 4.5; }
+.g-claw.big .g-claw-halo { stroke-width: 8.5; }
+.g-claw-hit { fill: transparent; stroke: none; }
+.g-claw[data-handle] { pointer-events: all; cursor: grab; }
+.g-claw[data-handle]:hover .g-claw-hit { fill: var(--accent-fill-strong); }
+.field-svg .faded .g-claw, .g-step.locked .g-claw { pointer-events: none; }
 .focusing .g-twin, .focusing .g-twin-path, .focusing .g-mirror, .focusing .g-twin-label { opacity: .12; }
 .g-tip { position: absolute; z-index: 4; pointer-events: none; max-width: min(420px, 80%); padding: 4px 10px; border-radius: var(--radius-sm);
   background: var(--text); color: var(--surface); font-size: var(--t-xs); font-weight: 600; box-shadow: var(--shadow); white-space: nowrap;
@@ -812,3 +827,61 @@ input.num.bad { border-color: var(--failed); }
 .rk-slots tr.bad .rk-mark { color: var(--failed); font-weight: 700; }
 .rk-slots tr.first { background: var(--error-soft); }
 /* ── end Mechanism check and run view (RMP1-K) ── */
+
+/* ── The Camera tab (RMP1-N) ── Watch the robot: one sentence over the camera's picture. The picture is dark in both
+   themes (a camera's view); with Camera picked, the run's lines step aside (all but the buttons, and the status while it
+   is red or the watch is not live: "Sending to the robot…", "Stopped watching."). */
+.cam-tabs { align-self: flex-start; }
+.run-view:has(> .cam[data-tab="camera"]) > :not(.cam, .row, .rk-status) { display: none; }
+.run-view:has(> .cam[data-tab="camera"][data-mode="live"]) > .rk-status:not(.bad) { display: none; }
+.cam-body { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-2); }
+.cam-sees { margin: 0; font-size: var(--t-lg); font-weight: 600; overflow-wrap: anywhere; }
+.cam-age { display: block; font-size: var(--t-sm); font-weight: 450; color: var(--text-muted); }
+.cam-edge { margin: 0; font-size: var(--t-sm); color: var(--text-muted); }
+.cam-frame { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; border-radius: var(--radius-sm);
+  outline: 1px solid var(--border); outline-offset: -1px; }
+.cam-bg { fill: #14121b; }
+.cam-box rect { fill: none; stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.cam-box text { font-family: var(--font-ui); font-weight: 700; paint-order: stroke; stroke: #14121b; stroke-width: 3px; }
+.cam-box[data-kind="tag"] rect { stroke: #ffd24d; }
+.cam-box[data-kind="tag"] text { fill: #ffd24d; }
+.cam-box[data-kind="obj"] rect { stroke: #5cd0ff; }
+.cam-box[data-kind="obj"] text { fill: #5cd0ff; }
+.cam-box[data-kind="col"] rect { stroke: #ff8ad8; }
+.cam-box[data-kind="col"] text { fill: #ff8ad8; }
+.cam-frame.stale .cam-box rect { stroke: #77737f; }
+.cam-frame.stale .cam-box text { fill: #77737f; }
+/* ── end The Camera tab (RMP1-N) ── */
+/* ── Mechanisms tab (RMP1-M) ── one card per mechanism; the one highlight is a card's last test result */
+.app[data-tab="mechanisms"] .workspace { display: none; }
+@media (max-width: 1440px) { .tab svg { display: none; } .tab { padding: 0 10px; } }  /* three tabs: the words stay, the icons give way */
+@media (max-width: 1280px) { .topbar > .sep { display: none; } .tab { padding: 0 8px; } }  /* then the separators */
+.mechs { display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--surface-3); }
+.mechs .spacer { flex: 1; }
+.mech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--s-4); width: 100%; max-width: 1400px;
+  margin: 0 auto; align-items: start; }
+.mech-card { padding: var(--s-3) var(--s-4); border-left: 4px solid transparent; }
+.mech-card.ok { border-left-color: var(--ok); }
+.mech-card.warn { border-left-color: var(--cut); }
+.mech-card.bad { border-left-color: var(--failed); }
+.mc-head { display: flex; align-items: center; gap: var(--s-2); }
+.mc-head h2 { flex: 1; margin: 0; font-size: var(--t-lg); }
+.mc-icon svg { width: 22px; height: 22px; color: var(--text-muted); }
+.mech-card dl { margin: var(--s-2) 0 0; display: grid; gap: 6px; }
+.mc-row { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: var(--s-2); }
+.mc-row dt { font-size: var(--t-xs); font-weight: 600; color: var(--text-muted); padding-top: 2px; }
+.mc-row dd { margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; font-size: var(--t-sm); }
+.mc-row dd .owed { color: var(--cut); font-weight: 600; }
+.mc-row dd .link { color: var(--accent-strong); background: none; border: 0; cursor: pointer; padding: 0; min-height: 24px; font: inherit; font-weight: 600;
+  text-decoration: underline; text-align: left; }
+.mc-result { display: flex; align-items: center; gap: var(--s-2); margin: var(--s-3) 0 0; font-weight: 650; color: var(--text-muted); }
+.mc-result svg { width: 18px; height: 18px; flex: none; }
+.mc-result small { margin-left: auto; font-weight: 450; color: var(--text-muted); }
+.mc-result.ok { color: var(--ok); }
+.mc-result.warn { color: var(--cut); }
+.mc-result.bad { color: var(--failed); }
+.mc-watch { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-sm); font-weight: 600; color: var(--text-muted); }
+.mc-watch svg { width: 16px; height: 16px; }
+.mc-notice { display: inline-flex; align-items: center; gap: 6px; flex: 1 1 24rem; min-width: 0; font-size: var(--t-sm); font-weight: 600; color: var(--cut); }
+.mc-notice svg { width: 16px; height: 16px; flex: none; }
+/* ── end Mechanisms tab (RMP1-M) ── */

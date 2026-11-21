@@ -269,7 +269,7 @@ test('RC19: a time limit of 0 or none; a run longer than nothing; volts past 12'
 test('RC20: homing a mechanism declared never homed; RC25: moving it to a level', () => {
     const issues = checkRoute(route([{ do: 'home', mechanism: 'tilt', boundS: 2 }, { do: 'move', mechanism: 'tilt', preset: 'mid', boundS: 2 }]), [Y], FIELD);
     assert.equal(at(issues, 'RC20')[0].library, libraryWords('homeNever'));
-    assert.ok(at(issues, 'RC25').some((i) => /never homed/.test(i.words)));
+    assert.ok(at(issues, 'RC25').some((i) => /never finds its zero/.test(i.words)));  // RMP1-M D5: never "homed"
 });
 
 test('RC21: the route name (29 printable, no %, not NONE; 25 when mirrored; no " or \\)', () => {
@@ -373,7 +373,7 @@ test('RC25 (R1): a move on a stall- or switch-homed mechanism needs a FINISHED h
     assert.deepEqual(at(checkRoute({ ...f2, steps: f2.steps.map((s) => (s.boundS === undefined && s.mechanism ? { ...s, boundS: 2 } : s)) }, [one], FIELD), 'RC25'), []);
     // a startHome still RUNNING when the move comes (a new command replaces the home) -- RM21's case
     const running = checkRoute(route([{ do: 'startHome', mechanism: 'cascade', boundS: 3 }, move]), [one], FIELD);
-    assert.ok(at(running, 'RC25').some((x) => /still homing/.test(x.words)));
+    assert.ok(at(running, 'RC25').some((x) => /still finding its bottom/.test(x.words)));
     // startHome, waitUntilDone, then another command between? the wait finished it
     const waited = checkRoute(route([{ do: 'startHome', mechanism: 'cascade', boundS: 3 }, { do: 'waitUntilDone', mechanism: 'cascade', boundS: 3 }, move]), [one], FIELD);
     assert.deepEqual(at(waited, 'RC25'), []);
@@ -392,7 +392,7 @@ test('RC25 (R1): a move on a stall- or switch-homed mechanism needs a FINISHED h
     const waitCarry = checkRoute(route([{ do: 'startHome', mechanism: 'cascade', boundS: 3 },
                                          { do: 'waitUntilDone', mechanism: 'cascade', boundS: 3, care: { onFail: 'carryOn' } }, move]), [one], FIELD);
     assert.deepEqual(at(waitCarry, 'RC25').map((x) => [x.level, x.stepIndex]), [['warn', 2]]);
-    assert.match(at(waitCarry, 'RC25')[0].words, /home fails \(step 2 fails and carries on\)/);
+    assert.match(at(waitCarry, 'RC25')[0].words, /fails to find its bottom \(step 2 fails and carries on\)/);
     // the "still homing" fix puts the wait BEFORE the move (and its time limit empty), and the error is gone
     const startThenMove = route([{ do: 'startHome', mechanism: 'cascade', boundS: 3 }, move]);
     const still = at(checkRoute(startThenMove, [one], FIELD), 'RC25')[0];

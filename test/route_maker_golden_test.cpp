@@ -16,11 +16,14 @@
 //
 // Host test plant only: nothing here has run on a robot.
 
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <set>
 #include <sstream>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "doctest.h"
 #include "mirrored_pair_check.hpp"
@@ -108,6 +111,9 @@ namespace rm_gl22 { RM_FIXTURE_X
 }
 namespace rm_gl23 { RM_FIXTURE_X
 #include "goldens/route_maker/gl23_pair_near_the_diagonal.cpp"
+}
+namespace rm_gl24 { RM_FIXTURE_X
+#include "goldens/route_maker/gl24_leave_gently.cpp"
 }
 // Robot one's and robot two's: their REAL declarations (src/robots/mechanism_table.hpp), as the shared file
 // sees them on each robot's build (robot one's names `facts` too: its ledger).
@@ -466,6 +472,188 @@ TEST_CASE("RMP1: each robot's description reads ITS OWN facts ledger's levels an
     CHECK_FALSE(two->ledgerOwed);  // robot two's levels: robot one's, the same build (2026-11-20)
 }
 
+namespace rmp1m {
+/// One mechanism's line of a description (each mechanism is one line), from its "wiring" on.
+std::string wiringOf(const std::string& d, const std::string& ident) {
+    const std::size_t at = d.find("\"ident\": \"" + ident + "\"");
+    REQUIRE(at != std::string::npos);
+    const std::size_t w = d.find("\"wiring\": ", at);
+    REQUIRE(w < d.find('\n', at));
+    std::string s = d.substr(w, d.find('\n', w) - w);
+    return s.ends_with(',') ? s.substr(0, s.size() - 1) : s;
+}
+/// One mechanism's whole line.
+std::string lineOf(const std::string& d, const std::string& ident) {
+    const std::size_t at = d.find("\"ident\": \"" + ident + "\"");
+    REQUIRE(at != std::string::npos);
+    const std::size_t from = d.rfind('\n', at) + 1;
+    return d.substr(from, d.find('\n', at) - from);
+}
+template <class Facts>
+std::string motorJson(int port, bool portOwed, const Facts& dir, bool first) {
+    const auto& m = first ? dir.value().first : dir.value().second;
+    return "{\"port\": " + (portOwed ? std::string{"null"} : std::to_string(port)) + ", \"reversed\": "
+           + (!dir.typed ? "null" : m.reversed ? "true" : "false") + "}";
+}
+/// A one-line piston's wiring from its facts: its line, and its two positions' levels (`second` is the one the level fact names).
+template <class Line, class Level>
+std::string pistonJson(const Line& line, const Level& level, const char* first, const char* second) {
+    const auto lv = [](bool high) { return std::string{high ? "[\"high\"]" : "[\"low\"]"}; };
+    return "\"wiring\": {\"motors\": [], \"lines\": [" + (line.typed ? "\"" + std::string(1, line.value()) + "\"" : std::string{"null"}) + "], \"levels\": "
+           + (level.typed ? "{\"" + std::string{first} + "\": " + lv(!level.value()) + ", \"" + second + "\": " + lv(level.value()) + "}" : std::string{"null"}) + "}";
+}
+}  // namespace rmp1m
+
+TEST_CASE("RMP1-M: each mechanism's wiring is its robot's facts -- each motor's port and direction, each piston's line and levels; an owed one null") {
+    // BUG CAUGHT (mutant): a card showing another mechanism's port, or a placeholder as a fact. Built here from the FACTS
+    // (an independent path from describe()'s, which reads the table).
+    auto check = [&](const char* id, const auto& f, int leftPort) {
+        const std::string d = route_maker::describe(*route_maker::robotSource(id));
+        INFO("robot " << std::string{id});
+        CHECK(rmp1m::wiringOf(d, "cascade") == "\"wiring\": {\"motors\": ["
+              + rmp1m::motorJson(f.kCascadePorts.value().first, !f.kCascadePorts.typed, f.kCascadeDirections, true) + ", "
+              + rmp1m::motorJson(f.kCascadePorts.value().second, !f.kCascadePorts.typed, f.kCascadeDirections, false) + "], \"lines\": []}}");
+        auto toggle = [&](int port, bool portOwed, const auto& dir) {
+            return "\"wiring\": {\"motors\": [{\"port\": " + (portOwed ? std::string{"null"} : std::to_string(port)) + ", \"reversed\": "
+                   + (!dir.typed ? "null" : dir.value().reversed ? "true" : "false") + "}], \"lines\": []}}";
+        };
+        CHECK(rmp1m::wiringOf(d, "rightToggle") == toggle(f.kRightTogglePort.value(), !f.kRightTogglePort.typed, f.kRightToggleDirection));
+        CHECK(rmp1m::wiringOf(d, "leftToggle")
+              == toggle(leftPort, !f.kRightTogglePort.typed || !f.kSideTogglePorts.typed, f.kLeftToggleDirection));
+        CHECK(rmp1m::wiringOf(d, "claw") == rmp1m::pistonJson(f.kClawLine, f.kClawOpenLevel, "closed", "open") + "}");
+        CHECK(rmp1m::wiringOf(d, "flipper") == rmp1m::pistonJson(f.kFlipperLine, f.kFlipperOpenLevel, "closed", "open") + "}");
+        CHECK(rmp1m::wiringOf(d, "ramp") == rmp1m::pistonJson(f.kRampLine, f.kRampDownLevel, "up", "down") + "}");
+        // a piston's start is its unpowered position: null while its levels are owed (never robot one's guess)
+        CHECK((rmp1m::lineOf(d, "claw").find("\"start\": null") != std::string::npos) == !f.kClawOpenLevel.typed);
+        return d;
+    };
+    namespace one = shulib::bench::robot_one_facts;
+    namespace two = shulib::bench::robot_two_facts;
+    struct F1 { decltype(one::kCascadePorts) kCascadePorts; decltype(one::kCascadeDirections) kCascadeDirections; decltype(one::kRightTogglePort) kRightTogglePort;
+                decltype(one::kSideTogglePorts) kSideTogglePorts; decltype(one::kRightToggleDirection) kRightToggleDirection;
+                decltype(one::kLeftToggleDirection) kLeftToggleDirection; decltype(one::kClawLine) kClawLine; decltype(one::kFlipperLine) kFlipperLine;
+                decltype(one::kRampLine) kRampLine; decltype(one::kClawOpenLevel) kClawOpenLevel; decltype(one::kFlipperOpenLevel) kFlipperOpenLevel;
+                decltype(one::kRampDownLevel) kRampDownLevel; };
+    const std::string d1 = check("one", F1{one::kCascadePorts, one::kCascadeDirections, one::kRightTogglePort, one::kSideTogglePorts, one::kRightToggleDirection,
+                                           one::kLeftToggleDirection, one::kClawLine, one::kFlipperLine, one::kRampLine, one::kClawOpenLevel,
+                                           one::kFlipperOpenLevel, one::kRampDownLevel}, one::leftTogglePort());
+    const std::string d2 = check("two", F1{two::kCascadePorts, two::kCascadeDirections, two::kRightTogglePort, two::kSideTogglePorts, two::kRightToggleDirection,
+                                           two::kLeftToggleDirection, two::kClawLine, two::kFlipperLine, two::kRampLine, two::kClawOpenLevel,
+                                           two::kFlipperOpenLevel, two::kRampDownLevel}, two::leftTogglePort());
+    // robot one has every wiring fact; robot two's toggles' directions and pistons' levels are still OWED today (2026-11-20)
+    CHECK(d1.find("null") == std::string::npos);
+    CHECK((rmp1m::wiringOf(d2, "rightToggle").find("\"reversed\": null") != std::string::npos) == !two::kRightToggleDirection.typed);
+    // a fixture robot's sensors ride along: robot x's lift is switch-homed (its line), its intake has a piece sensor
+    const std::string x = route_maker::describe(*route_maker::robotSource("x"));
+    CHECK(rmp1m::wiringOf(x, "lift").find("\"homeSwitch\": \"") != std::string::npos);
+    CHECK(rmp1m::wiringOf(x, "intake").find("\"pieceSensor\": ") != std::string::npos);
+}
+
+TEST_CASE("RMP1-M: an OWED port, line or sensor is written null -- the placeholder's number or letter never reaches the page") {
+    // BUG CAUGHT (mutant): portJson / lineJson ignoring `owed` — no team robot has an owed port today, so a fixture robot is
+    // described with its lift, hood and intake (robot x) and its wrist and catapult (robot y) owed.
+    using route_maker::WiringOwed;
+    auto owedX = *route_maker::robotSource("x");
+    owedX.wiringOwed = [](std::string_view m) { return m == "lift" || m == "hood" || m == "intake" ? WiringOwed{true, true} : WiringOwed{}; };
+    const std::string x = route_maker::describe(owedX);
+    CHECK(rmp1m::wiringOf(x, "lift") == "\"wiring\": {\"motors\": [{\"port\": null, \"reversed\": null}, {\"port\": null, \"reversed\": null}], \"lines\": [], \"homeSwitch\": null}}");
+    CHECK(rmp1m::wiringOf(x, "hood") == "\"wiring\": {\"motors\": [], \"lines\": [null, null], \"levels\": null}}");
+    CHECK(rmp1m::lineOf(x, "hood").find("\"start\": null") != std::string::npos);
+    CHECK(rmp1m::wiringOf(x, "intake") == "\"wiring\": {\"motors\": [{\"port\": null, \"reversed\": null}], \"lines\": [], \"pieceSensor\": null}}");
+    CHECK(rmp1m::wiringOf(x, "arm") == "\"wiring\": {\"motors\": [{\"port\": 1, \"reversed\": false}], \"lines\": []}}");  // not owed: as typed
+    // ports only (directions typed): the direction stays, the number goes
+    auto portsY = *route_maker::robotSource("y");
+    portsY.wiringOwed = [](std::string_view m) { return m == "wrist" || m == "catapult" ? WiringOwed{true, false} : WiringOwed{}; };
+    const std::string y = route_maker::describe(portsY);
+    CHECK(rmp1m::wiringOf(y, "wrist") == "\"wiring\": {\"motors\": [{\"port\": null, \"reversed\": false}], \"lines\": [], \"angleSensor\": null}}");
+    CHECK(rmp1m::wiringOf(y, "catapult") == "\"wiring\": {\"motors\": [{\"port\": null, \"reversed\": false}], \"lines\": [], \"pieceSensor\": null}}");
+}
+
+TEST_CASE("RMP1-M: which wiring facts each team mechanism waits for -- wiringOwedOf, flag by flag, and both robots' flags are their ledgers'") {
+    // BUG CAUGHT (mutant): a typed flag read for the wrong mechanism, or never read (an owed port shown as a fact).
+    using route_maker::WiringTyped;
+    using route_maker::WiringOwed;
+    const char* names[] = {"cascade", "right toggle", "left toggle", "claw", "flipper", "ramp"};
+    // flag k owed alone -> exactly these (mechanism, ports|directions) owed
+    const std::vector<std::vector<std::pair<int, bool>>> expect = {
+        {{0, true}}, {{0, false}}, {{1, true}, {2, true}}, {{2, true}}, {{1, false}}, {{2, false}},
+        {{3, true}}, {{4, true}}, {{5, true}}, {{3, false}}, {{4, false}}, {{5, false}}};
+    for (std::size_t k = 0; k < expect.size(); ++k) {
+        bool flags[12];
+        std::fill(std::begin(flags), std::end(flags), true);
+        flags[k] = false;
+        const WiringTyped t{flags[0], flags[1], flags[2], flags[3], flags[4], flags[5], flags[6], flags[7], flags[8], flags[9], flags[10], flags[11]};
+        for (int n = 0; n < 6; ++n) {
+            const auto o = route_maker::wiringOwedOf(names[n], t);
+            REQUIRE(o.has_value());
+            bool ports = false;
+            bool dirs = false;
+            for (const auto& [mech, isPort] : expect[k]) {
+                if (mech == n) {
+                    (isPort ? ports : dirs) = true;
+                }
+            }
+            INFO("flag " << k << " owed, " << names[n]);
+            CHECK(o->ports == ports);
+            CHECK(o->directions == dirs);
+        }
+    }
+    CHECK_FALSE(route_maker::wiringOwedOf("arm", WiringTyped{}).has_value());  // a name it does not know: nothing (a static_assert guards the tables)
+    namespace one = shulib::bench::robot_one_facts;
+    namespace two = shulib::bench::robot_two_facts;
+    const WiringTyped t1 = ROUTE_MAKER_WIRING_TYPED(one);
+    const WiringTyped t2 = ROUTE_MAKER_WIRING_TYPED(two);
+    CHECK(t1.cascadePorts == one::kCascadePorts.typed);
+    CHECK(t2.rightToggleDirection == two::kRightToggleDirection.typed);
+    CHECK(t2.leftToggleDirection == two::kLeftToggleDirection.typed);
+    CHECK(t2.clawLevel == two::kClawOpenLevel.typed);
+    CHECK(t2.flipperLevel == two::kFlipperOpenLevel.typed);
+    CHECK(t2.rampLevel == two::kRampDownLevel.typed);
+    CHECK(t2.clawLine == two::kClawLine.typed);
+    CHECK(t2.sideTogglePorts == two::kSideTogglePorts.typed);
+}
+
+TEST_CASE("RMP1-M: each robot's description names the facts its Auton Tester still waits for -- a Test sent then would never build") {
+    // BUG CAUGHT (review): robot two's Test sent while its Auton Tester REFUSES (five Stage-B facts owed): minutes of build, then nothing.
+    namespace one = shulib::bench::robot_one_facts;
+    namespace two = shulib::bench::robot_two_facts;
+    using shulib::bench::Program;
+    auto owedList = [](const std::string& d) {
+        const std::size_t a = d.find("\"testerOwed\": [");
+        REQUIRE(a != std::string::npos);
+        return d.substr(a, d.find('\n', a) - a);
+    };
+    const std::string l1 = owedList(route_maker::describe(*route_maker::robotSource("one")));
+    const std::string l2 = owedList(route_maker::describe(*route_maker::robotSource("two")));
+    CHECK((l1 == "\"testerOwed\": [],") == (one::owedFor(Program::AutonTester) == 0));
+    for (const auto& f : two::kRobotTwoFacts) {
+        INFO(f.name);
+        const bool named = l2.find("\"" + std::string{f.name} + "\"") != std::string::npos;
+        CHECK(named == (!f.typed && one::needs(Program::AutonTester, f.needed)));
+    }
+    std::size_t quotes = static_cast<std::size_t>(std::count(l2.begin(), l2.end(), '"'));
+    CHECK(quotes == 2 + 2 * static_cast<std::size_t>(two::owedFor(Program::AutonTester)));
+    CHECK(owedList(route_maker::describe(*route_maker::robotSource("x"))) == "\"testerOwed\": [],");  // a fixture: no ledger
+}
+
+TEST_CASE("RMP1-O: each robot's claw spot is 15/2 - kClawGrabInsetIn ahead of its centre, on its centre line; a clawless robot has none") {
+    // BUG CAUGHT: the inset ignored (the claw drawn at the front edge, 7.5 in: a pin placed there 1.232 in short);
+    // the claw off the centre line; a clawless robot given one. Robot two's spot read from robot one's ledger turns
+    // RED only once the two ledgers' values differ (today both 1.232: the same number either way).
+    CHECK(shulib::bench::robot_one_facts::kClawGrabInsetIn.value() == 1.232);
+    CHECK(shulib::bench::robot_two_facts::kClawGrabInsetIn.value() == shulib::bench::robot_one_facts::kClawGrabInsetIn.value());
+    for (const char* id : {"one", "two"}) {
+        CAPTURE(id);
+        const std::string d = route_maker::describe(*route_maker::robotSource(id));
+        CHECK(d.find("\n  \"clawSpot\": {\"forwardIn\": 6.268, \"sideIn\": 0},\n") != std::string::npos);
+    }
+    CHECK(route_maker::robotSource("two")->clawInsetIn == shulib::bench::robot_two_facts::kClawGrabInsetIn.value());
+    for (const char* id : {"x", "y", "z"}) {
+        CAPTURE(id);
+        CHECK(route_maker::describe(*route_maker::robotSource(id)).find("clawSpot") == std::string::npos);
+    }
+}
+
 TEST_CASE("RMP1: a robot that builds the shared route and declares a cascade marks its levels as its facts ledger's (the tripwire for robot two)") {
     // The shared routes move the cascade to LEDGER levels (`cascade[facts::lv(i).name]`); the page lets it
     // only on a robot whose description marks them (RC18) — both robots since ROB1-BT (route_maker_robots.hpp),
@@ -594,6 +782,31 @@ TEST_CASE("RMP1-C GL23: the page and the suite agree on a route both robots run 
     CHECK(v.checked);
     CHECK(v.ok);
     CHECK(std::abs(v.leastGapIn - 9.0) < 1.0);  // the page's least gap: 9.0 in (named_routes.test.mjs, GL23)
+}
+
+TEST_CASE("RMP1-P GL24: Leave gently -- the page's Wait, then the capped back-up, each a library step; its onFail before each") {
+    // BUG CAUGHT: the wait left out (the robot backs straight off the drop), the cap left out (it backs out at full
+    // speed: the team lead's stack knocked over; or at the step's faster typed 12 in/s), or the wait cut short. (A
+    // carry-on lost after the wait: nothing here fails -- "RMP1-P runner: a gentle back-up that FAILS" catches it.)
+    for (auto entry : {&rm_gl24::skillsRoute, &rm_gl24::gentlySlowRoute}) {
+        const AutonEntry e = entry();
+        CAPTURE(e.name);
+        XStack s{rm_rig::startOf(e), mech_fixture::robot_x::kRobotXMechanisms, false};
+        const auto r = s.run(e);
+        INFO(s.transcript());
+        REQUIRE(r.outcome == AutonRunOutcome::RoutineRan);
+        CHECK(r.routine.ok);
+        const bool skills = std::string{e.name} == "skills";
+        CHECK(r.routine.steps == (skills ? 7 : 3));  // a gentle back-up is a wait and a drive; turned first, three calls
+        CHECK(s.count("RTN", "wait 0.5 s") >= 1);
+        CHECK(s.count("RTN", "wait 1 s") >= (skills ? 1 : 0));
+        CHECK(s.world.peakSpeed <= (skills ? 8.0 : 5.0) * 1.1);  // the cap, read back from the plant
+        CHECK(s.world.peakSpeed >= (skills ? 8.0 : 5.0) * 0.5);  // ...and it did drive
+    }
+    const std::string code = golden("gl24_leave_gently.cpp");
+    CHECK(code.find("    r.then([&] { return ctx.guard.pause(0.5_s) == sequence::GuardedWaitResult::Satisfied; },\n"
+                    "           \"wait 0.5 s\");\n"
+                    "    r.reverseTo(-40_in, -55.7_in, {.maxLinearSpeed = 5_in / 1_s});\n") != std::string::npos);
 }
 
 TEST_CASE("RMP1-C: the other autons -- the names the page refuses for a route are exactly the autons both files register beside the routes") {

@@ -19,6 +19,7 @@
 //     comment says so); and since the brain's log counts the two calls as two steps, every comment from there
 //     on says which step number the brain's log gives it (`STOPPED at step N` names the brain's N);
 //   * a wait is the run guard's pause inside `r.then(...)` — never `r.pause`, which the 57 s cut cannot end;
+//   * a Back up with "Leave gently" (RMP1-P) is that wait, then the back-up at its gentle speed (its onFail before each);
 //   * a speed cap is `N_in / 1_s` and a turn cap `units::AngularVelocity{N * math::Angle::kPi / 180.0}` with
 //     its `// at most N deg/s` comment — NEVER through `_deg`, which wraps (270_deg is -90) [R10];
 //   * MotionOptions' fields in declaration order (C++20 designated initializers must be);
@@ -32,6 +33,7 @@ import { fmt } from './numbers.mjs';
 import { plannedPoses, CARE_MOTION_FIELDS, MOTION_KINDS, ROUTE_NAME } from './route.mjs';
 import { dist } from './geometry.mjs';
 import { plannedHeights, targetKind, moveTarget, unitOf } from './lift.mjs';
+import { isGentle, capped } from './gently.mjs';
 
 /** Every marker line is this many characters (§6.3's BEGIN and END lines are 91). */
 const MARKER_WIDTH = 91;
@@ -180,9 +182,16 @@ function pt(x, y) {
     return `(${fmt(x)}, ${fmt(y)}) in`;
 }
 
-/** How many steps the brain's log counts for one page step: a turned-first drive is two calls (the turn, the drive). */
+/** How many steps the brain's log counts for one page step: a turned-first drive is two calls (the turn, the drive);
+ *  Leave gently adds its wait. */
 export function libraryCalls(step) {
-    return (step.do === 'driveTo' || step.do === 'reverseTo') && step.faceFirst ? 2 : 1;
+    return ((step.do === 'driveTo' || step.do === 'reverseTo') && step.faceFirst ? 2 : 1) + (isGentle(step) ? 1 : 0);
+}
+
+/** A wait's two lines: the run guard's pause, named as the brain's log shows it. */
+function waitLines(seconds) {
+    return [`r.then([&] { return ctx.guard.pause(${sec(seconds)}) == sequence::GuardedWaitResult::Satisfied; },`,
+            `       ${lit(`wait ${fmt(seconds)} s`)});`];
 }
 
 /** A move to a number (D7): its goal `m.to(<target>)` and its words, from the height before it. */
@@ -205,7 +214,7 @@ function stepLines(step, n, plan, lib = n, robot = null, before = null) {
     const labelPart = step.label ? `"${step.label}": ` : '';
     let words;
     const code = [];
-    const opt = options(step);
+    const opt = options(capped(step));  // RMP1-P: a gentle back-up's own speed
     const of = onFailLine(step);
     switch (step.do) {
         case 'driveTo':
@@ -304,20 +313,30 @@ function stepLines(step, n, plan, lib = n, robot = null, before = null) {
             break;
         case 'wait':
             words = `WAIT ${fmt(step.seconds)} s. (The run's own wait: at 57 s the run cuts it at once.)`;
-            code.push(`r.then([&] { return ctx.guard.pause(${sec(step.seconds)}) == sequence::GuardedWaitResult::Satisfied; },`);
-            code.push(`       ${lit(`wait ${fmt(step.seconds)} s`)});`);
+            code.push(...waitLines(step.seconds));
             break;
         default:
             throw new Error(`export: step ${n} is "${step.do}", which this route builder cannot write`);
     }
+    const gentle = isGentle(step);
+    if (gentle) {  // RMP1-P: the wait first
+        if (!Number.isFinite(step.gentlyWaitS) || !Number.isFinite(step.gentlySpeedInPerS)) {
+            throw new Error(`export: step ${n}'s Leave gently has no wait or no speed`);
+        }
+        words = `LEAVE GENTLY: WAIT ${fmt(step.gentlyWaitS)} s, then ${words}`;
+        code.unshift(...waitLines(step.gentlyWaitS), ...(of ? [of] : []));
+    }
     const isMotion = MOTION_KINDS.has(step.do);
-    const twoCalls = libraryCalls(step) === 2;
-    let sentence = `Step ${n} — ${labelPart}${words}${isMotion ? careWords(step, twoCalls ? '; the drive: ' : ', ') : ''}`;
+    const twoCalls = (step.do === 'driveTo' || step.do === 'reverseTo') && !!step.faceFirst;
+    let sentence = `Step ${n} — ${labelPart}${words}${isMotion ? careWords(capped(step), twoCalls ? '; the drive: ' : ', ') : ''}`;
     if (!sentence.endsWith('.') && !sentence.endsWith('.)')) {
         sentence += '.';
     }
     sentence += failWords(step);
-    if (twoCalls) {
+    if (gentle) {
+        sentence += twoCalls ? ` (The brain's log calls the wait step ${lib}, the turn step ${lib + 1} and the back-up step ${lib + 2}.)`
+            : ` (The brain's log calls the wait step ${lib} and the back-up step ${lib + 1}.)`;
+    } else if (twoCalls) {
         sentence += ` (The brain's log calls the turn step ${lib} and the drive step ${lib + 1}.)`;
     } else if (lib !== n) {
         sentence += ` (The brain's log calls this step ${lib}.)`;

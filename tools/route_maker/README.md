@@ -8,9 +8,9 @@ the skills route by clicking and exports the C++. Students: read
 
 | Where | What |
 |---|---|
-| `src/model/` | PURE ES modules (no DOM, no file API), each with its node test in `test/`: the route and its edits (`route.mjs`), the library's curve ported line for line (`curve.mjs`, pinned by CV1), every check (`checks.mjs`), the export (`export.mjs`), the ONE number formatter (`numbers.mjs`), the marker / hand-edit / line-ending / read-back rules (`region.mjs`), what Export says next (`to_robot.mjs`: the build and upload commands, and `sendStage`, Send's reading of upload_auton's lines), the project file (`project.mjs`), undo, the field and snapping, the field's solid structures (`obstacles.mjs`, RMP1-H: the goals and the Loaders from the description's `field.obstacles` — `test/override_field_obstacles.hpp`, cited to the game manual — every step's swept square checked against them), the library's quoted sentences (`library_words.mjs`, checked against the headers) |
+| `src/model/` | PURE ES modules (no DOM, no file API), each with its node test in `test/`: the route and its edits (`route.mjs`), the library's curve ported line for line (`curve.mjs`, pinned by CV1), every check (`checks.mjs`), the export (`export.mjs`), the ONE number formatter (`numbers.mjs`), the marker / hand-edit / line-ending / read-back rules (`region.mjs`), what Export says next (`to_robot.mjs`: the build and upload commands, and `sendStage`, Send's reading of upload_auton's lines), the project file (`project.mjs`), undo, the field and snapping, the field's solid structures (`obstacles.mjs`, RMP1-H: the goals and the Loaders from the description's `field.obstacles` — `test/override_field_obstacles.hpp`, cited to the game manual — every step's swept square checked against them), the library's quoted sentences (`library_words.mjs`, checked against the headers), where the claw is (`claw.mjs`, RMP1-O: the description's `clawSpot`, 15/2 − `kClawGrabInsetIn` ahead of the centre, and a drive placed by its claw — the centre computed back along the leg (a curve's: from its knot before the last, as built), or refused in words when the centre would move under 1 in) |
 | `src/host/` | the four host interfaces the screens call: `files.mjs` (over `files_fsaccess.mjs` — Chrome/Edge's folder — `files_download.mjs` — every browser — or `files_local.mjs` — the page `tools/route_builder.py` serves, RMP1-I), `engine.mjs` (PREVIEW's engine, in a Worker — below), `robots.mjs` (the descriptions baked into the page), `capabilities.mjs`. A host (the local helper; later a VS Code panel) swaps these, never the screens or a rule |
-| `src/ui/` | the screens: `app.mjs` (the shell and the store), `field_view.mjs` (and `field_obstacles.mjs`: the structures' outlines, the one highlight, a step's "touches it on purpose"), `step_list.mjs`, `inspector.mjs`, `export_drawer.mjs` (with `to_robot.mjs`: the result, "Will it build?", Next; and `send_panel.mjs`: Send to robot, RMP1-I), `help.mjs`, `words.mjs` (what the page calls each step), `dom.mjs` (helpers and the icons); the Controls tab, one step on screen at a time: `controls_tab.mjs` (step 1: the controller and the editor beside it), `feel_tab.mjs` (step 2: the driving feel and its graph, "More settings" closed at first), `controls_export.mjs` |
+| `src/ui/` | the screens: `app.mjs` (the shell and the store), `field_view.mjs` (and `field_obstacles.mjs`: the structures' outlines, the one highlight, a step's "touches it on purpose"), `step_list.mjs`, `inspector.mjs`, `export_drawer.mjs` (with `to_robot.mjs`: the result, "Will it build?", Next; and `send_panel.mjs`: Send to robot, RMP1-I), `help.mjs`, `words.mjs` (what the page calls each step), `dom.mjs` (helpers and the icons); the Mechanisms tab: `mech_tab.mjs` (RMP1-M); the Controls tab, one step on screen at a time: `controls_tab.mjs` (step 1: the controller and the editor beside it), `feel_tab.mjs` (step 2: the driving feel and its graph, "More settings" closed at first), `controls_export.mjs` |
 | `src/model/` (the Controls tab) | `controls.mjs` (the controls as data, one check per build refusal of `controls()`, the `controls` and `control words` regions), `feel.mjs` (the library's stick curve in the C++'s order, `checkFeel`, the `feel` region), `driver_file.mjs` (the driver file's three marked regions: found, read, written all or none) |
 | `controls_cases.mjs` | the CT agreement's data: one configuration per build refusal on the fixture robots; `goldens.mjs --write` turns each into `test/compile_refusals/rm_ct_*.cpp` |
 | `src/app.html`, `src/style.css`, `src/browser_check.js` | the page's template, its design tokens and stylesheet, and the script that runs first and refuses an old browser in plain words |
@@ -18,6 +18,7 @@ the skills route by clicking and exports the C++. Students: read
 | `build.py` | stdlib Python: `--out DIR --describe build/test/shulib_route_maker` writes the SITE form (`app.html` + `src/`) and the ONE FILE (`shulib-route-builder.html`); refuses any URL but the XML namespaces and any laptop or runner path (RG1). Its output is never committed |
 | `goldens.mjs` | `node tools/route_maker/goldens.mjs --write` re-makes `test/goldens/route_maker/*.cpp` from their `.route.json` (the C++ suite compiles and runs them) — never `gl0_empty.cpp`, the contract's empty region kept by hand (no `.route.json`; its hash is pinned in `export.test.mjs`) — and the Controls tab's goldens and `rm_ct_*.cpp` refusals |
 | `src/model/route_lines.mjs` | the route → the LINES the preview engine runs (below) |
+| `src/model/gently.mjs` | (RMP1-P) **Leave gently** on a Back up (`reverseTo`, `backward`): the step's own `gentlyWaitS` (above 0, at most 2 s) and `gentlySpeedInPerS` (2–20 in/s; the step's care untouched, a slower typed top speed wins); on (0.5 s, 5 in/s) for a Back up ADDED or switched to Backwards right after a drop (a piston set off a `grabs` position or onto a `releases` one, as the robot's description marks them; only waits between), never on load; refused when its time limit (the library's 5 s if none) cannot cover the leg at that speed. Exported as the page's Wait, then the capped back-up (the onFail before each; `libraryCalls` counts the wait); Go around moves it to the first leg |
 | `wasm/CMakeLists.txt` | the preview engine: the REAL library in WebAssembly (below) |
 | `test/` | the node tests (`node --test tools/route_maker/test/*.test.mjs`); `test/page/` the browser tests; `test/wasm/` the engine's |
 
@@ -99,6 +100,47 @@ helper's self-test (the fake pros's `terminal` and `user-script` commands in `to
 `user-script` prints pros's own `Loading` and `Downloading slot_N.ini` lines, its `v5 read-file` fails as 3.5.6's does), and
 `test/page/run_view.page.test.mjs`.
 
+**RMP1-N — what the camera sees.** When the watched robot prints `[CAM]` lines (shulib Drive's camera trace,
+`src/programs/drive_program.cpp`), Watch the robot gains two tabs, **Run** and **Camera** (`src/ui/camera_view.mjs`, one
+call in `run_view.mjs`'s `render()`; Camera picked while there is no run, Run when a run starts; with Camera picked the
+run's lines step aside, all but the buttons and the status while it is red or the watch is not live). Camera is one
+sentence ("Sees: AprilTag 3, redBluePin (87 %)", the class names from the boot's `class N: 'name'` lines, else `class
+N`) over the camera's 320 x 240 picture, each tag, object and colour a box in the camera's pixels, its label kept inside
+the picture (a box wholly past the picture is not drawn, and one muted line says a box ran past it: the size is HA-193's
+belief). A picture greys when its lines stop: 0.35 s after one that saw something (Drive prints one every 0.1 s), 1.5 s
+after one that saw nothing (one every 1 s); lines read after the page was hidden show as old ("seen while this page was
+hidden"). "no AI Vision sensor on any port" is the sentence alone, a boot whose detections did not switch on says so,
+and no `[CAM]` line means no tabs. `src/model/camera_log.mjs` reads the lines strictly: only a message whose first piece
+is `n <count>` is a picture (the boot line's own `" | "` sample never is), a garbled entry is skipped, a line with more
+entries than its count is refused, a line short of its count drops its last entry (TermSink cuts a message at 200 bytes,
+so a line of 8 keeps 5 to 8 whole, as wide as their numbers are), and a count above 24 or below 0 is "The camera is not
+answering." Tests: `test/camera_log.test.mjs` (lines built from the C++ through TermSink's framing and cut; each
+CameraTrace statement, format AND arguments, and TermSink's framing pinned; robot one's real lines of 2026-11-20) and
+`test/page/camera_view.page.test.mjs` (the fake `pros terminal` replaying boots, a quiet second, pictures and runs; a
+burst and a hidden page with the page's frames held).
+
+**RMP1-M — the Mechanisms tab** (`src/ui/mech_tab.mjs`, beside Route and Controls): one card per mechanism of robot
+one or two, from `robots.json` — which since RMP1-M carries each mechanism's `wiring` (each motor's `{port, reversed}`,
+each line, a piston's `levels` per position, any bottom switch, angle sensor or piece sensor), a piston's `start`, and
+each robot's `testerOwed` (the facts its Auton Tester still waits for: that build refuses, so the tab refuses every Test
+and says so at the top), written by `test/route_maker_describe.hpp` from the robot's own table; a fact the facts ledger
+still owes is `null` (`test/route_maker_robots.hpp`'s `wiringOwedOf`, every team mechanism known to it or the build
+stops) and the card says "not known yet". A `robots.json` with no `wiring` at all was made before the tab: the page says
+THAT (the site needs rebuilding), never "the builders' answer"; `tools/route_builder.py`'s facts-differ warning also
+diffs the describe tool's own files. Its buttons are the Controls tab's
+(`jobsOf`, the same `buttonWord` as the controller's labels). **Test** builds a one-mechanism test route
+(`check_route.mjs` `mechanismTest`: a lift or arm finds its bottom first, then each measured level or the middle of its
+travel, then the bottom; a motor ±6 V for 0.5 s; a piston each position, then its start; every step bounded and carrying
+on; `"<mechanism> mechs"` / `"all mechs"`, never a name a route's check also has; an owed port or sensor refused in
+words) and sends it through RMP1-K's `confirmSend` — the same "what will move" screen, Send and write-back (the card
+waits only once the file is written, and goes back to its last result if the send does not upload); `testResults` turns
+the robot's own lines — of a run that started after that Send, on that robot — into each card's green / amber / red.
+The page itself never says "home": `lift.mjs` `homeEnd` / `findWord` say "find the bottom" (or the top) wherever it
+speaks; the exported C++ (`home()`, its comments) is unchanged, and so are the words that are C++ or the robot's (the
+driver file's own comments the Controls tab shows, the library's quoted refusals, `NOT_HOMED`). A robot's name in
+the tab goes through `robotWords()` alone. Tests: `test/mech_tab.test.mjs`, `test/page/mech_tab.page.test.mjs`, and the
+suite's "RMP1-M: each mechanism's wiring is its robot's facts".
+
 ## The preview engine (RMP1-A2e)
 
 The engine behind the page's PREVIEW (which RMP1-A2u wires into the page) runs the REAL library on the host test
@@ -144,8 +186,8 @@ on its heap — a fresh instance frees it. `.preview()` THROWS if the module abo
 route, a run needs 16–32 KB of the 1 MB); that instance is dead: make a new one.
 
 **The lines** (`route_lines.mjs`): `shulib-route 1`, then `route robot=… name=… park=… stop=…`, `start x=… y=… h=…`
-(or `start relative`), and one `step do=<kind> key=value …` per page step. Every number is `numbers.mjs`'s text; a
-name is %-encoded; a mechanism goes by its `.name` and a ledger level by its preset's name (from the robot's
+(or `start relative`), and one `step do=<kind> key=value …` per page step (a back-up's `wait=<s>`, Leave gently, is
+its wait first). Every number is `numbers.mjs`'s text; a name is %-encoded; a mechanism goes by its `.name` and a ledger level by its preset's name (from the robot's
 description). The runner refuses, by name, any line the export could not have written.
 
 **The record — schema 1** (one JSON object, one top-level member per line; times are seconds from the arming, `s`
@@ -252,6 +294,8 @@ native twin's record: that test fails, not skips, when either is missing.
   downloaded, copied) or red with its reason and its fix; then the commands that build and upload, or
   `tools/upload_auton.py one|two`, which does both and prints ✓ or ✗ (`python3 tools/upload_auton.py self-test`:
   its cases against fake `make` and a fake `pros` that takes pros-cli's own grammar).
+- **A step holds the robot's CENTRE** (RMP1-O): the claw's cross, dragging it and **Place by the claw** only work out
+  that centre; the export never reads the claw, so it is byte for byte what it was (`claw.test.mjs`).
 - **Nothing is invented for the students** (G4): a one-click fix adds a step they see, and leaves its time limit
   empty for them to type. The Controls tab starts from the driver file's own map, never a made-up one.
 - **The Controls tab refuses what the build refuses, by the build's name**: each of those refusals has

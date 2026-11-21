@@ -626,6 +626,34 @@ test.describe('PREVIEW in the page', { skip }, () => {
         assert.deepEqual(await p.done(), []);
     });
 
+    test('RMP1-O: PREVIEW\'s robots carry their claw\'s cross, each at ITS robot\'s spot (robot one 6.268 in ahead, robot two its own)', async () => {
+        // BUG CAUGHT (review): no cross on PREVIEW's robots; robot two drawn with the route robot's spot
+        const p = await openPage();
+        const { page } = p;
+        const robots = noStructures();
+        robots.two.clawSpot = { forwardIn: 3, sideIn: 0 };
+        await page.evaluate((r) => window.routeBuilder.useRobots(r), robots);
+        await openFixture(page, 'pair_ok');
+        await preview(page);
+        await stop(page);
+        await page.keyboard.press('End');
+        for (const [who, k] of [['one', 7.5 - 1.232], ['two', 3]]) {
+            const body = await drawn(page, who);
+            const c = [body.reduce((a, q) => a + q[0], 0) / body.length, body.reduce((a, q) => a + q[1], 0) / body.length];
+            const tip = (await drawn(page, who, 'g-run-front'))[0];
+            const claw = await page.evaluate((w) => {
+                const pic = JSON.parse(document.getElementById('shulib-field').textContent);
+                const g = document.querySelector(`.g-run.${w} [data-claw]`);
+                return g && [pic.originPx[0] + Number(g.dataset.x) * pic.pxPerIn, pic.originPx[1] - Number(g.dataset.y) * pic.pxPerIn, pic.pxPerIn];
+            }, who);
+            assert.ok(claw, `robot ${who}: a cross`);
+            const u = [tip[0] - c[0], tip[1] - c[1]].map((v, _, a) => v / Math.hypot(...a));
+            const want = [c[0] + k * claw[2] * u[0], c[1] + k * claw[2] * u[1]];
+            assert.ok(Math.hypot(claw[0] - want[0], claw[1] - want[1]) < 0.01 * claw[2], `robot ${who}: ${k} in ahead (${claw} vs ${want})`);
+        }
+        assert.deepEqual(await p.done(), []);
+    });
+
     test('robot two IS in this build (ROB1-BT): both robots play; a build without it plays ONE robot, and one plain line says so', async () => {
         assert.deepEqual(JSON.parse(fs.readFileSync(path.join(SITE, 'robots.json'), 'utf8')).sharedRoute.robots, ['one', 'two']);
         const p = await openPage();  // the site as built

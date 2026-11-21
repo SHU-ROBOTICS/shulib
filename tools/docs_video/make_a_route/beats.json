@@ -5,7 +5,7 @@
   {"id": "m04", "say": "Click the field where robot one starts. The triangle marks its front.", "caption": "Click the field: robot one's **start**"},
   {"id": "m05", "say": "Type its heading on the right. Ninety faces blue.", "caption": "**Heading 90**: it faces blue"},
   {"id": "m06", "say": "Robot two runs this route mirrored. Answer once: do both robots run it together? Here, one at a time.", "caption": "Answer once: both robots **at the same time**?"},
-  {"id": "m07", "say": "First, home the cascade: Mechanism, then Home it. Type its time limit yourself.", "caption": "**Home** the cascade first, with a **time limit**"},
+  {"id": "m07", "say": "First, the cascade finds its bottom: Mechanism, then Find the bottom. Type its time limit yourself.", "caption": "**Find the bottom** first, with a **time limit**"},
   {"id": "m08", "say": "Pick Drive, and click where the robot drives to.", "caption": "**Drive** (D): click where it drives to"},
   {"id": "m09", "say": "The dashed line is the plan. The square shows where the robot ends.", "caption": "Dashed = the **plan**; the square = where it **ends**"},
   {"id": "m11", "say": "To place a point exactly, select it and press the arrow keys: one inch a press.", "caption": "**Arrow keys**: 1 in a press"},

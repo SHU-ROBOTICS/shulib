@@ -171,7 +171,7 @@ test.describe('RMP1-K: check the mechanisms, watch the run, what is on the robot
             const dlg = page.locator('.rk-dialog');
             assert.equal(await dlg.locator('h2').textContent(), 'Check the mechanisms of "skills"');
             assert.deepEqual(await dlg.locator('.rk-moves li').allTextContents(),
-                ['the cascade homes, goes to 6 in, then 18 in', 'the claw goes to closed, then open', 'the right toggle runs 0.8 s at 8 V']);
+                ['the cascade finds its bottom, goes to 6 in, then 18 in', 'the claw goes to closed, then open', 'the right toggle runs 0.8 s at 8 V']);
             assert.equal(await dlg.locator('.rk-safe').textContent(), 'The robot stays where it is — clear the mechanisms\' paths.');
             assert.equal(await dlg.locator('.btn.primary').count(), 1, 'one highlight');
             assert.equal(await dlg.locator('.btn.primary').textContent(), 'Send the check to robot one');

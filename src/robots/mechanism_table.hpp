@@ -127,8 +127,8 @@ inline constexpr Power leftToggle{.name = "left toggle", .motors = {facts::kLeft
 inline constexpr Pneumatic claw{
     .name = "claw",
     .positions = {{"closed", {!facts::kClawOpenLevel.value()}, grabs}, {"open", {facts::kClawOpenLevel.value()}}},
-    .start = facts::unpoweredPosition(facts::kClawOpenLevel.value(), "closed", "open"),
-    .safe = facts::unpoweredPosition(facts::kClawOpenLevel.value(), "closed", "open"),
+    .start = "closed",  // CLOSED from power-up (the team lead, 2026-11-20: "it needs to close on start up"; a preload
+    .safe = "closed",   // in it is optional) -- the one piston that does not start unpowered
     .moveTime = facts::kClawStrokeTime.value(),
 };
 // THE FRONT TOGGLE -- robot one's FLIPPER (the facts' kFlipperKind: a pneumatic): two forward-facing
@@ -206,8 +206,8 @@ inline constexpr Power leftToggle{.name = "left toggle", .motors = {facts::kLeft
 inline constexpr Pneumatic claw{
     .name = "claw",
     .positions = {{"closed", {!facts::kClawOpenLevel.value()}, grabs}, {"open", {facts::kClawOpenLevel.value()}}},
-    .start = facts::unpoweredPosition(facts::kClawOpenLevel.value(), "closed", "open"),
-    .safe = facts::unpoweredPosition(facts::kClawOpenLevel.value(), "closed", "open"),
+    .start = "closed",  // CLOSED from power-up (the team lead, 2026-11-20: "it needs to close on start up"; a preload
+    .safe = "closed",   // in it is optional) -- the one piston that does not start unpowered
     .moveTime = facts::kClawStrokeTime.value(),
 };
 inline constexpr Pneumatic flipper{

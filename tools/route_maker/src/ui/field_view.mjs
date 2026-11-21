@@ -14,6 +14,8 @@
 // focus only the selected step and its neighbours are drawn full and take the pointer. Points on one spot: a press
 // takes the selected one if it is there (a drag moves what is highlighted), else the top one; a click there picks the
 // one under the selected ("2 of 3 here"); hovering names the one a press would take.
+// RMP1-O: a cross on every robot drawn marks its CLAW; a drive's cross is a handle — dragged (or the point dragged with
+// Ctrl held, or "Place by the claw" on), the claw follows the pointer and the centre is computed back along the leg.
 
 import { s, h } from './dom.mjs';
 import { stepTitle } from './words.mjs';
@@ -25,6 +27,7 @@ import { startPose } from '../model/route.mjs';
 import { reflect, stepPoses } from '../model/pair.mjs';
 import { obstacleShapes } from './field_obstacles.mjs';
 import { mechBadges } from './mech_badges.mjs';
+import { clawSpotOf, clawAt, centreForClaw, clawLeg, isClawStep } from '../model/claw.mjs';
 
 const KNOB_IN = 15;  // the heading knob sits this far ahead of the start's centre
 
@@ -64,7 +67,8 @@ export function createFieldView(host, app) {
             return el.dataset.handle === 'heading' ? 'The start\'s heading' : 'The start';
         }
         const pt = el.dataset.handle === 'curvePoint' ? `, point ${Number(el.dataset.point) + 1}` : '';
-        return `Step ${i + 1}${pt}: ${stepTitle(step, app.robot())[0]}`;
+        const claw = el.dataset.handle === 'claw' ? ' (its claw: drag it onto the pin)' : '';
+        return `Step ${i + 1}${pt}: ${stepTitle(step, app.robot())[0]}${claw}`;
     }
     const handleOf = (el) => ({ handle: el.dataset.handle, index: Number(el.dataset.index), point: Number(el.dataset.point) });
     /** Where the selected point is in `hs` (-1: not there). A press takes it, so the tip names it too. */
@@ -209,11 +213,40 @@ export function createFieldView(host, app) {
                 if (Number.isFinite(raw)) {
                     app.dragTo({ handle: 'heading', headingDeg: ev.altKey ? round3(raw) : snapHeading(raw, ev.shiftKey ? 1 : 15) });
                 }
+            } else if (drag.handle === 'claw' || ev.ctrlKey || ev.metaKey || (app.state().byClaw && isDrive(drag.index))) {
+                dragClaw(ev);
             } else {
                 app.dragTo({ handle: drag.handle, index: drag.index, point: drag.point, ...toField(ev, true) });
             }
         }
     });
+    // "Place by the claw" is a drive's (as its switch): a curve's last point goes by the claw with Ctrl, or its cross
+    const isDrive = (i) => ['driveTo', 'reverseTo'].includes(app.route().steps[i] && app.route().steps[i].do);
+    /** RMP1-O: the claw on the pointer, not snapped (the grid is the centre's) — the centre back along the leg. */
+    function dragClaw(ev) {
+        const step = app.route().steps[drag.index];
+        const leg = step && clawLeg(step, app.plan()[drag.index]);
+        const spot = clawSpotOf(app.robot());
+        const mine = drag.handle === 'claw' || (leg && (leg.point === undefined ? drag.handle === 'point' : drag.point === leg.point));
+        if (!leg || !spot || !mine) {
+            app.dragTo({ handle: drag.handle, index: drag.index, point: drag.point, ...toField(ev, true) });
+            return;
+        }
+        const c = centreForClaw(toField(ev, false), leg.from, spot, leg);
+        if (c.refused) {
+            showWords(ev, c.refused);
+            return;
+        }
+        tip.hidden = true;
+        app.dragTo(leg.point === undefined ? { handle: 'point', index: drag.index, ...c } : { handle: 'curvePoint', index: drag.index, point: leg.point, ...c });
+    }
+    function showWords(ev, words) {
+        const r = host.getBoundingClientRect();
+        tip.hidden = false;
+        tip.textContent = words;
+        tip.style.left = `${ev.clientX - r.left + 14}px`;
+        tip.style.top = `${ev.clientY - r.top + 14}px`;
+    }
     const end = (ev) => {
         pointers.delete(ev.pointerId);
         if (!drag) {
@@ -264,6 +297,21 @@ export function createFieldView(host, app) {
     }
     function front(pose) {
         return s('polygon', { class: 'g-front', points: frontPoints(pose) });
+    }
+    /** RMP1-O: `robot`'s claw cross at `pose` (none for a robot with no claw); `attrs` make a drive's a handle. */
+    function claw(pose, big = false, attrs = {}, robot = app.robot()) {
+        const spot = clawSpotOf(robot);
+        if (!spot || !pose || ![pose.x, pose.y, pose.headingDeg].every(Number.isFinite)) {
+            return null;
+        }
+        const c = clawAt(pose, spot);
+        const r = (pose.headingDeg * Math.PI) / 180;
+        const k = big ? 3.2 : 1.8;
+        const ends = [r + Math.PI / 4, r - Math.PI / 4].map((a) => [P(c.x + k * Math.cos(a), c.y + k * Math.sin(a)), P(c.x - k * Math.cos(a), c.y - k * Math.sin(a))]);
+        const arms = (cls) => ends.map(([a, b]) => s('line', { class: cls, x1: a.px, y1: a.py, x2: b.px, y2: b.py }));
+        const q = P(c.x, c.y);
+        return s('g', { class: `g-claw${big ? ' big' : ''}`, 'data-claw': '', 'data-x': c.x.toFixed(3), 'data-y': c.y.toFixed(3), ...attrs },
+                 s('circle', { class: 'g-claw-hit', cx: q.px, cy: q.py, r: inPx(k + 0.6) }), ...arms('g-claw-halo'), ...arms('g-claw-arm'));
     }
     function arc(at, fromDeg, toDeg) {
         const sweep = ((toDeg - fromDeg + 540) % 360) - 180;
@@ -325,7 +373,8 @@ export function createFieldView(host, app) {
         const two = path.map((q) => reflect(q, mirror));
         out.push(s('polyline', { class: 'g-twin-path', points: pts(two) }));
         const t0 = two[0];
-        out.push(s('g', { class: 'g-twin', 'data-twin': '' }, square(t0, 'g-twin-robot'), s('polygon', { class: 'g-twin-front', points: frontPoints(t0) })));
+        out.push(s('g', { class: 'g-twin', 'data-twin': '' }, square(t0, 'g-twin-robot'), s('polygon', { class: 'g-twin-front', points: frontPoints(t0) }),
+                             claw(t0, false, {}, app.baked.robots[route.mirroredFor] || null)));
         const q = P(t0.x, t0.y + app.size() / 2 + 2.5);
         out.push(s('text', { class: 'g-twin-label', x: q.px, y: q.py }, 'robot two (mirrored)'));
         const hit = app.issues().find((x) => x.code === 'RCP1' && x.pair);
@@ -346,6 +395,16 @@ export function createFieldView(host, app) {
         const faded = (i) => (near && !near.has(i) ? ' faded' : '');
         svg.classList.toggle('focusing', !!near);
         const parts = [obstacleShapes(app, P)];  // RMP1-H: the solid structures, under the route
+        // RMP1-O: a big cross, over the numbers, where the selected step grabs or drops: a claw step, or the drive before
+        // one (the steps after it that do not move the robot keep its pose object: plannedPoses). It takes no pointer: a
+        // mechanism badge there stays clickable, and the drive's own cross under it is the handle
+        const clawStep = (i) => !!route.steps[i] && isClawStep(route.steps[i], app.robot());
+        const sel = typeof st.selected === 'number' && plan[st.selected] && !isHidden(route.steps[st.selected]) ? st.selected : -1;
+        let grabs = sel >= 0 && clawStep(sel);
+        for (let j = sel + 1; sel >= 0 && !grabs && plan[j] && plan[j].to === plan[sel].to; ++j) {
+            grabs = clawStep(j);
+        }
+        const late = grabs ? claw(plan[sel].to, true) : null;
         // the planned path: each step in its own group (hidden: not drawn; faded or locked: its points take no pointer)
         route.steps.forEach((step, i) => {
             if (isHidden(step)) {
@@ -375,12 +434,14 @@ export function createFieldView(host, app) {
                     parts.push(s('line', { class: cls, x1: a.px, y1: a.py, x2: b.px, y2: b.py }));
                     parts.push(square(p.to, `g-ghost ${sel ? 'sel' : ''}`));
                     parts.push(handle(step.x, step.y, 'point', i, 0, `${sel ? 'sel' : ''} ${level[i] === 'error' ? 'error' : ''}`));
+                    parts.push(claw(p.to, false, { 'data-handle': 'claw', 'data-index': i }));
                 }
             } else if ((step.do === 'forward' || step.do === 'backward') && p.to) {
                 const a = P(p.from.x, p.from.y);
                 const b = P(p.to.x, p.to.y);
                 parts.push(s('line', { class: cls, x1: a.px, y1: a.py, x2: b.px, y2: b.py }));
                 parts.push(square(p.to, `g-ghost ${sel ? 'sel' : ''}`));
+                parts.push(claw(p.to));
             } else if (step.do === 'face' || step.do === 'faceAway' || step.do === 'turnTo') {
                 parts.push(arc(p.from, p.from.headingDeg, p.to.headingDeg));
                 if (step.do !== 'turnTo' && Number.isFinite(step.x)) {
@@ -390,12 +451,13 @@ export function createFieldView(host, app) {
                     parts.push(handle(step.x, step.y, 'point', i, 0, sel ? 'sel' : ''));
                 }
                 if (sel) {
-                    parts.push(square(p.to, 'g-ghost sel'));
+                    parts.push(square(p.to, 'g-ghost sel'), claw(p.to));
                 }
             } else if ((step.do === 'curveTo' || step.do === 'reverseCurveTo') && p.curve) {
                 const pts = p.curve.samples(1).map((q) => P(q.x, q.y)).map((q) => `${q.px},${q.py}`).join(' ');
                 parts.push(s('polyline', { class: cls, points: pts }));
                 parts.push(square(p.to, `g-ghost ${sel ? 'sel' : ''}`));
+                parts.push(claw(p.to, false, { 'data-handle': 'claw', 'data-index': i, 'data-point': step.points.length - 1 }));
                 (step.points || []).forEach((q, k) => parts.push(handle(q.x, q.y, 'curvePoint', i, k, sel ? `sel${st.point === k ? ' point' : ''}` : '')));
             }
         }
@@ -414,7 +476,7 @@ export function createFieldView(host, app) {
         // from a hand-edited file, is not: the step list shows "?" for the part and the inspector asks for it)
         const st0 = startPose(route.start);
         if (st0) {
-            parts.push(s('g', { class: `g-start${faded('start')}`, 'data-handle': 'start', 'data-index': -1 }, square(st0, 'g-robot'), front(st0)));
+            parts.push(s('g', { class: `g-start${faded('start')}`, 'data-handle': 'start', 'data-index': -1 }, square(st0, 'g-robot'), front(st0), claw(st0)));
             const rad = (st0.headingDeg * Math.PI) / 180;
             const a = P(st0.x, st0.y);
             const k = P(st0.x + KNOB_IN * Math.cos(rad), st0.y + KNOB_IN * Math.sin(rad));
@@ -444,6 +506,7 @@ export function createFieldView(host, app) {
             parts.push(badge(spot.pose, numbersLabel(nums.map((i) => i + 1)), `${lv ? `badge-${lv}` : ''}${spot.lit.length ? '' : ' faded'}`));
         }
         parts.push(...mechBadges(app, plan, P, inPx, near));  // RMP1-J D5: each mechanism step where it happens
+        parts.push(late);
         layer.append(...parts.filter(Boolean));
     }
 
@@ -493,14 +556,15 @@ export function createFieldView(host, app) {
                     s('polyline', { class: 'g-run-done' }),
                     s('polyline', { class: 'g-run-after' }),
                     s('polygon', { class: 'g-run-robot' }),
-                    s('polygon', { class: 'g-run-front' }));
+                    s('polygon', { class: 'g-run-front' }),
+                    s('g', { class: 'g-run-claw' }));
                 runLayer.append(g);
                 run.robots.push(g);
             }
         }
         frame.robots.forEach((r, i) => {
             const g = run.robots[i];
-            const [, done, after, body, nose] = g.children;
+            const [, done, after, body, nose, cl] = g.children;
             const lo = kAt(r.path, r.upTo);
             // after a THROUGH the robot would not get further (RPV1): the rest is drawn faded
             const past = r.throughAt !== null && r.upTo >= r.throughAt;
@@ -512,6 +576,7 @@ export function createFieldView(host, app) {
             g.classList.toggle('through', past);
             body.setAttribute('points', cornersOf(r.pose, r.size));
             nose.setAttribute('points', frontPoints(r.pose, r.size));
+            cl.replaceChildren(...[claw(r.pose, false, {}, r.robot || null)].filter(Boolean));
         });
     }
 

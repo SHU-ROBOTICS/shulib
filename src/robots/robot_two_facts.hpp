@@ -201,19 +201,24 @@ inline constexpr auto kCascadeUnhomedVolts =
           "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
 ROBOT_TWO_CHECK(kCascadeUnhomedVolts, "the cascade's volts before it is homed");
 inline constexpr auto kRightToggleDirection =
-    owed(one::kRightToggleDirection.value(), Stage::B, "the right side toggle's run direction");
+    typed(one::kRightToggleDirection.placeholder, one::kRightToggleDirection.value(), Stage::B, "the right side toggle's run direction",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'Use White Bot\'s') -- not yet watched on robot two");
 ROBOT_TWO_CHECK(kRightToggleDirection, "the right side toggle's run direction");
 inline constexpr auto kLeftToggleDirection =
-    owed(one::kLeftToggleDirection.value(), Stage::B, "the left side toggle's run direction");
+    typed(one::kLeftToggleDirection.placeholder, one::kLeftToggleDirection.value(), Stage::B, "the left side toggle's run direction",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'Use White Bot\'s') -- not yet watched on robot two");
 ROBOT_TWO_CHECK(kLeftToggleDirection, "the left side toggle's run direction");
 inline constexpr auto kClawOpenLevel =
-    owed(one::kClawOpenLevel.value(), Stage::B, "the claw's line level that OPENS it");
+    typed(one::kClawOpenLevel.placeholder, one::kClawOpenLevel.value(), Stage::B, "the claw's line level that OPENS it",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'Use White Bot\'s') -- not yet watched on robot two");
 ROBOT_TWO_CHECK(kClawOpenLevel, "the claw's line level that OPENS it");
-inline constexpr auto kFlipperOpenLevel = owed(one::kFlipperOpenLevel.value(), Stage::B,
-                                               "the front toggle's line level that pushes it OUT (open)");
+inline constexpr auto kFlipperOpenLevel =
+    typed(one::kFlipperOpenLevel.placeholder, one::kFlipperOpenLevel.value(), Stage::B, "the front toggle's line level that pushes it OUT (open)",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'Use White Bot\'s') -- not yet watched on robot two");
 ROBOT_TWO_CHECK(kFlipperOpenLevel, "the front toggle's line level that pushes it OUT (open)");
 inline constexpr auto kRampDownLevel =
-    owed(one::kRampDownLevel.value(), Stage::B, "the ramp's line level that puts it DOWN");
+    typed(one::kRampDownLevel.placeholder, one::kRampDownLevel.value(), Stage::B, "the ramp's line level that puts it DOWN",
+          "robot one's value, same as the placeholder, checked on robot one: the same build (the team lead, 2026-11-20: 'Use White Bot\'s') -- not yet watched on robot two");
 ROBOT_TWO_CHECK(kRampDownLevel, "the ramp's line level that puts it DOWN");
 inline constexpr auto kClawStrokeTime = typed(one::kClawStrokeTime.placeholder, one::kClawStrokeTime.value(), Stage::B, "the claw's stroke time",
           "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- confirm on robot two: Bench Tests tile 1 (ports), station 13 (directions)");
@@ -246,12 +251,16 @@ inline constexpr auto kCascadeHoldKd =
           "robot one's value: the same build (the team lead, 2026-11-20: 'use robot one\'s') -- measured on robot one");
 ROBOT_TWO_CHECK(kCascadeHoldKd, "the cascade's hold kD");
 
-// ── RECORDED — gating no build (the camera: VIS1-B reads it) ──
+// ── RECORDED — gating no build (the camera: VIS1-B reads it; the claw's grab spot: the route builder) ──
 inline constexpr auto kCameraPort = owed(one::kCameraPort.value(), Stage::Recorded, "the AI Vision camera's port");
 ROBOT_TWO_CHECK(kCameraPort, "the AI Vision camera's port");
 inline constexpr auto kCameraMount =
     owed(one::kCameraMount.value(), Stage::Recorded, "where the AI Vision camera sits");
 ROBOT_TWO_CHECK(kCameraMount, "where the AI Vision camera sits");
+inline constexpr auto kClawGrabInsetIn =
+    typed(one::kClawGrabInsetIn.placeholder, one::kClawGrabInsetIn.value(), Stage::Recorded, "the claw's grab spot, inches inside the front edge",
+          "robot one's value: the same build (HA-256) -- measured on robot one by the team lead, 2026-11-20 -- not yet measured on robot two");
+ROBOT_TWO_CHECK(kClawGrabInsetIn, "the claw's grab spot, inches inside the front edge");
 
 // ═══ THE COUNT, AND THE HELPERS (robot one's, over robot two's facts) ═══════════════════════
 
@@ -271,7 +280,7 @@ inline constexpr FactSummary kRobotTwoFacts[] = {
     summary(kRampDownLevel),          summary(kClawStrokeTime),       summary(kFlipperStrokeTime),
     summary(kRampStrokeTime),         summary(kCascadeMaxDownVolts),  summary(kCascadeTopMargin),
     summary(kCascadeHoldKp),        summary(kCascadeHoldKi),         summary(kCascadeHoldKd),  summary(kCameraPort),
-    summary(kCameraMount),
+    summary(kCameraMount),            summary(kClawGrabInsetIn),
 };
 
 /// How many facts the ledger holds.

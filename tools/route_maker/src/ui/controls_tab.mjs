@@ -11,6 +11,8 @@ import { readDriverFile, driverFilePath, regionKey, REGIONS } from '../model/dri
 import { historyOf, commit, undo as undoH, redo as redoH, canUndo, canRedo } from '../model/undo.mjs';
 import { renderFeel } from './feel_tab.mjs';
 import { openControlsExport } from './controls_export.mjs';
+import { findWords } from '../model/check_route.mjs';
+import { findWord } from '../model/lift.mjs';
 
 const KIND = { arm: 'arm', lift: 'lift', power: 'motor', pneumatic: 'piston', flywheel: 'flywheel' };
 const PARTNER = { L1: 'L2', L2: 'L1', R1: 'R2', R2: 'R1', Up: 'Down', Down: 'Up', Left: 'Right', Right: 'Left', X: 'B', B: 'X', Y: 'A', A: 'Y' };
@@ -29,6 +31,14 @@ const HIT = 26;  // a button's invisible hit radius (half-height for a shoulder)
 
 /** The d-pad's arrows (a triangle around the button's centre). */
 const ARROW = { Up: [[0, -8], [-7, 5], [7, 5]], Down: [[0, 8], [-7, -5], [7, -5]], Left: [[-8, 0], [5, -7], [5, 7]], Right: [[8, 0], [-5, -7], [-5, 7]] };
+
+/** What button `b` of control `c` does to mechanism `m`, in a few words ("up (hold)", "to level 2", "find the bottom"). */
+export function buttonWord(c, b, m) {
+    const pos = m && (m.kind === 'arm' || m.kind === 'lift');
+    return c.form === 'whileHeld' ? (!c.back ? 'hold to run' : b === c.button ? (pos ? 'up (hold)' : 'forward (hold)') : (pos ? 'down (hold)' : 'back (hold)'))
+        : c.form === 'toggle' ? 'toggle' : c.form === 'preset' ? `to ${typeof c.preset === 'number' ? `level ${c.preset}` : c.preset}`
+            : findWord(m);
+}
 
 /** The tab (header): `app` is the shell's (project, files, toasts, the baked robots). */
 export function createControlsTab(app) {
@@ -169,9 +179,7 @@ export function createControlsTab(app) {
         const c = st.controls.list[i];
         const m = mechOf(robot(), c.mechanism);
         const name = m ? m.name : c.mechanism;
-        const pos = m && (m.kind === 'arm' || m.kind === 'lift');
-        const word = c.form === 'whileHeld' ? (!c.back ? 'hold to run' : b === c.button ? (pos ? 'up (hold)' : 'forward (hold)') : (pos ? 'down (hold)' : 'back (hold)'))
-            : c.form === 'toggle' ? 'toggle' : c.form === 'preset' ? `to ${typeof c.preset === 'number' ? `level ${c.preset}` : c.preset}` : 'home';
+        const word = buttonWord(c, b, m);
         return { i, c, name, word, text: `${name}: ${word}` };
     }
     function controller() {
@@ -575,7 +583,7 @@ export function createControlsTab(app) {
             const name = mechOf(robot(), c.mechanism)?.name || c.mechanism;
             return h('button', { class: 'link-line', 'data-control': i, onclick: () => select({ control: i }) }, c.form === 'autonOnly'
                 ? `The ${name} runs in autons only: no button in driver control.`
-                : `The ${name} homes by itself when driver control starts (${Number.isFinite(c.timeLimitS) ? `${fmt(c.timeLimitS)} s` : 'no time limit yet'}): no button needed.`);
+                : `The ${name} ${findWords(mechOf(robot(), c.mechanism))} by itself when driver control starts (${Number.isFinite(c.timeLimitS) ? `${fmt(c.timeLimitS)} s` : 'no time limit yet'}): no button needed.`);
         })) : null;
     }
     return {
@@ -632,6 +640,15 @@ export function createControlsTab(app) {
                     out.lost.length ? `Its Controls for ${out.lost.join(' and ')} are read only here, so your changes there are gone.` : ''].filter(Boolean).join(' ');
         },
         snapshot: () => JSON.parse(JSON.stringify({ robot: ui.robot, state: state(), meta: meta[ui.robot], issues: issues() })),
+        /** RMP1-M: robot `id`'s controls of mechanism `ident`, as the controller shows them: [{buttons, words}]. */
+        jobsOf(id, ident) {
+            const m = mechOf(baked.robots[id], ident);
+            return hist[id].present.controls.list.filter((c) => c.mechanism === ident).map((c) => {
+                const bs = buttonsOf(c);
+                return { buttons: bs, words: bs.length ? bs.map((b) => `${b} ${buttonWord(c, b, m)}`).join(' · ')
+                    : c.form === 'autonOnly' ? 'no button: autons only' : `${findWord(m)} when driver control starts` };
+            });
+        },
     };
     /** The folder is connected: today's driver files are what the words are checked against, and a robot the project
      *  has not taken over (and not changed here) is read from them. */
