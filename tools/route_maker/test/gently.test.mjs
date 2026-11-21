@@ -103,8 +103,10 @@ test('D2: a Back up ADDED right after a drop starts ON (after a claw open; after
 
 test('a drop is what the robot\'s description marks: off a `grabs` position or onto a `releases` one -- never a name', () => {
     const Y = fixtureRobot('y');  // its grip: "shut" grabs, "loose" releases (made by the C++)
-    assert.deepEqual(Y.mechanisms.find((m) => m.ident === 'grip'), { name: 'grip', ident: 'grip', kind: 'pneumatic', positions: ['shut', 'loose'],
-                                                                     grabs: ['shut'], releases: ['loose'] });
+    // only the keys this chunk reads (RMP1-M's `start` and `wiring` ride along, pinned by its own tests)
+    const { name, ident, kind, positions, grabs, releases } = Y.mechanisms.find((m) => m.ident === 'grip');
+    assert.deepEqual({ name, ident, kind, positions, grabs, releases }, { name: 'grip', ident: 'grip', kind: 'pneumatic', positions: ['shut', 'loose'],
+                                                                          grabs: ['shut'], releases: ['loose'] });
     const set = (mechanism, position) => ({ do: 'set', mechanism, position });
     assert.ok(isDrop(set('grip', 'loose'), Y) && !isDrop(set('grip', 'shut'), Y));
     assert.ok(isDrop(set('claw', 'open'), CLAW) && !isDrop(set('claw', 'closed'), CLAW));
