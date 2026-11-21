@@ -160,14 +160,21 @@ test('a black goal (full width above its lip) has the BODY\'s 2.80 in: centred, 
     assert.match(rco(drive(ob('centre-goal'), 0, 0))[0], /^RCO2 0 The robot touches the centre goal here \(0\.4 in into it\)/);
 });
 
-test('a Loader and a wall at the bay: solid, exactly as robot x', () => {
+test('a Loader centred on the claw sits in the open front (the body\'s 2.80 in), as a black goal does; a wall is the square', () => {
     const lo = ob('loader-red-wall-left');
     const face = Math.max(...lo.footprint.map((p) => p[1]));
-    for (const into of [0.3, 1.2, 2]) {  // the Loader's face this far past the claw's spot, heading -90 (into the red wall)
-        const r = route({ x: lo.x, y: face + SPOT.forwardIn - into + 12, headingDeg: -90 }, [{ do: 'driveTo', x: lo.x, y: face + SPOT.forwardIn - into }]);
-        assert.deepEqual(rco(r), rco(r, [X]), `${into}`);
-        assert.match(rco(r)[0], /^RCO1 0 .* into the left Loader on the red wall: it is solid/);
+    const at = (into, side = 0, touches) => route({ x: lo.x + side, y: face + SPOT.forwardIn - into + 12, headingDeg: -90 },
+                                                  [{ do: 'driveTo', x: lo.x + side, y: face + SPOT.forwardIn - into, touches }]);
+    for (const into of [0.3, 1.2]) {  // the Loader's face this far past the claw's spot, heading -90 (into the red wall)
+        assert.deepEqual(rco(at(into)), [], `${into}`);
+        assert.match(rco(at(into), [X])[0], /^RCO1 0 .* into the left Loader on the red wall: it is solid/, `${into}: robot x, solid`);
     }
+    assert.match(rco(at(2.3))[0], /^RCO2 0 The robot touches the left Loader on the red wall here .*taking a load/, 'its corners on the disc');
+    assert.deepEqual(rco(at(2.3, 0, [lo.id])), [], 'said: clear');
+    assert.match(rco(at(1.2, 1.5))[0], /^RCO1 0 .* left Loader on the red wall/, 'off the centre line: the mouth\'s side');
+    const run = [0, 4, 8, 12].map((k, i) => [i * 0.1, lo.x, face + SPOT.forwardIn - 1.2 + 12 - k, -Math.PI / 2]);
+    assert.equal(runThrough(run, OBS, 15, BAY), null, 'PREVIEW: in the bay, no THROUGH');
+    assert.ok(runThrough(run, OBS, 15), 'PREVIEW, the square: THROUGH');
     const wall = (robots) => checkRoute(route({ x: 0, y: 50, headingDeg: 90 }, [{ do: 'driveTo', x: 0, y: 64 }]), robots, FIELD, {})
         .filter((i) => i.level === 'error').map((i) => `${i.code} ${i.words}`);
     assert.ok(wall([ONE]).length > 0);
@@ -177,7 +184,7 @@ test('a Loader and a wall at the bay: solid, exactly as robot x', () => {
 /** Goal `o` reaches into the bay at robot pose `q` (worked here, not by the page's code): a point of its outline, every
  *  0.05 in, inside the square and in the bay -- ahead of the claw's spot within r of the centre line, or within r of it. */
 function inNotch(q, o) {
-    if (Math.hypot(q.x - o.x, q.y - o.y) > 7.5 * Math.SQRT2 + 3.3) {
+    if (Math.hypot(q.x - o.x, q.y - o.y) > 7.5 * Math.SQRT2 + 4.3) {  // a Loader's corner: 4.25 in from its (x, y)
         return false;
     }
     const r = o.overhangIn > 0 ? 3.22 : 2.8;
@@ -204,7 +211,7 @@ test('robot x (no bay) and every route with no goal in the bay: the same issues,
         const r = drive(g, 0, 0, h, 6 + rnd() * 20);
         const t = updateStep(r, 0, { x: Math.round(end.x * 100) / 100, y: Math.round(end.y * 100) / 100, faceFirst: rnd() < 0.5 });
         const all = (robots) => checkRoute(t, robots, FIELD, { routes: [newRoute(), t], index: 1 }).map((i) => `${i.code} ${i.stepIndex} ${i.words}`);
-        const intoBay = stepPoses(t.steps[0], plannedPoses(t)[0]).some((q) => OBS.some((o) => o.kind === 'goal' && inNotch(q, o)));
+        const intoBay = stepPoses(t.steps[0], plannedPoses(t)[0]).some((q) => OBS.some((o) => (o.kind === 'goal' || o.kind === 'Loader') && inNotch(q, o)));
         reached += intoBay ? 1 : 0;
         if (!intoBay) {
             assert.deepEqual(all([ONE]), all([X]), JSON.stringify(t.steps[0]));

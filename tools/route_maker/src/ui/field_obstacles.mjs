@@ -22,7 +22,7 @@ export function obstacleShapes(app, P) {
     if (hit) {  // RMP1-Q: against a goal, the outline it was checked with (its bay's radius for that goal)
         const o = obs.find((x) => x.id === hit.obstacle.id);
         const who = hit.code === 'RCO3' ? app.baked.robots[app.route().mirroredFor] : app.robot();  // robot two's: its own
-        const bay = o && o.kind === 'goal' ? frontBayOf(who) : null;
+        const bay = o && (o.kind === 'goal' || o.kind === 'Loader') ? frontBayOf(who) : null;
         const r = bay && (o.overhangIn > 0 ? bay.lip : bay.body);
         g.append(s('polygon', { class: `g-obstacle-moment ${hit.level}`, 'data-moment': hit.obstacle.id,
                                 points: pts(robotOutline(hit.obstacle.at, app.size(), bay, r).map((c) => [c.x, c.y])) }));
