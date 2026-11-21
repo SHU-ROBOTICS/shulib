@@ -245,6 +245,8 @@ struct RobotSource {
     std::vector<std::string> testerOwed{};
     /// RMP1-O: the claw's grab spot, inches inside the front edge (the facts ledger's kClawGrabInsetIn); none: no claw.
     std::optional<double> clawInsetIn{};
+    /// RMP1-Q: the open front bay at the claw's spot, {lip, body} radii in inches (kFrontBayLip/BodyRadiusIn); none: solid.
+    std::optional<std::array<double, 2>> frontBayIn{};
 };
 
 /// The square the page draws for every robot (both 2026 robots are 15 in).
@@ -288,6 +290,11 @@ inline constexpr double kFootprintIn = 15;
     // middle, 7.5 in behind the front edge (HA-260: unmeasured) -- d in off, every pin placed by the cross misses by d
     if (r.clawInsetIn) {
         j += "  \"clawSpot\": {\"forwardIn\": " + num(kFootprintIn / 2 - *r.clawInsetIn) + ", \"sideIn\": 0},\n";
+    }
+    // RMP1-Q: the open front bay, centred on the claw's spot (the same fact): the page checks a goal against it
+    if (r.frontBayIn && r.clawInsetIn) {
+        j += "  \"frontBay\": {\"centreForwardIn\": " + num(kFootprintIn / 2 - *r.clawInsetIn) + ", \"lipRadiusIn\": "
+             + num((*r.frontBayIn)[0]) + ", \"bodyRadiusIn\": " + num((*r.frontBayIn)[1]) + "},\n";
     }
     j += "  \"mechanisms\": [";
     const auto& t = *r.table;

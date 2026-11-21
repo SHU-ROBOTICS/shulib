@@ -6670,3 +6670,235 @@ No browser or helper of mine left running (the Firefox running at 19:56 is anoth
   PREVIEW case). Firefox's first run was OOM-killed by the 6 GB scope (its files in parallel; journal: "oom-kill") —
   re-run one file at a time: the numbers above.
 - **Stopped here: uncommitted, for the coordinator.**
+
+## RMP1-Q — the open front: a goal centred on the claw sits INSIDE the robot, and the route builder agrees
+
+*Executor: Claude Opus 5.5 (subagent), worktree `.claude/worktrees/rmp1-q` (branch rmp1-q, from 2171b62), started 2026-11-20.
+Brief: [`RMP1-Q-open-front.md`](RMP1-Q-open-front.md).*
+
+- **Started:** read RESUMING's standing rules and the brief in full. Next: obstacles.mjs, claw.mjs, the C++ obstacle and
+  preview models, robots.json's emitter.
+- **21:35–22:20 — built (uncommitted).** D1 facts (robot one, one block after `kClawGrabInsetIn`; robot two = robot one's);
+  D2 `frontBay` in describe/robots; D3 in `obstacles.mjs` (`frontBayOf`, `robotOutline`, `notchedGap`, `gapAt`); D5
+  `runThrough` + playback's `field.bays`; D6 every robot drawn by `robotOutline`. Node tests `front_bay.test.mjs` (14),
+  page test `front_bay.page.test.mjs`; four page suites re-pinned to the notched drawing.
+- **DELTA 1 (the bay's shape):** the disc ALONE made a goal approached off its flats clip the disc's horns at the front
+  edge: White Bot's way into the red goal (-121.5 deg, the claw placed on the goal's centre) read RED on the way, 0.24 in
+  (probe p5). The CAD has the bay open ±3.9 in across the goal's centre at floor level (wider than the disc), so the bay
+  is the disc AND its way in: the disc slid out through the front edge (open ±r from the front edge back to the claw's
+  spot, round the back of the disc). Approach clean from every heading; the back and the sides as the disc.
+- **DELTA 2 (when the bay is used):** only when a goal reaches INTO the notch (inside the square). A goal anywhere else
+  is judged on the plain square, its words byte-for-byte (a looser switch, the disc's protrusion past the front edge,
+  turned a corner hit's 1.1 in into 0.9 in at White Bot's step 15 — caught by probe, fixed).
+- **The test project does NOT lose its RCO1** — measured, not assumed: step 5's planned end has the goal's centre 3.3 in
+  BEHIND the claw (2.97 in ahead of the robot's centre; the claw is 6.27): 3.5 in into the bay's back (was 7.8 into the
+  square). Step 9 turns 4.6 deg there (3.5 in). Step 15: the goal at the robot's front-left corner, nowhere near the bay:
+  1.1 in, unchanged. With step 5 placed by its claw on the goal's centre, step 5 is clear (pinned in node and page).
+- **Tests.** Node `test/front_bay.test.mjs` (14 cases): the bay from robots.json (and null for 6 malformed ones); the
+  outline (the square exactly without a bay; with one, the mouth ±3.22 at the front edge, the back on the circle);
+  a red goal centred: clean at the end AND on the straight way in from 7 headings (White Bot's -121.5 among them), every
+  red/blue goal; 0.6 in behind RED (0.6), 0.55 amber / 0.56 red (the 0.5 in edge), 0.004 in (clean) / 0.02 in (touch);
+  0.6 in to either side RED, 0.3 amber (0.2); a black goal centred: amber 0.4 (81.9 mm - 2.80 in), clear on purpose, red
+  0.2 in behind (0.7, no overhang); the centre goal the same; a Loader at the bay and a wall: exactly robot x's issues;
+  1500 seeded drives: every one with no goal reaching into the bay (an independent check in the test) gives robot x's
+  issues word for word, and the bay changed >100 of the rest; robot two mirrored (its own bay, RCO3 without one, one
+  switch for both); backing straight out clean, a 5 deg turn in the bay red; the switch not offered in the bay, offered
+  for a touch at its back; the sweep between two samples pose by pose (a hull would fill the bay); PREVIEW's THROUGH
+  (none in the bay, THROUGH 1.2 in behind, robot x THROUGH, robot two's bay not robot one's); White Bot's route (copied to
+  `test/fixtures/projects/white_bot.TEST-v10-2026-11-20.json`): every non-RCO issue unchanged, its three RCO1 pinned
+  with and without the bay, step 5 by the claw clear. C++ `RMP1-Q:` golden case (frontBay line for one and two, none
+  for x/y/z, the ledger values). Page `test/page/front_bay.page.test.mjs` (drawn outline, robot x a square, White Bot's
+  route in the page, step 5 typed by the claw; the screenshots).
+- **Re-pinned (another chunk's tests, the drawing changed on purpose — D6):** claw.page (the drawn centre from the first
+  four points), named_routes.page (robot two's outline), preview (`expectedSquare` = robotOutline, robot two's own; the
+  claw's centre from the first four points), obstacles.page (the moment's outline; the touch case moved 5 in off the
+  centre line: on the centre line the centre goal now sits in the bay's mouth, 0.6 in clear — the bay is the point).
+- **Mutants (each observed RED; JS on the node suite, `mut/js_mut.py`, restored in a finally and on SIGTERM/SIGHUP):**
+  M1 the bay ignored (11 fail); M2 the disc at the robot's centre (10); M3 the lip radius for a black goal (1: the black
+  goal case); M4 the bay applied to a Loader (1: the Loader case); M5 PREVIEW's THROUGH without the bay (1); M5b
+  playback ignoring the robots' bays (1); M6 no amber pass in the bay (5); M7 the hull between samples (1); M8 no EPS in
+  "in the bay" (5); M9 the bay for every goal near the robot (2: the seeded word-for-word case and White Bot's step 15).
+  C++ M10 (`mut/cpp_mut.sh`): the emitter's lip and body swapped, fresh binary — the RMP1-Q case RED (2 assertions);
+  restored, touched, rebuilt, green.
+- **Screenshots (Chromium, light/dark at 1440×900 and 1280×800, each read):** White Bot's first drive placed by the claw
+  — the red goal in the robot's open front, the cross on its centre, "Ready to export"; guide 22's `bay.png` from the
+  light 1440 one (1200×750, 256 colours, as RMP1-O's claw.png).
+- **Prose review (grepped, hits read):** `obstacles\.mjs`, `frontBay|front bay|open front|kFrontBay`,
+  `clawSpot|kClawGrabInsetIn`, `robot_one_facts|robot_two_facts`, `15 in square|robot.s square|whole square`,
+  `route_maker_describe|route_maker_robots`, `runThrough|playback\.mjs|field_view|field_obstacles`, `Recorded` over
+  docs/ (not internal), README.md and the tool's README → updated: guide 22 (one sentence + bay.png after the
+  structures' list; the checks table's row), guide 21's Recorded row, route-builder.md ("and the open front round it"),
+  the changelog (2.11, newest first), the tool README (obstacles.mjs, playback.mjs and field_view.mjs rows). Read and
+  true as they stand: guide 22 :56 and :119 (the 15 in square; the bay sentence follows in the same section), guide 16
+  :469 and guide 14 :71 (the C++ preview's square — unchanged: it judges walls and Loaders, never goals), guide 17 :242 /
+  api field_mirror (the pair check's squares, unchanged), guide 21 :371 (robot two = robot one's values), the facts
+  form (lists no Recorded fact), hardware-assumptions :2408.
+- **Gates on the final tree (22:08–22:43 EST; `gates.sh`, pipefail, logs in `scratch/rmp1-q/gates/`):** briefing
+  generated with the suite binary removed, host build (-Werror: 0 warnings), briefing regenerated; the bounded suite
+  **green — 3,921 cases / 3,778,336 assertions**; `src_build_gate.py check` **PASS (14 builds, 0 refused; every one
+  links in the typed copy)**; ARM header gate (260 lines) OK; CI greps OK (the new files LF); api_doc_tool check-fresh /
+  check-examples / self-test / check-coverage / check-removability OK (no `///` changed); doc_staleness_audit self-test +
+  audit clean (38 live docs); briefing `check` current; node **332 / 332**; route_builder self-test **144 OK**;
+  upload_auton self-test OK; site rebuilt 22:32:21 (robots.json carries `frontBay` for one and two); page suites, one file
+  at a time, **Firefox 148 pass / 7 skipped / 0 fail, Chromium 144 / 11 / 0**; the preview engine rebuilt (emsdk pinned)
+  and `test/wasm` **17 / 17**. The doc gates re-run after the last changelog line (22:44): all OK.
+- **Cross-checks (probes in `scratch/rmp1-q/probe/`, not committed):** p7 — 3,000 seeded placements of a red goal round
+  the bay at any heading: `notchedGap`'s overlap verdict against a brute-force 0.02 in raster of "the square minus the
+  bay": 0 disagreements beyond ±0.03 in. Firefox's four screenshots taken too (dark 1280 read: the same drawing).
+  The seeded word-for-word test sped up after the gates (the test's own check skips goals out of reach: 21 s -> 5 s);
+  node re-run 332 / 332 and M9 re-observed RED on it.
+- **`src_build_gate.py self-test`: OK (398 detector cases, each against a real build)**, 22:32:38–23:24:24 (nice 19, 3 h cap).
+- **Stopped here: uncommitted, for the coordinator.**
+
+### RMP1-Q review findings and their disposition
+
+*The same builder, 2026-11-20 ~23:50, on three reviewers' findings (correctness, tests, docs; 19 after merging the
+overlaps). Each re-checked first; the dispositions below, then every gate re-run on the final tree.*
+
+- **Started:** read the findings, the review probes (`scratch/rmp1-q/review-*`), the coordinator's amended brief.
+  Probes, mutants and gate logs of this round: `scratch/rmp1-q/fix/` (q1-q8, `mut/`, `gates/`, `shots/`).
+- **D4 (black goals): ANSWERED 21:52** by the teammate ("the preload goes into the blue goal and we focus on that for
+  now"): D3 stands, the body radius (2.80 in, conservative) for black and centre goals until the team takes one into
+  the bay. The brief landing with this run is the coordinator's amended copy, plus an "Amended at landing" block.
+- **Deltas the first pass left only in its report, logged here:**
+  - **DELTA 3 — "in the bay" means at most EPS (0.01 in) past it.** The 3.22 in disc is the lip's corner radius, so the
+    lip fits it exactly: a red goal typed on its exact centre is 0.0044 in past it (clear); the guide's rounded centre
+    (47.1, -23.5) is 0.05 in past it, and a cross dragged by hand rarely lands within 0.01 in: a TOUCH (amber), which
+    "on purpose" clears. Kept, not widened: the CAD has no room at the gussets (diagonally behind), so a wider
+    tolerance would hide a real contact; the docs now say a touch there is normal (guide 22, the changelog).
+  - **DELTA 4 — what the depth means in the bay.** Not the least push of two convex shapes (the square minus the bay
+    is not convex): the deepest of (a) a corner of either shape inside the other and (b) the overlap with each convex
+    piece of the rest (two sides, the back, fans behind the disc). (b) is this round's fix: (a) alone read a goal across
+    the front corner 0.9 in deep, not 2.8. Inside the verdicts' limits it never reads a touch or an "on purpose" for a
+    real overlap past them (probe below); deep reds read up to ~0.9 in under the deepest point (still red).
+  - **DELTA 8 — "on purpose" in the bay: DECIDED here, not left to the brief's letter.** The overhang allowance (a red
+    or blue goal's lip reached over by the robot's front, up to 1 in) has nothing to reach over in the bay: the CAD's
+    gussets sit at the lip's height (0-10 mm, the brief's table). A goal SEATED in the bay (its centre within the bay's
+    width, behind the front edge) gets a touch, 0.5 in, never the overhang, even on purpose. Its words name the bay.
+    A goal against the front face beside the bay keeps the overhang exactly as before. **For the team lead to
+    confirm** (the stricter reading: a drive that rams a goal 0.5-1 in into the bay's back reads red, switch or not).
+  - **Why White Bot's route works on the real robot while the page reads steps 5 and 9 red: two explanations, NEITHER
+    measured.** (1) The drive stops against the goal and its 2.5 s time limit carries on to the next step. (2) The
+    tracked centre sits about 3.4 in ahead of the square's middle (HA-260: where the tracking centre sits in the
+    footprint is unmeasured), which would put the goal on the claw. The page reads the plan as drawn.
+- **Hand-off notes for the coordinator:**
+  - **CAM2 shares the count lines:** `test/robot_one_facts_test.cpp` `recorded == 5` and `all.size() == 47` (+2 here),
+    and robot one's/two's `kRobot*Facts` summaries: CAM2's pickup facts add to the same lines; the merge sums them.
+  - **A hardware assumption to register (not done here: CAM2 edits the same register beside this run, and the next
+    free number is the coordinator's to give; the brief assigns none):** "Robot one's frame matches the team's CAD
+    'Tears Final.step' round the front bay (Part 020/021 gussets 81.9 mm, the C-channels 71.2 mm from a goal's axis
+    centred on the claw), and the claw is raised above a goal before the robot drives it into the bay — the CAD's
+    cascade pose is not the robot's. Unmeasured above 64 mm (a black goal stands 147 mm, the centre goal 223 mm).
+    Confidence: CAD-measured, not measured on the robot. Settles by: a goal pushed into the bay on the real robot,
+    centred and 0.5 in off." Guide 22 now says "the claw lifted above it".
+- **The findings, one by one (19 after merging the overlaps):**
+  1. **BLOCKER, correctness — shallow depth across the front corner: REAL, FIXED at the root.** Reproduced (probe p7):
+     a goal at robot frame (7.6, ±5.4) read 0.9 in (on purpose: clear; PREVIEW: nothing), robot x 2.8 in. The bay's
+     depth now also takes each convex piece's overlap (`solidPieces`, the review's prototype). The review's p6 re-run
+     on the fix (`fix/p6.out`): 232,242 placements in bay mode, **0** read a touch while more than 0.6 in in, **0** read
+     at most 1.0 while more than 1.1 in in (was 24 and 2,052). The (7.6, ±5.4) goal: 2.8 in, word for word robot x's,
+     red on purpose too, PREVIEW THROUGH 2.706; the (9.8, 4.8) h9 goal: robot x's words (0.8 in, its overhang).
+     White Bot's numbers unchanged (3.5, 3.5, 1.1). Tests: 'a goal across the robot's front corner…', 'a goal SEATED…'
+     (the front face beside the bay), 'deep in the robot…'. Mutants N1 (no pieces) CAUGHT (2), N1b (no fans) and N1c
+     (no back strip) CAUGHT by the deep pins (they change only depths past 1.2 in: q6, 714k placements, the fans'
+     largest change within -1.2..0 is 0).
+  2. **MAJOR, correctness — "on purpose" allowed 1.0 in into the bay's back: REAL, FIXED (DELTA 8 above).** Pinned:
+     0.6 in behind on purpose is red, worded for the bay; 0.3 in on purpose clears the touch; beside the bay the
+     overhang stays. Mutants N2 (overhang for a seated goal) CAUGHT; N3b/N3c/N3d (seated: always, the centre anywhere
+     behind the front, never) CAUGHT.
+  3. **minor, correctness — drawn with the lip radius for black/centre goals: REAL, FIXED.** `bayRadiusAt`: the drawn
+     bay takes the least radius of the goals reaching into it (else the lip's); field_view draws every robot with it.
+     Node test 'the bay is drawn with the radius it is checked with'; page test 'a black goal centred…' (the ghost's
+     arc at 2.80 in). Mutants N9 (node) and P3 (page, on a rebuilt site) CAUGHT.
+  4. **minor, correctness — a black/centre goal centred reads amber, "on purpose" clears it: NOT CHANGED, with
+     reason.** A 0.42 in overlap at the end is a touch for every structure (TOUCH_IN, RMP1-H's D4), and D4's answer
+     keeps D3 as written. A black goal has no overhang, so its switch only ever clears the amber, never a red. The
+     unmeasured height above 64 mm goes in the hardware assumption above; the docs say a black goal centred touches.
+  5. **MAJOR, tests — PREVIEW's per-robot bays and the switch's bay untested in a page: REAL, FIXED.** Page tests
+     (front_bay.page.test.mjs): 'PREVIEW reads each robot's own bay' (two_starts' recorded run moved to end with the red
+     goal by the red wall centred on the claw, the site's structures ON: no THROUGH, nothing faded; the same page with
+     robots without a bay: 'FINISHED, but THROUGH the red goal by the red wall'); 'a red goal centred on the claw: no
+     issue, and Export writes it; 0.1 in deeper a touch, "on purpose" offered'. The review's two mutants, each on a
+     rebuilt site (confirmed in the built file): P1 preview.mjs `bays: {}` CAUGHT, P2 field_obstacles.mjs `null` bay
+     CAUGHT (`fix/mut/page_mut.log`); restored by cmp, site rebuilt.
+  6. **minor, tests — robot two's mirrored START with its bay: REAL, FIXED.** The robot-two test now starts in the bay
+     and backs out: clean; robot two without a bay: 'RCO3 -1 … 4.5 in inside the red goal by the red wall'. N4 CAUGHT.
+  7. **minor, tests — notchedGap's goal-corners pass: REAL, FIXED.** 'a goal ahead of the claw's spot pushed into the
+     mouth's side' pins 0.712 in (words 0.8). N5 (only the robot's corners) CAUGHT (6). Its converse N5b (only the
+     goal's corners) SURVIVES and is EQUIVALENT: every robot outline corner is a corner of a convex piece, and a piece's
+     least push is at least any of its corners' depth in the goal, so whenever a robot corner is in the goal the pieces
+     already read it (q5: 242,680 placements, largest difference 1e-14).
+  8. **minor, tests — robot two's bay keyed by robot: REAL, FIXED.** A robot-two record with bays {one} is THROUGH,
+     with {two} not. N6 (always robot one's) CAUGHT.
+  9. **minor, tests — between() never decided a result: REAL, FIXED.** A pair of samples both clear (1.12 and 0.9 in)
+     whose poses between carry the goal over the jaw's corner: 0 (a touch), both orders; at 1 in apart it reads 0.32.
+     N7 (no poses between) and N8 (every 1 in / 10 deg) CAUGHT; M7 (the hull) CAUGHT. The review's S11/S12 (the hull
+     when only one sample is in the bay) stay equivalent: any path between a bay sample and a plain one carries the
+     goal across the mouth's line, where both read 0 (the square's front edge spans the mouth until a goal is in it —
+     at most a touch near the mouth, never a red; every real goal is as wide as the mouth).
+  10. **minor, tests — the only zero-issues page check was in the skipped screenshot test: REAL, FIXED** (finding 5's
+      always-run test: issues() == [] and Export opens with no refusal, its code shown). Chromium's four bay screenshots
+      re-taken on the final site (`fix/shots/`, 00:12-00:13), each read: the goal in the purple ghost's open front, the
+      cross on its centre, "Ready to export", light and dark, 1440 and 1280. guide 22's bay.png re-made from the light
+      1440 one.
+  11. **minor, tests — gate evidence predated the final test file: REAL (process), FIXED.** Every gate re-run on the
+      final tree in order (C++ first, then the doc gates, node, the site, the pages), each log with its own exit code
+      (`fix/gates/`); the builder's M1-M9 and this round's N1-N9 re-run together on the final tree: 27 of 28 CAUGHT,
+      N5b SURVIVES as an equivalent (item 7) (`fix/mut/js_mut_final.log`). The review's golden probe (p3) on the final
+      tree: 23 of 27 golden/fixture routes word for word with and without the bay; the 4 that differ each drive a goal
+      into the bay (gl1, gl20, wg8 through goals, red either way: only a red's number or place; White Bot's) — the
+      same verdicts; 1,500 placements round the bay: the page never under the brute force's deepest point; PREVIEW
+      and the page: 0 disagreements.
+  12. **minor, tests — the detour's bay and memo key: NOT CHANGED, with evidence.** 3,000 seeded drives through goals
+      (q8): the "Go around" point never differs between robot one and robot x — a detour clears its goal by CLEAR_IN,
+      far from any bay; the key carries the bay by construction.
+  13. **MAJOR, docs — the landing brief stale: REAL, FIXED.** D4 as the coordinator amended it, and "Amended at
+      landing": D3's shape (DELTA 1, 2), the depth, the seated rule, the test project's real result, the drawn radius.
+  14. **MAJOR, docs — "no red, no amber" / "a goal there is fine": REAL, FIXED in the docs** (DELTA 3: the code kept).
+      guide 22: "It fits a goal's base exactly, so a cross placed by hand usually reads a touch: switch on Touches the
+      … on purpose"; the table row; the changelog drops "no amber".
+  15. **MAJOR, docs — deltas only in the report: REAL, FIXED** (above: DELTA 3, 4, 8, D4, the two explanations, the
+      hand-off notes).
+  16. **minor, docs — "because the robot cannot get there": REAL, FIXED.** The changelog: "on the robot's drawing the
+      goal would be inside its frame"; the entry is "after", not "for", White Bot's route, and says its first drive is
+      red until placed by the claw.
+  17. **minor, docs — red words blame "the 15 in square"/"a corner" for a goal in the bay: REAL, FIXED.** A seated
+      goal's red: "Where this step ends, the red goal by the right wall is 0.6 in past the edge of the robot's open
+      front: it is solid there. Stop short of it: …"; turning: "… the edge of the robot's open front goes …"; robot
+      two's RCO3 the same ("the edge of its open front"); a START with a goal seated (RCO1 -1, RCO3 -1) the same —
+      found by re-running the review's golden probe (p3): gl20's start read "the robot's 15 in square is 5.2 in inside".
+      Every other goal's words byte-for-byte (the 1,500 seeded drives; obstacles.test.mjs's start words). N3, N3e, N3f,
+      N3g CAUGHT.
+  18. **minor, docs — guide 22 "whole 15 in square", old pictures, a wrong prose-review line: REAL, FIXED.** :119 now
+      "(against a goal, its open front cut out: below)"; the Red bullet and structures.png's caption say "outline";
+      structures.png re-taken (Chromium light 1440, the moment's outline notched with the centre goal's 2.80 in) and
+      read. The other pictures (start.png, route.png, route-dark.png, export.png, saved.png, claw.png …) predate the
+      notch: they show a plain square, for the docs pass (DOCS3) to re-take. **Correction to the first pass's prose
+      review:** guide 22 :56 is in section 2 and the bay sentence in section 3, not "the same section"; :56 ("Its 15 in
+      square appears in red") is still true — the outline is that square with its front cut out. Code headers:
+      obstacles.mjs (the poses between, the depth, the seated rule) and field_view.mjs updated.
+  19. **minor, docs — the CAD and the raised claw unregistered: REAL, handed to the coordinator** (the text above; the
+      register is CAM2's too tonight). Guide 22 says "(the claw lifted above it)".
+- **Gates on the final tree (2026-11-21 00:10-01:18 EST; `fix/gates_cpp.sh`, `fix/gates_rest.sh`, pipefail, each log
+  with its own exit code in `fix/gates/`):** briefing generated with the suite binary removed, host build (-Werror: 0
+  warnings), briefing regenerated; the bounded suite **green — 3,921 cases / 3,778,336 assertions** (no C++ changed
+  this round); ARM header gate (260 lines) OK; `src_build_gate.py check` **PASS (14 builds, 0 refused)** and
+  `self-test` **OK (398 detector cases)**; CI greps OK (every changed route builder file and doc LF); api_doc_tool
+  check-fresh / check-examples / self-test / check-coverage / check-removability exit 0; doc_staleness_audit self-test
+  + audit clean (38 live docs); briefing `check` current; node **337 / 337**; route_builder self-test **144 OK**;
+  upload_auton self-test **55 OK**; the site rebuilt; page suites one file at a time, **Firefox 151 pass / 7 skipped /
+  0 fail, Chromium 147 / 11 / 0** (the builder's 148 and 144 plus this round's three); the preview engine rebuilt
+  (emsdk pinned) and `test/wasm` **17 / 17**. The screenshots re-taken on the final site (`fix/shots-final/`,
+  Chromium; Firefox's four in `fix/shots/`, light 1440 and dark 1280 read): bay.png identical, structures.png one pixel
+  (the caret) apart, kept. The doc gates re-run after this entry (below).
+- **Prose review of this round (grepped, hits read):** `a corner of the robot|reaches over|over that base|cannot get
+  there|no amber|a goal there is fine|centred on the claw|bayRadiusAt|seated|past the edge|open front` and `on
+  purpose|15 in square|square is|overhang` over docs/ (not internal), README.md and the tool's README → updated: guide
+  22 (:119, the Red bullet's "outline", the Amber bullet's "not in the robot's open front", the bay paragraph, both
+  captions, the table row), the changelog's RMP1-Q entry, the tool README's obstacles.mjs and field_view.mjs rows.
+  Read and true as they stand: route-builder.md :57, guide 21 :79; every "seated" elsewhere is the pose re-seat (L6,
+  COMP), not the bay; guide 16 :469-482 and guide 14 :71 (the C++ preview's square: unchanged, it judges walls and
+  Loaders, never goals).
+- **Stopped here: uncommitted, for the coordinator.** For the team lead: DELTA 8 (a goal seated in the bay: a touch
+  only, even on purpose) is decided in code and logged for his confirmation; the hardware assumption above waits for
+  its number.

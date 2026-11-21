@@ -116,23 +116,30 @@ Zoom in (**+**) and two points 1 in apart are two handles.
 
 The nine goals and the four Loaders stand on the floor, and the robot cannot drive through them. Each is drawn on
 the field as a quiet outline, from the game manual's drawings (hover one for its name). Every step's path — the
-robot's whole 15 in square, its turns and curves included — is checked against them:
+robot's 15 in square (against a goal, its open front cut out: below), its turns and curves included — is checked
+against them:
 
 - **Red:** the square goes into one on the way, or more than 0.5 in into one where the step ends. Select the step: it
-  says where, which one and how far in, and that structure turns red with the robot's square at that moment. A drive
+  says where, which one and how far in, and that structure turns red with the robot's outline at that moment. A drive
   or a back-up to a point offers **Go around: add a point at (x, y)** when there is a clear way round: one click adds
   a step to that point first, and both legs turn to face their point.
 - **Amber:** the robot passes closer than 1 in, so a little drift and it clips it. A step that is meant to touch one
   — its front against a goal to place a cone, or against a Loader to take a load — switches on **Touches the … on
   purpose** on the right. That silences the amber for that structure. A red or blue goal narrows above its low base,
-  so with the switch on, a step may end with the robot's front up to 1 in over that base. A red on the way stays
-  red.
+  so with the switch on, a step may end with the robot's front up to 1 in over that base — but not in the robot's
+  open front, where the frame meets the base. A red on the way stays red.
 - A mirrored route checks robot two's path too, and the switch carries over: robot two touches the mirror-image
   goal. The Loaders are only on the red and blue walls, so robot two can meet one that robot one never does.
 - In PREVIEW, a robot that drives more than 1 in into one went **THROUGH** it, as with a wall: its step red, the path
   faded after.
 
-![A drive through the centre goal: the step red, saying how far in, the goal outlined red with the robot's square at that moment, and "Go around: add a point at (0, 15.5)" one click away](../assets/route-builder/structures.png)
+**A goal centred on your claw sits in the robot's open front** (the claw lifted above it). The robot is drawn with
+that bay cut out. It fits a goal's base exactly, so a cross placed by hand usually reads a touch: switch on
+**Touches the … on purpose**. More than 0.5 in past the bay's edge is red, switch or not.
+
+![White Bot's first drive placed by the claw, its x and y typed: the red goal by the right wall sits in the open front of the robot's square, the green cross on its centre, and no warning](../assets/route-builder/bay.png)
+
+![A drive through the centre goal: the step red, saying how far in, the goal outlined red with the robot's outline at that moment, and "Go around: add a point at (0, 15.5)" one click away](../assets/route-builder/structures.png)
 
 ### 4. Add a curve
 
@@ -634,7 +641,7 @@ one-click fix it offers it.
 | The check | Red when |
 |---|---|
 | Inside the field | the robot's 15 in square would go more than 1 in into a wall — at a point, turning in place, or anywhere along a curve |
-| Solid structures | the square goes into a goal or a Loader on the way, or more than 0.5 in into one at the start or where a step ends (a red or blue goal: 1 in, when the step touches it on purpose); robot two's mirrored path too. Amber when it passes closer than 1 in, unless the step touches it on purpose |
+| Solid structures | the square goes into a goal or a Loader on the way, or more than 0.5 in into one at the start or where a step ends (a red or blue goal: 1 in, when the step touches it on purpose); robot two's mirrored path too. Amber when it passes closer than 1 in, unless the step touches it on purpose. Against a goal, the square has its open front cut out: a goal centred on the claw sits in it (placed by hand, usually a touch; a black or the centre goal, always); past the bay's edge only a touch, even on purpose |
 | The start | there is no start, a number of it is missing (a `route_maker.json` edited by hand: the list shows `?` for it, and the robot is drawn once you type it), or it is through a wall |
 | Turn first (tank) | a drive is not turned first and starts more than 15° off its line (amber from 0.5°) |
 | The curve | the library refuses it: its first point is behind the robot, two points are closer than 1 in, a point doubles back (amber: a bend tighter than the robot can follow) |

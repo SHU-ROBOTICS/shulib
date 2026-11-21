@@ -5,8 +5,7 @@
 // front end over a red or blue goal's base (obstacles.mjs) -- never a red on the way.
 
 import { h, s } from './dom.mjs';
-import { squareCorners } from '../model/geometry.mjs';
-import { nearStructures } from '../model/obstacles.mjs';
+import { nearStructures, frontBayOf, robotOutline } from '../model/obstacles.mjs';
 
 /** The outlines (an SVG group) for field_view's layer; `P` maps field inches to picture pixels. */
 export function obstacleShapes(app, P) {
@@ -20,10 +19,13 @@ export function obstacleShapes(app, P) {
         const on = hit && hit.obstacle.id === o.id ? ` hit-${hit.level}` : '';
         g.append(s('polygon', { class: `g-obstacle${on}`, points: pts(o.footprint), 'data-obstacle': o.id }, s('title', {}, `${o.name} — solid`)));
     }
-    if (hit) {
-        const q = hit.obstacle.at;
+    if (hit) {  // RMP1-Q: against a goal, the outline it was checked with (its bay's radius for that goal)
+        const o = obs.find((x) => x.id === hit.obstacle.id);
+        const who = hit.code === 'RCO3' ? app.baked.robots[app.route().mirroredFor] : app.robot();  // robot two's: its own
+        const bay = o && o.kind === 'goal' ? frontBayOf(who) : null;
+        const r = bay && (o.overhangIn > 0 ? bay.lip : bay.body);
         g.append(s('polygon', { class: `g-obstacle-moment ${hit.level}`, 'data-moment': hit.obstacle.id,
-                                points: pts(squareCorners(q.x, q.y, q.headingDeg, app.size()).map((c) => [c.x, c.y])) }));
+                                points: pts(robotOutline(hit.obstacle.at, app.size(), bay, r).map((c) => [c.x, c.y])) }));
     }
     return g;
 }
@@ -32,7 +34,7 @@ export function obstacleShapes(app, P) {
 export function touchOnPurpose(step, i, app) {
     const obs = (app.field() || {}).obstacles || [];
     const had = step.touches || [];
-    const ids = [...new Set([...nearStructures(app.route(), app.plan(), app.field(), app.size(), i), ...had])];
+    const ids = [...new Set([...nearStructures(app.route(), app.plan(), app.field(), app.size(), i, frontBayOf(app.robot())), ...had])];
     if (!ids.length) {
         return null;
     }

@@ -13,6 +13,7 @@
 // Both 2026 robots are believed tanks ("identical", HA-252); every fixture robot runs on the host test
 // plant's 12 in tank.
 
+#include <array>
 #include <cstring>
 #include <optional>
 #include <string>
@@ -99,7 +100,9 @@ template <std::size_t N>
                                return wiringOwedOf(m, ROUTE_MAKER_WIRING_TYPED(shulib::bench::robot_one_facts)).value_or(WiringOwed{true, true});
                            },
                            .testerOwed = testerOwed(shulib::bench::robot_one_facts::kRobotOneFacts),
-                           .clawInsetIn = shulib::bench::robot_one_facts::kClawGrabInsetIn.value()};
+                           .clawInsetIn = shulib::bench::robot_one_facts::kClawGrabInsetIn.value(),
+                           .frontBayIn = std::array{shulib::bench::robot_one_facts::kFrontBayLipRadiusIn.value(),
+                                                    shulib::bench::robot_one_facts::kFrontBayBodyRadiusIn.value()}};
     }
     if (id == "two") {
         // Robot one's twin (ROB1-BT): its cascade's levels are ITS facts ledger's (robot_two_facts::lv), as robot one's.
@@ -113,7 +116,9 @@ template <std::size_t N>
                                return wiringOwedOf(m, ROUTE_MAKER_WIRING_TYPED(shulib::bench::robot_two_facts)).value_or(WiringOwed{true, true});
                            },
                            .testerOwed = testerOwed(shulib::bench::robot_two_facts::kRobotTwoFacts),
-                           .clawInsetIn = shulib::bench::robot_two_facts::kClawGrabInsetIn.value()};
+                           .clawInsetIn = shulib::bench::robot_two_facts::kClawGrabInsetIn.value(),
+                           .frontBayIn = std::array{shulib::bench::robot_two_facts::kFrontBayLipRadiusIn.value(),
+                                                    shulib::bench::robot_two_facts::kFrontBayBodyRadiusIn.value()}};
     }
     if (id == "x") {
         return RobotSource{.id = "x", .name = "robot x (test)", .table = &mech_fixture::robot_x::kRobotXMechanisms,

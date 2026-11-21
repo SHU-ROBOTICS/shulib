@@ -45,7 +45,7 @@
 //                   (TUNE1-B1's, classified at ROB1-A's integration onto it: it homes the cascade with the
 //                   homing push, jogs it at the unhomed volts and moves it to its first and last level); a
 //                   program added later is classified there or the build fails.
-//   Stage::Recorded written down, gating NO build (the camera, VIS1-B — D12, [R9]; the claw's spot, RMP1-O).
+//   Stage::Recorded written down, gating NO build (the camera, VIS1-B — D12, [R9]; the claw's spot, RMP1-O; its bay, RMP1-Q).
 // The drivetrain needs no ledger: src/robots/chassis_table.hpp's kRobotOneChassis leaves each unknown
 // field UNSET, and every station and program that needs one refuses by name; Calibrate discovers the
 // drive's ports, directions, sides, scale and track width itself.
@@ -679,6 +679,17 @@ inline constexpr auto kClawGrabInsetIn =
     typed(0.0, 1.232, Stage::Recorded, "the claw's grab spot, inches inside the front edge",
           "measured by the team lead, 2026-11-20: the pin's centre 1.232 in inside the front edge, centred");
 ROBOT_ONE_CHECK(kClawGrabInsetIn, "the claw's grab spot, inches inside the front edge");
+// RMP1-Q: the open front bay -- the frame's nearest part to a goal centred on the claw's spot. Only the route builder.
+inline constexpr auto kFrontBayLipRadiusIn =
+    typed(0.0, 3.22, Stage::Recorded, "the front bay's room for a goal's lip, inches from the claw's spot",
+          "measured on the team's CAD (Tears Final.step) by the coordinator, 2026-11-20: Part 020/021, the frame's "
+          "gussets, 81.9 mm from the goal's axis, 0-10 mm above the floor");
+ROBOT_ONE_CHECK(kFrontBayLipRadiusIn, "the front bay's room for a goal's lip, inches from the claw's spot");
+inline constexpr auto kFrontBayBodyRadiusIn =
+    typed(0.0, 2.80, Stage::Recorded, "the front bay's room for a goal's body, inches from the claw's spot",
+          "measured on the team's CAD (Tears Final.step) by the coordinator, 2026-11-20: the two 1x2x1x27 C-channels "
+          "71.2 mm from the goal's axis, 10-64 mm above the floor (the claw not counted: it rides the cascade)");
+ROBOT_ONE_CHECK(kFrontBayBodyRadiusIn, "the front bay's room for a goal's body, inches from the claw's spot");
 
 // ═══ THE COUNT (the Drive boot line, RPV1-B's hatch, the tests) ═════════════════════════════
 
@@ -710,6 +721,7 @@ inline constexpr FactSummary kRobotOneFacts[] = {
     summary(kCascadeMaxDownVolts),  summary(kCascadeTopMargin),
     summary(kCascadeHoldKp),        summary(kCascadeHoldKi),         summary(kCascadeHoldKd),
     summary(kCameraPort),           summary(kCameraMount),           summary(kClawGrabInsetIn),
+    summary(kFrontBayLipRadiusIn),  summary(kFrontBayBodyRadiusIn),
 };
 
 /// How many facts the ledger holds.

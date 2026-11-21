@@ -13,6 +13,7 @@ import { makeEngine } from '../host/engine.mjs';
 import { routeKey, playbackOf, poseAt, sampleIndexAt, stepAt, stepTime, mechanismsAt } from '../model/playback.mjs';
 import { plannedHeights } from '../model/lift.mjs';
 import { ROBOT_TWO_ONLY } from '../model/checks.mjs';
+import { frontBayOf } from '../model/obstacles.mjs';
 import { measureEmptyLimits } from '../model/mech_steps.mjs';
 
 const PHASES = {
@@ -222,7 +223,8 @@ export function createPreview(app, els, engine, baked, toast) {
         const names = (robot) => r.steps.map((x) => ((robot.mechanisms || []).find((m) => m.ident === x.mechanism) || {}).name || '');
         const planned = plannedHeights(r, one);  // the route that RAN: an edit made during the run never reaches its strip
         const mechs = r.steps.map((x, i) => (x.mechanism ? { name: mechName(one, x.mechanism), target: planned[i].after[x.mechanism] ?? null } : null));
-        const solid = { obstacles: (one.field || {}).obstacles || [], size: (one.drive || {}).footprintIn || 15 };  // RMP1-H
+        const bays = Object.fromEntries(Object.entries(baked.robots).map(([id, x]) => [id, frontBayOf(x)]));  // RMP1-Q
+        const solid = { obstacles: (one.field || {}).obstacles || [], size: (one.drive || {}).footprintIn || 15, bays };  // RMP1-H
         const { filled } = measured;
         const runRec = { key, play: playbackOf(res, { one: names(one), two: two ? names(two) : [] }, solid), pairWords, mechs, route: r, filled };
         if (r.together === false && runRec.play.pair) {  // RMP1-C D6: one robot at a time -- robot two's run shown, no gap verdict

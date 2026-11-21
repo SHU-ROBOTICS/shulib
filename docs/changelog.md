@@ -16,6 +16,27 @@
 
 ## API 2.11
 
+### 2026-11-20 — The route builder: a goal centred on the claw sits in the robot's open front
+
+> Written when it was built (chunk RMP1, run RMP1-Q), after White Bot's working route (the teammate: "it is like
+> hella overlap but its actually working"). **No library change — no API change:** the route builder's page, and two
+> recorded facts in each robot's facts file (gating no build). The exported C++ is byte-for-byte what it was.
+
+**What changed (not breaking):** each robot is drawn with its **open front**: the bay round the claw, cut out of its
+square (from the team's CAD: 3.22 in from the claw at a goal's lip, 2.80 in higher up). Against a goal the page checks
+that outline: a red or blue goal centred on the claw sits **in the bay**, and so does the straight drive in. The bay
+fits the base exactly, so a cross placed by hand usually reads a touch (amber): **Touches … on purpose** clears it.
+Past the bay's edge the frame meets the base: more than 0.5 in is red, even on purpose, and the step says how far past
+the edge of the open front. A black or the centre goal, full width above its lip, has 2.80 in, so centred its corners
+touch (amber). Walls and Loaders are still the whole square. PREVIEW's THROUGH a goal agrees. robots.json gains
+`frontBay` for both robots.
+
+**What you must do:** put the claw's cross on the goal's centre (**Place by the claw**, type its x and y), the claw
+lifted above the goal. A drive that plans the goal deeper than the bay is still red: on the robot's drawing the goal
+would be inside its frame. White Bot's test route plans its first goal 3.3 in behind the claw (red); placed by the
+claw, that drive is clear. A laptop that takes the route builder from the published site sees the open front
+at its next release.
+
 ### 2026-11-20 — Robot two's programs build: its wiring is robot one's
 
 > Written when it was decided (the team lead: "Use White Bot's"). **No library change:** robot two's facts file.
