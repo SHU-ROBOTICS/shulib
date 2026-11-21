@@ -180,6 +180,9 @@ function runOf(id, rec, names = [], field = null) {
     const owner = ownersOf(rec, names);
     const ps = rec.pageSteps || [];
     let notes = (rec.field || []).map((f) => ({ ...f, at: stepOfPace(ps, f.s) }));
+    if (field && field.obstacles) {  // the engine's Loader check is the plain square: the page's own (with the open front) judges Loaders
+        notes = notes.filter((f) => !(f.kind === 'THROUGH' && f.element === 'Loader'));
+    }
     const mine = field && field.obstacles ? runThrough(rec.samples || [], field.obstacles, field.size || 15, (field.bays || {})[rec.robot] || null) : null;
     const theirs = notes.find((f) => f.kind === 'THROUGH');
     if (mine && (!theirs || mine.s < theirs.s)) {  // the robot never gets past the first: a later THROUGH is dropped
@@ -199,8 +202,9 @@ function runOf(id, rec, names = [], field = null) {
         return i === hit.at ? { ...step, state: 'failed', words: `Went THROUGH the ${hit.element}`, library: [noteWords(hit), ...step.library], took: null }
             : { ...step, state: 'skipped', words: AFTER_THROUGH, took: null };  // the robot would not do this: no time to suggest
     });
+    const judged = field && field.obstacles ? { ...rec, through: !!hit } : rec;
     return { id, record: rec, samples: rec.samples, path: thinPath(rec.samples), steps, notes, through: hit,
-             headline: headlineOf(rec, steps, hit) };
+             headline: headlineOf(judged, steps, hit) };
 }
 
 /** The headline of a record: the Auton Tester's word (and a THROUGH, as RPV1 says it) and how it reads. */

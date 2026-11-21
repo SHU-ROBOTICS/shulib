@@ -9,10 +9,11 @@
 //   amber  it passes closer than CLEAR_IN, unless the step says it touches that one on purpose (`touches`, D4)
 // A step is judged on what IT does: one that starts already that close and only backs away is not flagged.
 // PREVIEW (runThrough): a run whose square goes more than THROUGH_IN into one is THROUGH, as a wall is.
-// RMP1-Q THE OPEN FRONT: a robot with robots.json `frontBay` is open around its claw's spot. Against a GOAL only, its
+// RMP1-Q THE OPEN FRONT: a robot with robots.json `frontBay` is open around its claw's spot. Against a GOAL or a LOADER
+// (taking a load: the team lead, 2026-11-21), its
 // footprint is the square minus the bay (robotOutline, the polygon the field draws): the disc at the claw's spot and the
 // way in, that disc slid out through the front edge -- the lip radius for a goal that narrows above its lip (red, blue),
-// the body radius for one that does not (black, centre). A goal that does not reach the bay is judged on the square
+// the body radius for one that does not (black, centre) and for a Loader (full width from the floor up). A goal that does not reach the bay is judged on the square
 // exactly as before; one that does, by its deepest overlap with the rest (corners, and the rest's convex pieces). A step
 // that ENDS with a goal in the bay (EPS past it at most) put it there: no amber for it. A goal SEATED in it (its centre
 // within the bay's width, behind the front edge) meets the frame at its lip's height: nothing to reach over, so "on
@@ -127,8 +128,8 @@ export function frontBayOf(robot) {
     return body > 0 && body <= lip && lip < h && f < h && f - lip > -h ? { f, lip, body } : null;
 }
 
-/** The bay's radius against `o`: a goal's (lip or body), or 0 (a Loader, or no bay). */
-const bayRadius = (o, bay) => (bay && o.kind === 'goal' ? (o.overhangIn > 0 ? bay.lip : bay.body) : 0);
+/** The bay's radius against `o`: a goal's (lip or body), a Loader's (body), or 0 (no bay). */
+const bayRadius = (o, bay) => (bay && (o.kind === 'goal' || o.kind === 'Loader') ? (o.overhangIn > 0 ? bay.lip : bay.body) : 0);
 
 /** Robot-frame point (fx forward, fy left) at `pose`. */
 const atPose = (pose, fx, fy) => {
