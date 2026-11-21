@@ -187,6 +187,13 @@ to the step that waits for it. Hide, lock and focus (step 10) work on the badges
 
 ![The field with mechanism badges: 1 home beside the start robot; 3 wait, 4 12 in and 5 close stacked where the drive ends](../assets/route-builder/mechanism-badges.png)
 
+**After a drop, Leave gently:** a **Back up** added right after the claw opens (or a **Straight** step switched to
+**Backwards** there) starts with **Leave gently** on: the robot waits ½ s, then backs out at 5 in/s. Both numbers are
+under the switch; one click turns it off. A Back up clicked with **B** usually turns first, at the robot's own speed:
+for a straight back-out off the piece, use **Straight** with **Backwards** on, as here.
+
+![Straight, Backwards, 4 in right after Open claw, selected: Leave gently switched on at the top of its details, "waits ½ s, then backs out slowly (5 in/s)", and under it Wait first 0.5 s and Back out at 5 in/s](../assets/route-builder/leave-gently.png)
+
 ![A five-step route, ready to export: the steps on the left, the plan on the field, the selected drive on the right](../assets/route-builder/route.png)
 
 ### 6. PREVIEW: watch the library drive it
@@ -353,9 +360,9 @@ comment, then its code. Step 2, for one:
   `r.driveTo(…)`. A position is `claw["open"]`; a level, once the cascade has levels, `cascade[facts::lv(2).name]` —
   level 2 of robot one's facts.
 - **The brain's numbers.** If the route stops on the robot, the brain's log says `STOPPED at step N` with the call's
-  name. A drive that turns first is TWO calls, so the brain counts one step more than the page for each such drive
-  — and wherever the two numbers differ, the comment says the brain's too (*"The brain's log calls the turn step 2
-  and the drive step 3."*).
+  name. A drive that turns first is TWO calls, and **Leave gently** adds one for its wait, so the brain counts one
+  step more than the page for each turn and each wait (two for a Back up that does both) — and wherever the two
+  numbers differ, the comment says the brain's too (*"The brain's log calls the turn step 2 and the drive step 3."*).
 - **Above the steps:** the `Routine` that runs them, named for the route. **Below them:** the route's entry — the name
   on the brain's menu, robot one's start, and the 60 s skills timing (stop at 57 s, everything off at 59 s). Each
   route has its own steps and entry; at the end, **one list** (`kTeamRoutes`) of every route in order, each with
@@ -553,8 +560,8 @@ or **✗** with the first real error; the build is the final judge of every line
 |---|---|---|---|
 | Start | click the empty field | where robot one is placed, and its heading | `e.start = competition::StartPose::field(x, y, h)` |
 | Drive | **D**, click | drives to a point, arriving facing along the line; on a tank it turns to face the point first | `r.face(x, y);` `r.driveTo(x, y);` |
-| Straight | **F**, type the inches | drives forward (or, **Backwards** on, backs up) that far from where the robot is | `r.driveTo(x, y);` / `r.reverseTo(x, y);` — the point it reaches |
-| Back up | **B**, click | the same, backwards (its back turned to the point first) | `r.faceAway(x, y);` `r.reverseTo(x, y);` |
+| Straight | **F**, type the inches | drives forward (or, **Backwards** on, backs up) that far from where the robot is; backing up, it has **Leave gently** too | `r.driveTo(x, y);` / `r.reverseTo(x, y);` — the point it reaches |
+| Back up | **B**, click | the same, backwards (its back turned to the point first); **Leave gently** first waits, then (after the turn) backs out slowly | `r.faceAway(x, y);` `r.reverseTo(x, y);` — with Leave gently, the Wait first and `{.maxLinearSpeed = 5_in / 1_s}` on the back-up |
 | Turn | **T**, click | turns in place to face a point, its back to a point, or to a heading | `r.face(x, y)` / `r.faceAway(x, y)` / `r.turnTo(h)` |
 | Curve | **C**, click 1–16 points, Enter | one smooth path through the points (forwards or backwards) | `r.curveTo({...})` / `r.reverseCurveTo({...})` |
 | Mechanism | **M** → the mechanism → what it does | a lift to a height in inches, or to its bottom (an arm in degrees), or to a level — one control, the bar; a pneumatic's position (its own button); a motor for a time; a home. A move, a home or a run waits until it is done, or keeps driving | `r.move(cascade.to(18_in), t)`, `r.move(arm.to(90), t)`, `r.startMove(...)`, `r.set(claw["open"])`, `r.run(...)`, `r.home(...)` |
@@ -598,6 +605,7 @@ one-click fix it offers it.
 | Both robots together? | a mirrored route has no answer yet (**Yes, at the same time** / **No, one at a time**, one click) |
 | Too close | answered **Yes**: the two robots' squares come closer than 6 in at the start or on a step — the step, the moment and both places said, both squares outlined |
 | Time limits | a time limit is empty or not above 0; volts outside -12 to 12 |
+| Leave gently | its wait not above 0 or past 2 s, or its speed outside 2 to 20 in/s; a back-up too long to finish at that speed inside its time limit (the robot's own is 5 s) |
 | Labels and skips | two steps with one label, or a skip to a label that is not on a LATER step |
 | The name | a name the brain's menu cannot show, one with `"` or `\` or a space at an end, two routes named alike (capitals aside), more than 14 routes, or a project with no `skills` route (offers **Name it "skills"**) |
 | A newer project file | opening a `route_maker.json` made by a newer route builder (a step, or a field of the route, this one cannot write): refused by name, nothing opened. A robot's Controls this one cannot read open read only instead (the Controls tab) |

@@ -230,3 +230,59 @@ TEST_CASE("RMP1-E runner: the tap reads a flywheel's direction, and a piston at 
     CHECK(state(2) == 0.0);
     CHECK(state(4) == -1.0);  // the hood: its line C refused at boot (ABSENT), so at none of its positions
 }
+
+TEST_CASE("RMP1-P runner: a back-up's wait= (Leave gently) is the export's wait, THEN the capped back-up -- one page step, its calls counted") {
+    // BUG CAUGHT: PREVIEW without the wait, the page step's brain numbers one short, a wait on a drive forward
+    // accepted (the export never writes one). (Its order and its carry-on: the case below.)
+    const route_preview::Model m = runOnOne("step do=driveTo x=-36 y=-48 face=0\n"
+                                            "step do=reverseTo x=-36 y=-52 face=0 speed=5 wait=0.5\n"
+                                            "step do=reverseTo x=-40 y=-58 face=1 speed=8 wait=1 fail=carryOn\n"
+                                            "step do=turnTo h=90\n");
+    const std::vector<route_maker::PageStep>& p = route_maker::state().page;
+    REQUIRE(p.size() == 4);
+    CHECK(m.exitCode == 0);
+    CHECK(p[1].verdict == "ok");
+    CHECK(p[1].libFrom == 2);
+    CHECK(p[1].libTo == 3);  // the wait, the back-up
+    CHECK(p[2].verdict == "ok");
+    CHECK(p[2].libFrom == 4);
+    CHECK(p[2].libTo == 6);  // the wait, the turn, the back-up
+    CHECK(p[3].libFrom == 7);
+    CHECK(p[1].t1 - p[1].t0 >= 0.5 + 4.0 / 5.0);  // the wait, then 4 in at most 5 in/s
+    CHECK(p[2].t1 - p[2].t0 >= 1.0);
+    CHECK_THROWS_AS((void)route_maker::parseLines("shulib-route 1\nroute robot=one name=skills park=57 stop=59\nstart x=-36 y=-60 h=90\n"
+                                                  "step do=driveTo x=-36 y=-56 face=0 wait=0.5\n"),
+                    route_maker::LinesError);
+}
+
+TEST_CASE("RMP1-P runner: a gentle back-up that FAILS goes on (carry-on) or lands on its label (skip to) as the export does; "
+          "its wait comes BEFORE the turn") {
+    // BUG CAUGHT: the onFail dropped after the wait (PREVIEW stops a run the robot carries on: the review's C1), the
+    // wait moved after the turn (C6). 20 in at 5 in/s cannot finish in 0.5 s: the back-up TIMES OUT.
+    const auto lines = [](const char* fail) {
+        return std::string{"step do=reverseTo x=-36 y=-80 face=0 speed=5 timeout=0.5 wait=0.5 "} + fail + "\n"
+               "step do=turnTo h=0\nstep do=turnTo h=45 label=end\n";
+    };
+    (void)runOnOne(lines("fail=carryOn"));
+    std::vector<route_maker::PageStep> p = route_maker::state().page;
+    REQUIRE(p.size() == 3);
+    CHECK(p[0].verdict == "failedWentOn");
+    CHECK(p[1].verdict == "ok");
+    CHECK(p[2].verdict == "ok");
+    (void)runOnOne(lines("skipTo=end"));
+    p = route_maker::state().page;
+    CHECK(p[0].verdict == "failedWentOn");
+    CHECK(p[1].verdict == "jumped");
+    CHECK(p[2].verdict == "ok");
+    CHECK(p[0].t1 - p[0].t0 >= 0.5 + 0.5);  // the wait, then the back-up's whole time limit
+    // turned first: the brain's log names the wait, then the turn, then the back-up -- in that order
+    const route_preview::Model m = runOnOne("step do=reverseTo x=-40 y=-70 face=1 speed=8 wait=1\n");
+    std::vector<std::string> done;  // "step N (verb) done in ...", in the order logged
+    for (const route_preview::LogLine& l : m.routineLines) {
+        const std::size_t at = l.text.find(": step ");
+        if (at != std::string::npos && l.text.find(") done in ") != std::string::npos) {
+            done.push_back(l.text.substr(at + 2, l.text.find(") done in ") + 1 - at - 2));
+        }
+    }
+    CHECK(done == std::vector<std::string>{"step 1 (wait 1 s)", "step 2 (faceAway)", "step 3 (reverseTo)"});
+}

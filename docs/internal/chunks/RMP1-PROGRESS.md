@@ -5693,3 +5693,249 @@ One finding from a fresh verifier. Re-checked before anything changed.
   1440/1280 in `scratch/rmp1-k/shots-slots8/`, read: 8 rows fit at 1280×800) and Firefox 4/4. `slots.png` re-made from
   Chromium light 1440 (1200×750, 256 colours, as `to_docs.py`). The docs that say "slot 5 is the team's old code"
   (where-your-code-goes, guide 17) are integrate's, corrected in the merge.
+
+## RMP1-P — Leave gently: a wait and a slow back-out after a drop, one option on the Back up step
+
+> Executor: Claude Opus 5.5 (subagent), worktree `.claude/worktrees/rmp1-p` (branch `rmp1-p`, from 713c495), started
+> 2026-11-20 (`date` at start below). Brief: [`RMP1-P-leave-gently.md`](RMP1-P-leave-gently.md). Scratch:
+> `.claude/coordinator/scratch/rmp1-p/`. The task text said to append "## RMP1-M"; this chunk is RMP1-P (RMP1-M is the
+> Mechanisms tab, in flight beside it), so the heading names RMP1-P.
+
+- Started: reading the brief, RESUMING's standing rules, export.mjs ('wait', 'backward', options()), inspector.mjs's
+  Back up block, step_list.mjs's cards.
+- ~18:22 (times below from `date` and the files' mtimes) — **The design** (read before writing: export.mjs `wait` / `backward` / `options()`, the inspector's Back up
+  blocks, the step cards, route_lines.mjs, the runner's `runRoute` / `stepOf`, run_log.mjs `routeVerbs`, checks.mjs's
+  care rules, app.mjs's add and update paths, and the sibling worktrees' hunks in every shared file, read-only):
+  a Back up (`reverseTo`, `backward`) carries `gentlyWaitS` (the wait; `null` = on with the number not typed, absent =
+  off) and its back-out speed IS its own top speed (`care.maxSpeedInPerS`), so the export writes the page's own Wait
+  (`waitLines`, now shared with the Wait step, byte-identical) and then the page's own capped Back up — nothing new in
+  the C++ but the order. One new model file, `src/model/gently.mjs` (defaults, bounds, `isDrop`, `afterDrop`,
+  `followGently`, the checks' words). D2 lives ONLY in app.mjs's two edit paths (a Back up added; a step switched to a
+  Back up) through `followGently`; loading never calls it. PREVIEW: `route_lines` adds `wait=<s>` to the back-up's
+  line and the runner (`test/route_maker_runner.hpp`) makes the export's wait first, its onFail before each, the page
+  step's calls counted (+1) — so one page step stays one record `pageStep`, its `lib` span covering the wait.
+- 18:25–18:30 — Code in: route.mjs (STEP_KEYS, NUMBER_FIELDS, the null hole), export.mjs, route_lines.mjs, run_log.mjs
+  (`routeVerbs`: the wait's verb first), checks.mjs (RCG1, one loop), app.mjs (two calls), inspector.mjs (one block,
+  one line in the mount, away from RMP1-O's drive-case edits), step_list.mjs (the tag), style.css (one rule), the
+  runner. Host build 0 warnings. Node 265/265 before the new tests.
+- 18:30–18:34 — Golden GL24 (`gl24_leave_gently`, robot x: two routes — "skills" with a 0.5 s / 5 in/s back-up and a
+  turned-first 1 s / 8 in/s one with a label and carry-on; "gently slow" with only the 5 in/s one, so the plant's
+  peak speed isolates that cap) written by `goldens.mjs --write`: **every other golden byte-identical** (git status
+  shows only the two new files). In the suite (`RMP1-P GL24`) and WG1's list (`route_maker_goldens.cpp`). A runner
+  case in `route_maker_runner_test.cpp`. The engine rebuilt (pinned emsdk, `EM_FROZEN_CACHE=1`, `TMPDIR=build/tmp`,
+  emsdk tree clean after): `test/wasm/` 16/17 — WG1 (every golden, gl24 among them: the compiled export's record
+  equals the runner's) passes; the one failure, `RMP1-E: the record's mechanisms` (native, "cascade at pace 35:
+  0.0011666 vs the fixture's 0.0014322"), is **PRE-EXISTING**: the same failure with the base's runner restored and
+  `shulib_route_maker` rebuilt (the fixture predates 11992a7's cascade hold gains) — for the coordinator.
+- by 18:37 — Page test `test/page/gently.page.test.mjs`: Chromium 2/2, Firefox 2/2. Shots light/dark at 1440 and 1280
+  (scratch `shots/`), all eight read: the toggle first under the title, its sub-line, the two numbers; the tag in full on
+  an unselected card ("gently…" on a SELECTED card, where the card's own buttons take the width, as every selected
+  card's title). `docs/assets/route-builder/leave-gently.png` from the light 1440 inspector shot (1200×750, 256 colours).
+- 18:38–18:50 — **Mutants** (driver `scratch/rmp1-p/mutate.py`: each applied once, its dependents rebuilt — the site
+  for a page mutant, the suite binary for a C++ one, the engine site for P6b — run capped, restored in a finally and on
+  SIGTERM/SIGHUP, md5 checked, mtime bumped; verdicts in `scratch/rmp1-p/verdicts.txt`, logs in `mut/`): **17 / 17
+  RED.** The brief's four: P1 the wait dropped from the export (node: the exact lines, the goldens FRESH); P2 the speed
+  cap dropped (node D2; P2b the browser test alone, Firefox); P3 D2 on after a non-drop (node D2; P3b the browser test
+  alone, Firefox); P4 the toggle changing an existing route on load (D2 applied in loadProject: node "loading NEVER
+  turns it on"). And: P5 `libraryCalls` without the wait; P6 the lines without `wait=` (node; P6b the page's PREVIEW on
+  the real engine, Chromium); P7 the runner skipping the wait (suite `RMP1-P runner`: lib spans and the time; its first
+  two runs stopped at the doc gate — the briefing said "not built" beside a built binary — so the driver now removes
+  the binary before the build, and the third run is the verdict); P8 the wait's 2 s bound dropped; P9 the toggle not
+  first (page); P10 the card's tag dropped (page); P11 the speed bounds dropped; P12 the run log's verbs without the
+  wait; P13 the wait dropped from the COMPILED golden (suite GL24: the library refuses two onFails in a row) and P14
+  its 8 in/s cap dropped (suite GL24: the plant's peak speed).
+- **Deltas from the brief, each with its reason:** (1) the progress heading is `## RMP1-P` (the task text said
+  RMP1-M, the Mechanisms tab beside this one). (2) The wait's range is **above 0** and at most 2 s, not 0–2: the
+  library refuses a pause of 0 (`RunGuard::pause: duration must be finite and > 0`), and the page refuses what the
+  library refuses. (3) The export pin is 0.5 s / **5** in/s (the default, D1) plus an edited 1 s / 8 in/s pair — the
+  brief's acceptance line said 0.5 s / 8 in/s, written before the team lead's "even 8 inchs a sec is too fast". (4) A
+  "drop" is a pneumatic set to a position NAMED `open`, `opened`, `release`, `released` or `drop`: the library's own
+  `releases` mark is not in the robots' descriptions, and adding it means changing `route_maker_describe.hpp`, which
+  RMP1-M (wiring) and RMP1-O (clawSpot) are both editing; an arm or lift "releasing position" is not detected. (5) D2
+  also turns it on when a step is SWITCHED to a Back up right after a drop (Straight's Backwards toggle, the drive's
+  Backwards toggle) — the coordinator's own working route was "back up 4 in straight back", made with Straight; and a
+  step switched back to a drive loses it (a drive forward never waits first). (6) "Only waits between" counts both
+  kinds of wait (Wait, Wait until done). (7) The speed is the step's own top speed (`care.maxSpeedInPerS`), shown again
+  in the folded "Speed, time limit and how close" box; turning Leave gently off clears it. (8) Check the mechanisms
+  (`check_route.mjs`) leaves a gentle Back up out as it leaves every drive out (its wait is the Back up's).
+  (9) Both Back up kinds carry it: `reverseTo` (the B tool) and `backward` (Straight, Backwards on).
+- **Prose review (grepped, hits read, 18:47–18:52):** `grep -rn "gently\|Leave gently"` over docs/ (outside
+  internal), README.md, the route builder's and test's READMEs → only this chunk's lines and unrelated "gently" (homing,
+  `.maxDownVolts`); `grep -rn "Back up\|back up\|top speed\|brain's log calls\|libraryCalls\|routeVerbs\|GL23\|
+  goldens/route_maker"` over the same → guide 22's "brain's numbers" bullet (edited: Leave gently adds its wait), its
+  step table's Back up row (edited), test/README.md's golden list and runner-test sentence (edited), the rest unrelated
+  (drivetrain top speeds, HA rows, the CT21 goldens); `grep -n -i "back up\|Wait"` in docs/route-builder.md,
+  where-your-code-goes.md, README.md → nothing about steps; `grep -rln faceFirst` over the public docs → none (no doc
+  lists the project file's step fields, so `gentlyWaitS` needs no schema line). Documents touched: guide 22 (one
+  sentence + `leave-gently.png`, and the two lines above), the changelog (2.11), the route builder's README (a module
+  row, the lines' `wait=`), test/README.md, this log. Not touched: docs/route-builder.md (no step detail there),
+  hardware-assumptions (no robot claim: 5 in/s is the team lead's number, never measured by this chunk).
+- **Gates on the final tree (18:43–18:55):** briefing generated with the suite binary removed, host build 0 warnings
+  (and after every mutant: binary removed, rebuilt); the bounded suite (`suite_run.py green`, `ulimit -v` 4 GiB)
+  **green — 3,914 cases / 3,777,804 assertions** (+2: GL24, the runner case); briefing regenerated after, `check`
+  current; ARM header gate over all 260 lines OK; CI greps (PROS-free, sim-free, LF) hold; api_doc_tool check-fresh /
+  check-examples / self-test / check-coverage / check-removability OK (no `///` changed); doc_staleness_audit self-test
+  and audit clean; node **275 / 275**; route_builder self-test **142 OK**; the engine rebuilt from the restored tree
+  (18:43:59): `test/wasm/` **16 / 17** — WG1 (gl24 among the goldens: the compiled export's record equals the runner's,
+  byte for byte), WG2, WG2s pass; the one failure is the PRE-EXISTING `RMP1-E: the record's mechanisms` (above);
+  page suites on the site rebuilt last: **Firefox 124 pass / 5 skipped / 0 fail, Chromium 120 / 9 / 0** (the one more
+  skip each is this chunk's D3 test without the engine); with `build.py --engine build/wasm`, `gently.page.test.mjs`
+  **3 / 3 in Firefox and Chromium** (D3: the real library runs the wait, the turn and the back-up as page step 3,
+  lib [3, 5], at most 5.5 in/s). src gate not run: no src/, include/ or Makefile change. No browser or helper of mine
+  left running (the ones running at 18:52 are RMP1-O's).
+- **Stopped here: uncommitted, for the coordinator.**
+
+### RMP1-P review findings and their disposition
+
+> Executor: Claude Opus 5.5 (subagent), the same worktree, started 2026-11-20 19:10 EST (`date`). Three reviewers
+> (correctness, tests, docs) returned 23 findings; overlaps merged below. Each is re-checked before anything changes.
+
+- 19:10 — started: reading the brief again, the diff, gently.mjs, the reviewers' probes in `scratch/rmp1-p/review-*`.
+- 19:12–19:21 (`date` and the files' mtimes) — Code changed (each finding's disposition below): `gently.mjs` (its own `gentlySpeedInPerS`; a drop is
+  what the description MARKS; the time rule RCG2), `checks.mjs` (RCG2 beside RCG1; the detour moves Leave gently to
+  the first leg), `route.mjs` (the field), `export.mjs` / `route_lines.mjs` (`capped()`: the slower of the two
+  speeds), the inspector's Back up block (its sub-line says the turn; both boxes keep a hole), `app.mjs` (the robot
+  passed), `test/route_maker_describe.hpp` (a piston's `grabs` / `releases`, one block; `robots/y.json` re-made, x and
+  z unchanged). `goldens.mjs --write`: every golden byte-identical, GL24's `.cpp` too (its route file now carries the
+  speed as `gentlySpeedInPerS`, and its turned-first step a FASTER typed 12 in/s that the export must not use).
+  Engine rebuilt 19:23 (the emitter is in `route_maker_main.cpp`, so the WebAssembly module depends on it; emsdk tree
+  clean). Node 281/281; gently page test Firefox 3/3, Chromium 3/3 (D3 on the engine site); shots re-made in
+  `scratch/rmp1-p/shots2/` (all eight read); `leave-gently.png` re-made from a STRAIGHT back-up (Straight, Backwards).
+- 19:24–19:25 — docs (below). 19:27–19:32 — mutants (driver `scratch/rmp1-p/mutate2.py`, verdicts `verdicts2.txt`, logs
+  and full outputs `mut2/`); 19:29 the time rule's margin made to grow with the speed (finding 1, below), so every
+  mutant of `gently.mjs`, and every page mutant (the page test's words moved with it), was RUN AGAIN on the final
+  file. 19:32–19:44 — the gates (below).
+
+**The dispositions** (23 findings; the duplicates merged; each re-checked first):
+
+1. **A long gentle Back up times out (correctness, major) — REAL, fixed.** Re-checked: `gentlyPatch` capped the speed
+   and left the time limit; robot one's MotionConfig keeps the library's 5 s (`motion_config.hpp:271`; no file under
+   `src/` sets `defaultTimeout`). The host test plant (`scratch/rmp1-p/probe/edge.py`, robot one, the native tool)
+   finishes a gentle back-up up to 10.0 in at 2 in/s, 23.5 at 5, 36.3 at 8, 44.7 at 10, 61.0 at 14, 84.8 at 20: the
+   time past length / speed grows with the speed (0.01 → 0.76 s). **RCG2** (red, `gently.mjs`): leg / speed + (0.3 s +
+   0.04 s per in/s) over its time limit (the typed one, else the library's 5 s) is refused in words ("At 5 in/s this
+   26 in back-up needs about 5.7 s, over its 5 s time limit: it would be cut short. Back up less, back out faster, or
+   give it a longer time limit."). The rule's edges, all inside the plant's: 9.2 in at 2, 22.5 at 5, 43 at 10, 78 at
+   20. Node: 22 in passes and 23 is refused at 5 in/s; a typed 6 s limit lets 26 in pass; a slower typed 3 in/s
+   counts; the edges at 2, 10 and 20 in/s; the 5 s pinned to the header and to no robot setting its own. Page: 10 in
+   at 2 in/s shows the words. Mutants M4 (no rule), M5 (a flat 0.5 s), M11 (6 s) RED. Not done: a time limit set by
+   the page (D4: nothing automatic beyond D2).
+2. **A B Back up turns at full speed between the wait and the slow back-out (correctness, major; docs, major) —
+   REAL; the words fixed, the motion NOT changed.** Re-checked: on a tank a B click more than 0.5° off straight back
+   is turned first, and the export is wait, `faceAway` (the robot's own turn), the capped `reverseTo`. Kept D2 ON for
+   it: the same turn happens with Leave gently off, then a full-speed back-up, so on is never worse. The toggle's
+   sub-line now says it ("waits ½ s, turns at its own speed, then backs out slowly (5 in/s)", page test; mutant M9
+   RED); guide 22, its table row and the changelog say the turn and send a straight back-out to **Straight** with
+   **Backwards** on; the guide's picture is now that straight back-out (turn-first off), not the turned one.
+   Backing out straight BEFORE the turn, or turning gently, is a new motion: AFTER-THE-21ST, for the team lead.
+3. **The flipper's "open" counted as a drop (correctness, major) — REAL, fixed at the root.** The description now
+   carries a piston's `grabs` / `releases` positions (`test/route_maker_describe.hpp`, one block after its
+   `positions`, only when marked: robot one's and two's claw `"grabs": ["closed"]`, the flipper and the ramp none;
+   `robots/y.json` re-made, x and z byte-identical). A drop = a `set` off a `grabs` position or onto a `releases` one;
+   no name rule (the regex is gone, and with it the review's R3 "released" finding: names no longer matter). Node:
+   the claw, the flipper, y's grip both ways, a releases-only piston, a hole, an unknown mechanism, a robot with no
+   claw; page: the flipper pushed out, then B, starts OFF. Mutants M6 (the name rule back), R3 (releases ignored),
+   D1 (the emitter's marks never written: the suite's fixture test) RED. **For the coordinator:** RMP1-M also edits
+   this `case m::Kind::Pneumatic` (its `"start"` after `j += "]";`): a merge conflict on one spot; keep both blocks and
+   re-make `robots/*.json` with `shulib_route_maker describe --robot x|y|z`. Arms and lifts: the library marks no
+   preset as releasing, so none is detected (AFTER-THE-21ST).
+4. **The typed top speed overwritten, then erased (correctness, major) — REAL, fixed.** The back-out speed is its
+   own field, `gentlySpeedInPerS` (STEP_KEYS, the number fields, the null hole); `care` is never touched. The export
+   and PREVIEW's lines use `capped()`: the slower of it and a typed top speed (0 or none: its own). Node: on then off
+   gives the step back exactly (a typed 10 in/s and 2 s kept); a capped Straight flipped to Backwards and back is the
+   same step; a typed 3 wins, a typed 10 does not. GL24's route file now carries the speed in the new field and its
+   turned-first step a FASTER typed 12 in/s; its `.cpp` is byte-identical to before (`gl24_before_review.cpp`), and
+   the suite reads the 8 in/s cap back from the plant. Mutants M1 (on writes care), M1b (off erases care), M2 (the
+   typed slower ignored), M3 (the export uncapped), M12 (the lines uncapped) RED.
+5. **Go around puts a plain leg first (correctness, minor; docs, major) — REAL, fixed.** `applyFix`'s detour moves
+   the wait and the speed to the inserted FIRST leg (the one off the drop) and clears them from the second, so the
+   tag sits on the leg after the drop. Node test; mutant M8 RED. **Duplicate** (Ctrl+D) copies a gentle step whole,
+   as it copies every setting (its care too; only the label and the view are dropped): a delta from "any other Back
+   up starts OFF", kept on purpose — duplicate means the same step again, and its card shows the tag.
+6. **Guide 22's brain-numbers sentence (correctness, minor; docs, minor — the same finding twice) — REAL, fixed:**
+   "A drive that turns first is TWO calls, and Leave gently adds one for its wait, so the brain counts one step more
+   than the page for each turn and each wait (two for a Back up that does both)".
+7. **PREVIEW's carry-on after the wait untested (tests, major) — REAL, fixed.** New suite case "RMP1-P runner: a
+   gentle back-up that FAILS …": 20 in at 5 in/s with a 0.5 s time limit TIMES OUT; with carry-on its verdict is
+   `failedWentOn` and the next step `ok`; with skip-to, `failedWentOn`, `jumped`, `ok`. Mutant C1 (the onFail after
+   the wait dropped, a fresh binary) RED on all six. GL24's comment no longer claims the carry-on (nothing there fails).
+8. **The wait-before-the-turn order pinned only by WG1 (tests, minor) — REAL, fixed.** The same case reads the
+   brain's "done in" lines of a turned-first gentle step: `step 1 (wait 1 s)`, `step 2 (faceAway)`, `step 3
+   (reverseTo)`. Mutant C6 (turn, then wait; a fresh binary) RED. The older runner case's comment no longer claims it.
+9. **An emptied Wait first box untested (tests, minor) — REAL, fixed.** Page: the box emptied keeps the switch on,
+   `gentlyWaitS` null and the "type it" words; both boxes go through one `hole()`. Mutant R1 RED (Firefox).
+10. **RCG1's level not pinned in node (tests, minor) — REAL, fixed:** the bounds test keeps `[level, field, words]`;
+    mutant R11 (amber) RED in node.
+11. **"released" untested (tests, minor) — moot:** no name rule any more (finding 3).
+12. **Four browser verdicts older than the final test (tests, minor) — accepted;** superseded: this round re-ran every
+    page mutant on the final page test and the final site (R1, M9, M10, M10b, P9, P10, P2b, P3b: RED), each failing
+    on its own assertion (`mut2/*.full`).
+13. **test/wasm under the 4 GiB cap; RMP1-E's stale fixture (tests, minor) — REAL, not this chunk's code.** Measured:
+    `module.test.mjs` under `ulimit -v 4194304` fails 12/12, "WebAssembly.instantiate(): Out of memory"
+    (`scratch/rmp1-p/wasm_ulimit.log`); in a `systemd-run` scope (MemoryMax=6G) 16/17. So this round runs test/wasm
+    in the scope, never under `ulimit -v` (the earlier "16 / 17" can only have been from an uncapped run). The one
+    failure is `RMP1-E: the record's mechanisms` with the same numbers as before (0.0011666 vs 0.0014322): the
+    fixture (f0c3028) predates 11992a7's cascade gains; NOT re-verified on the base here. Re-recording it is its own
+    change: for the coordinator (AFTER-THE-21ST row).
+14. **Guide 22 promised "the stack stays standing" (docs, major) — REAL, fixed:** the claim is gone (nothing here was
+    watched on a robot); the sentence says what is exported, the turn first, and the straight alternative; the
+    picture and its alt text are the straight back-out.
+15. **Detour / Duplicate and D2 (docs, major)** — the same as finding 5.
+16. **"What you must do: nothing" is false until the engine is released (docs, major) — REAL, fixed.** Re-checked:
+    `route_builder.py` serves this checkout's page but takes robots.json and the engine from `build/route_maker_site`
+    or the published site; the published runner refuses `wait=` ("a reverseTo step does not take one of its words"),
+    and the published robots.json carries no `grabs`, so D2 never fires there. The changelog's "What you must do" now
+    says both, and that a project saved with it on opens only in this builder or newer, and Send to robot (or export
+    and upload). LINES_VERSION stays 1: a bump would make the old engine refuse EVERY route, not only a gentle one.
+    **For the coordinator:** release the site with this merge (pre-authorized releases), or the team laptop's PREVIEW
+    refuses a gentle step by name and the claw does not switch it on by itself until then.
+17. **Guide 22's checks table had no row for the new red checks (docs, minor) — REAL, fixed:** a "Leave gently" row
+    (the bounds; too long to finish inside its time limit, the robot's own 5 s).
+18. **Straight + Backwards left out; gently.mjs's header (docs, minor) — REAL, fixed:** guide 22's sentence and its
+    Straight row, the changelog; the header now says "added, or switched to".
+19. (= 6.)
+20. **The changelog's "export again" and the newer-file refusal (docs, minor) — REAL, fixed** (finding 16's text).
+21. **AFTER-THE-21ST not updated (docs, minor) — REAL, fixed:** one row in its section 4 (D4; backing out before the
+    turn; arms and lifts; 5 in/s and the margin never watched on White Bot; the wasm tests' cap; RMP1-E's fixture).
+22. **The earlier log's times (docs, minor) — REAL, corrected as far as the files allow:** no start time was ever
+    recorded for the first run (its first entry is "~18:22"); the files show guide 22 last written 18:39:56,
+    test/README 18:39:51, the changelog and the route builder README 18:37:10, so the prose edits were made about
+    18:37–18:40 and the "18:47–18:52" grep was a re-run for the record. This round's times are from `date` and mtimes.
+23. **The briefing's count depends on the path (docs, minor) — REAL, for the coordinator:** this worktree's briefing
+    says 3,915 cases / 3,777,813 assertions; after the merge regenerate it in the main tree (rm -f
+    build/test/shulib_tests, build, then `briefing_status.py generate`).
+
+**Prose review (grepped, hits read, 19:27):** `grep -rn -i gently` over docs/ (outside internal), README.md, the
+route builder's and test's READMEs → guide 22's five lines, the changelog's, the two READMEs' (all this chunk's,
+read and fixed above) and unrelated "gently" (homing, the facts form); `grep -rn "grabs\b"` over the guides and the
+cookbook → the library's own uses (guide 10's declaration, guide 18's step table, the cookbook), none about the route
+builder, so nothing owed (the route builder README states the rule); `grep -rn "time limit"` in guide 22 → line 95
+("the turn to face the point first uses the robot's own settings": consistent), the mechanism and PREVIEW lines
+(unrelated); the description's fields are documented only in `route_maker_describe.hpp`'s header (one clause added).
+Documents touched this round: guide 22 (the sentence, the picture and its alt text, the brain-numbers bullet, the
+Straight and Back up rows, the checks row), the changelog, the route builder README (gently.mjs's row),
+test/README.md (the runner case), AFTER-THE-21ST.md, `leave-gently.png`, this log.
+
+**Mutants (this round, each on a fresh suite binary or a rebuilt site; restored in a finally and on SIGTERM/SIGHUP,
+md5 checked, mtime bumped): 31 / 31 RED** — C1, C6, D1 (suite); R11, R3, M6, M1, M1b, M2, M3, M12, M4, M5, M11, M8,
+P1, P3, P4, P5, P6, P8, P11, P12 (node); R1, M10b, P10, P2b (Firefox), M9, M10, P9, P3b (Chromium). The brief's four:
+P1 (the wait dropped from the export), M3 / P2b (the cap dropped), P3 / P3b (D2 after a non-drop), P4 (D2 applied on
+load, with a robot whose claw is marked). The wasm engine was rebuilt after D1's restore (19:33).
+
+**Gates on the final tree (19:32–19:44):** briefing generated with the suite binary removed; `cmake -S test -B
+build/test` and the full host build, 0 warnings; the bounded suite (`suite_run.py green`, `ulimit -v` 4 GiB) **green —
+3,915 cases / 3,777,813 assertions** (+1: the new runner case); the briefing regenerated after, `check` current; the
+ARM header gate over all 260 lines OK; the CI greps (PROS-free, sim-free) hold and no changed file has a CR;
+api_doc_tool check-fresh / check-examples / self-test / check-coverage / check-removability OK (no `///` changed);
+doc_staleness_audit self-test OK and the audit clean; node **281 / 281**; route_builder self-test **142 OK**; the
+engine rebuilt 19:33 (emsdk tree clean): test/wasm **16 / 17** in a systemd-run scope (the one, RMP1-E, above);
+the full page suites on the rebuilt site **Firefox 124 / 5 skipped / 0 fail, Chromium 120 / 9 / 0**, and on the
+engine site `gently.page.test.mjs` **3 / 3 in both** (D3: the real library runs the wait, the turn and the back-up as
+page step 3). Shots light/dark 1440/1280 in `scratch/rmp1-p/shots2/`, all eight read (taken before the margin change,
+which no shot shows). The src gate not run: no src/, include/ or Makefile change (and it runs the robot's real make).
+No browser or helper of mine left running (the Firefox running at 19:56 is another worktree's `perfect_grab` test).
+- by 19:56 — the first batch's other node mutants (M3, M12, M8, P1, P4, P5, P6, P12) RUN AGAIN on the final `gently.mjs`:
+  RED; the full page suites re-run on the final site (Firefox 124 / 5 / 0, Chromium 120 / 9 / 0); both sites rebuilt
+  LAST, after every restore, and `gently.page.test.mjs` 3 / 3 in both on the engine site; node 281 / 281; every
+  mutated file's md5 back (only `gently.mjs` differs from before the mutants: the margin change, on purpose).
+- **Stopped here: uncommitted, for the coordinator.**

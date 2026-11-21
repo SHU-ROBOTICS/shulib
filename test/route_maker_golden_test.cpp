@@ -109,6 +109,9 @@ namespace rm_gl22 { RM_FIXTURE_X
 namespace rm_gl23 { RM_FIXTURE_X
 #include "goldens/route_maker/gl23_pair_near_the_diagonal.cpp"
 }
+namespace rm_gl24 { RM_FIXTURE_X
+#include "goldens/route_maker/gl24_leave_gently.cpp"
+}
 // Robot one's and robot two's: their REAL declarations (src/robots/mechanism_table.hpp), as the shared file
 // sees them on each robot's build (robot one's names `facts` too: its ledger).
 namespace rm_smoke_one {
@@ -594,6 +597,31 @@ TEST_CASE("RMP1-C GL23: the page and the suite agree on a route both robots run 
     CHECK(v.checked);
     CHECK(v.ok);
     CHECK(std::abs(v.leastGapIn - 9.0) < 1.0);  // the page's least gap: 9.0 in (named_routes.test.mjs, GL23)
+}
+
+TEST_CASE("RMP1-P GL24: Leave gently -- the page's Wait, then the capped back-up, each a library step; its onFail before each") {
+    // BUG CAUGHT: the wait left out (the robot backs straight off the drop), the cap left out (it backs out at full
+    // speed: the team lead's stack knocked over; or at the step's faster typed 12 in/s), or the wait cut short. (A
+    // carry-on lost after the wait: nothing here fails -- "RMP1-P runner: a gentle back-up that FAILS" catches it.)
+    for (auto entry : {&rm_gl24::skillsRoute, &rm_gl24::gentlySlowRoute}) {
+        const AutonEntry e = entry();
+        CAPTURE(e.name);
+        XStack s{rm_rig::startOf(e), mech_fixture::robot_x::kRobotXMechanisms, false};
+        const auto r = s.run(e);
+        INFO(s.transcript());
+        REQUIRE(r.outcome == AutonRunOutcome::RoutineRan);
+        CHECK(r.routine.ok);
+        const bool skills = std::string{e.name} == "skills";
+        CHECK(r.routine.steps == (skills ? 7 : 3));  // a gentle back-up is a wait and a drive; turned first, three calls
+        CHECK(s.count("RTN", "wait 0.5 s") >= 1);
+        CHECK(s.count("RTN", "wait 1 s") >= (skills ? 1 : 0));
+        CHECK(s.world.peakSpeed <= (skills ? 8.0 : 5.0) * 1.1);  // the cap, read back from the plant
+        CHECK(s.world.peakSpeed >= (skills ? 8.0 : 5.0) * 0.5);  // ...and it did drive
+    }
+    const std::string code = golden("gl24_leave_gently.cpp");
+    CHECK(code.find("    r.then([&] { return ctx.guard.pause(0.5_s) == sequence::GuardedWaitResult::Satisfied; },\n"
+                    "           \"wait 0.5 s\");\n"
+                    "    r.reverseTo(-40_in, -55.7_in, {.maxLinearSpeed = 5_in / 1_s});\n") != std::string::npos);
 }
 
 TEST_CASE("RMP1-C: the other autons -- the names the page refuses for a route are exactly the autons both files register beside the routes") {

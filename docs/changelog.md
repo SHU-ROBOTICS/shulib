@@ -16,6 +16,26 @@
 
 ## API 2.11
 
+### 2026-11-20 — The route builder: "Leave gently" after a drop
+
+> Written when it landed, for the team lead's skills route ("even 8 inchs a sec is too fast"). **No library change:**
+> the route builder only.
+
+**What changed:** a **Back up** step has one new switch, first in its details: **Leave gently**. On, the robot waits
+½ s, then backs out at 5 in/s; both numbers are under the switch (a wait up to 2 s, 2 to 20 in/s). A Back up clicked
+with **B** usually turns its back to the point first, at the robot's own turn speed, between the wait and the slow
+back-out: for a straight back-out, use **Straight** with **Backwards** on. A Back up added right after the claw opens
+(waits between are fine), or a Straight step switched to Backwards there, starts with it on, and its card shows a
+small *gently* tag; any other Back up starts off (after the front toggle too), and opening a saved route changes
+nothing. A slower top speed typed in the step's own settings wins; switching it off gives the step back as it was. A
+back-up too long to finish at that speed inside its time limit is refused, in words. The code is the page's own Wait,
+then the Back up at that top speed, and PREVIEW runs exactly that.
+
+**What you must do:** switch it on where you want it, then **Send to robot** (or export and upload) again. PREVIEW of
+a step with it on, and the claw's switch-on by itself, need this route builder's preview engine and robot facts: a
+laptop that takes them from the published site gets them at its next release (until then PREVIEW refuses that step by
+name, and the switch starts off: switch it on). A project saved with it on opens only in this route builder or newer.
+
 ### 2026-11-20 — Robot one's claw: the right way round, and closed from power-up
 
 > Written when it was fixed, with the team lead. **No library change:** robot one's facts and mechanism table.
