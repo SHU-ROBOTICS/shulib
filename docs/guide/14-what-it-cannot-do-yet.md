@@ -129,9 +129,10 @@ catalogued as guesses in the [Hardware Assumptions Register](../hardware-assumpt
 
 **What remains unmeasured, and is load-bearing for the claim:**
 
-- **No camera has ever been pointed at a tag by this project.** The corners-to-pose maths is
-  proven against synthetic images computed from geometry; it has never seen a lens, a shutter, a
-  gymnasium light, or a printed tag.
+- **The corrector has never seen a real camera's tag.** A camera first reported tags to this project
+  on 2026-11-20, as ids and boxes in shulib Drive's trace — never as the corners the corrector reads.
+  The corners-to-pose maths is proven against synthetic images computed from geometry; it has never
+  seen a lens, a shutter, a gymnasium light, or a printed tag.
 - **shulib ships no tag map, deliberately.** Where the tags are on the field is *your* input, and
   nobody here has a citable table of tag positions. A map that is two inches off produces a
   corrector that is *confidently* two inches wrong — and unlike noise, that error does not
@@ -467,7 +468,8 @@ one named piece ([chapter 20](20-the-camera.md)). What that is worth, and what i
 - **A field position is only as good as a box's edges.** It assumes each reported edge is within 2 px of
   the piece's true edge, rounding included (HA-202); edges farther off than that (on the host plant, 2 px
   of jitter plus rounding) made standing Pins' positions miss by up to 1.8 in.
-- **No tags.** The camera's AprilTags stay off; no camera has been pointed at a tag by this project.
+- **No tags.** The library keeps the camera's AprilTags off and has never read one (only shulib Drive's camera
+  trace has, on 2026-11-20).
 
 ## The Toggle flip in a skills route: what it cannot catch
 

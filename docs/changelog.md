@@ -16,6 +16,23 @@
 
 ## API 2.11
 
+### 2026-11-20 — See what the camera sees, in the route builder
+
+> Written when it was built (chunk RMP1, run RMP1-N). **No library change — no API change:** nothing under
+> `include/shulib/` or `src/` moved; only the route builder's page did.
+
+**What you can now do (additive):** watch **shulib Drive** with **Watch the robot** (the route builder on the team
+laptop) and, on a robot with an AI Vision sensor, the **Camera** tab beside **Run** shows what the camera sees, ten times
+a second: one line in words (*Sees: AprilTag 3, redBluePin (87 %), colour 2*) over the camera's picture, each AprilTag
+boxed with its number, each object with its score and the name the camera's model gives it (*class 0* when the camera
+reports none), each colour with its number. A picture greys as soon as the camera stops reporting it (*last seen 2 s
+ago*). Open Watch the robot before starting Drive: the camera's port, its object names and *no AI Vision sensor* are
+printed only as Drive starts. A program that prints nothing about a camera shows no tab. It reads robot one's real
+camera lines of 2026-11-20 (AprilTags 2, 3, 15, 24, 28 and 31; the model's object 0; no names); it has not yet run live
+beside a robot.
+
+**What you must do:** nothing.
+
 ### 2026-11-20 — See the mechanisms work: each step says when it is done
 
 > Written when it was built. **A library change, by the team lead's second freeze exception the day before the

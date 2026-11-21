@@ -5693,3 +5693,289 @@ One finding from a fresh verifier. Re-checked before anything changed.
   1440/1280 in `scratch/rmp1-k/shots-slots8/`, read: 8 rows fit at 1280×800) and Firefox 4/4. `slots.png` re-made from
   Chromium light 1440 (1200×750, 256 colours, as `to_docs.py`). The docs that say "slot 5 is the team's old code"
   (where-your-code-goes, guide 17) are integrate's, corrected in the merge.
+
+## RMP1-N — the camera view: see what the AI Vision sensor sees, live, in Watch the robot
+
+> Executor: Claude Opus 5.5 (subagent), worktree `.claude/worktrees/rmp1-n` (branch `rmp1-n`, from 52b79cb). Brief:
+> [`RMP1-N-camera-view.md`](RMP1-N-camera-view.md). Started 2026-11-20 (EST). The run's task text asked for a
+> `## RMP1-M` heading here; RMP1-M is the Mechanisms chunk in flight beside this one, so this section is headed
+> RMP1-N (a heading named after another chunk would collide with its log at the merge).
+
+- **Started.** Read RESUMING's standing rules and the brief in full.
+- **Read before writing** (15:42–15:53): `CameraTrace` (drive_program.cpp:688–764: the format strings at :704, :710–711,
+  :716, :731, :745, :749, :753, :755; one line every 10th driver tick, every 100th while `n <= 0`), `include/pros/ai_vision.h`
+  (obj/col `xoffset` "left edge (from camera's view)" / `yoffset` "top edge" (:129–130, :152–153): **a corner, not a
+  centre**; a tag is 4 corners, which the trace turns into a centre and a size; `aivision_get_object_count` returns PROS_ERR
+  = INT32_MAX on failure, AIVISION_MAX_OBJECT_COUNT 24). **The picture's size is not in ai_vision.h**: 320 x 240 is
+  `include/shulib/hal/vision_frames.hpp` (`kVisionImageWidthPx`/`HeightPx`, api.vex.com, register HA-193 — *reasoned,
+  not measured*); the view draws with that assumption, named in camera_log.mjs's header. run_log.mjs / run_view.mjs /
+  route_builder.py's watch and the fake `pros terminal` (upload_auton.py's FAKE: one line per FAKE_TERMINAL_EVERY, then
+  the terminal stays open).
+- **A finding the brief did not have: the serial line is cut at 200 bytes.** `CameraTrace` builds a 480-byte line, but
+  TermSink (`diag/term_sink.hpp`, `kMaxMessageBytes = 200`) cuts every message at 200 bytes and appends '…'. Eight
+  entries of 26–33 bytes (numbers inside 320 x 240) do not all fit: a line keeps 5 to 8 whole ones (8 small tags fit; 8
+  objects keep 5 or 6). The parser drops the cut one and the sentence says
+  "and N more" from the line's own `n`. No robot code changed (D4); reported for the coordinator.
+- **The boot line carries `" | "`** (its sample `tag id c(x,y) WxH | obj class (x,y) WxH score% | col id (x,y) WxH`): only a
+  `[CAM]` message whose first piece is exactly `n <int>` is a picture; a test pins the boot line never drawing.
+- **Design (one hook):** `src/model/camera_log.mjs` (the parser, pure), `src/ui/camera_view.mjs` (the card), one import and
+  one line in run_view.mjs's `render()` (`cameraCard(watch, raw)`, fed from RMP1-K's own `raw` lines and `watch.lines`
+  count, so the line handler is untouched), the CSS in one delimited block at the end of style.css. With [CAM] lines: two
+  tabs, **Run** and **Camera**, under the status line; Camera is picked when the card first appears with no run, Run when a
+  new run starts; with Camera picked, CSS (`:has()`) hides RMP1-K's lines but a red status and the buttons.
+- **Parser tests** `test/camera_log.test.mjs` (8): first a pin that every format string is still in drive_program.cpp,
+  TermSink still cuts at 200, vision_frames.hpp still 320 x 240. Lines are built from the C++ strings through a tiny
+  `printf` and TermSink's framing and cut. 8/8 after one fix to the TEST: a line cut by lost bytes INSIDE its last counted
+  tag ("40x4") cannot be told from a whole one — the test now pins what is detectable (a line short of its count drops
+  its last entry; an object's '%' closes it) and the header says the limit.
+- **The card** `src/ui/camera_view.mjs` (16:00): `cameraCard(watch, raw)` keeps one card per watch (a WeakMap on RMP1-K's
+  watch state), reads `raw`'s lines since its last call (`watch.lines` counts them), returns null until a `[CAM]` line came
+  (D2). The sentence is camera_log.mjs's `seesWords`; the picture an SVG with a 320 x 240 viewBox (the boxes in the camera's
+  own pixels, the SVG scales them), dark in both themes; a 250 ms timer greys it with no line coming, and stops itself when
+  the card leaves the screen. Each part is changed only when what it shows changed (the first version rebuilt the card
+  every 250 ms: Firefox's test read a box's style off a node already replaced — a real flicker for anyone hovering a box —
+  so it was fixed in the card, not the test). The robot is named once, through a local `robotWords(which)` ("robot one",
+  "robot two", "this robot"), only in the no-sensor sentence, so RMP1-L's names are one line here.
+- **Page test** `test/page/camera_view.page.test.mjs` (its own helper on a stand-in checkout, the fake `pros terminal`
+  replaying shulib Drive's lines one per 0.05 s, blank lines as the pauses): boot (port 7, class 0 'redBluePin', class 4
+  'cup') → "Camera on port 7: waiting for its first picture." → `n 0` twice, 1 s apart → "Sees nothing", NEVER grey (an
+  in-page recorder keeps every sentence and its grey state) → 2 s of `n 2 | tag 3 c(200,90) 48x44 | obj 0 (40,120) 50x100
+  87%` → "Sees: AprilTag 3, redBluePin (87 %)", the two boxes pinned by kind, label, their picture pixels (176,68,48,44 /
+  40,120,50,100) AND their screen place scaled from 320 x 240 (±2.5), the picture 4:3; the tabs (Camera picked with no run,
+  the log stepped aside; Run brings it back); then the robot goes quiet → `.cam-frame.stale`, "last seen 2–4 s ago" on its
+  own line, the boxes' computed stroke grey. A second test: no `[CAM]` line → no `.cam` at all; the no-sensor line → the
+  card's one sentence ("No camera on robot one: no AI Vision sensor on any port.") and no picture. **Chromium 2/2 and
+  Firefox 2/2** (16:01, after one fix to the CARD: the no-sensor sentence was never mounted on a card's first paint).
+- **Screenshots** (`scratch/rmp1-n/shots/`, Chromium and Firefox, light/dark at 1440x900 and 1280x800, fresh and stale;
+  read): one idea on the panel — the tabs, the one sentence, the picture, Stop watching; RMP1-K's "Watching the robot. On the
+  brain: Auton Tester…" steps aside on Camera. Two fixes from reading them: in dark the picture's edge vanished into the
+  panel (an outline in the border colour), and "— last seen 2 s ago" wrapped mid-phrase (now its own muted line).
+  `docs/assets/route-builder/camera.png` is Chromium light 1440 → 1200x750, 256 colours (`scratch/rmp1-n/to_docs.py`, as
+  RMP1-K's).
+- **Docs** (16:04): guide 22's Watch section — one paragraph (**Camera.** …) and the picture, before "What is on robot one";
+  the route builder's README — an RMP1-N paragraph after RMP1-K's; the changelog's API 2.11 — "See what the camera sees,
+  in the route builder" (no library change), with the plain fact that it has read only lines built from Drive's format.
+- **Mutants (16:03–16:14; driver `scratch/rmp1-n/mutate.py`: each applied once, the site REBUILT before any page run,
+  capped (node: ulimit -v 4 GiB + timeout; Chromium/Firefox: systemd-run MemoryMax=6G), restored in a finally and on
+  SIGTERM/SIGHUP, md5 checked, mtime bumped, the site rebuilt from the restored tree at the end; verdicts in
+  `scratch/rmp1-n/verdicts.txt`, logs in `scratch/rmp1-n/mut/`) — **16 / 16 RED** (N1–N10 and the two format pins), each failure read to be the targeted
+  assertion:
+  N1a x/y swapped in the parser (an object) — node RED (test 2's items, test 4) + Chromium + Firefox RED (the boxes'
+  pixels); N1b x/y swapped in the drawing — Chromium + Firefox RED (the boxes' pixels); N2a the class name not used in the
+  drawing — both RED (the label `class 0 (87 %)`); N2b not used in the sentence — node RED + both browsers (the sentence
+  never says redBluePin: wait timed out); N3a stale never greyed (the card) — both RED (`.cam-frame.stale` never came); N3b
+  never greyed (the CSS rule gone) — both RED ("the boxes greyed": the computed stroke); N4a the card shown with no `[CAM]`
+  line — both RED (an empty sentence before the first line; test 2's "no `.cam`"); N4b any line counted as a camera line —
+  node RED (test 6) + Chromium RED; N5 a short line's last entry kept — node RED ("never tag 4 … 40x4"); N6 a tag's centre
+  drawn as its corner — node + Chromium RED; N7 stale after 0.9 s — Chromium RED (the quiet second greyed: the recorder's
+  `["Sees nothinglast seen 1 s ago", true]`); N8 the run's lines not stepping aside on Camera — Chromium RED ("one idea:
+  the log steps aside"); N9 more entries than counted kept — node RED; N10 a `[CAM]` message without its `n` count read as
+  a picture — node RED (test 5's `n x | tag …`). (N10 was written as "the boot line's sample read as a picture"; the boot
+  line is caught earlier by its own PORT branch, so what N10 proves is the count guard.) And the format pins: N11 Drive's
+  `"n %ld"` → `"count %ld"` in drive_program.cpp — node RED (test 1); N12 TermSink's `kMaxMessageBytes = 200` → 240 —
+  node RED (test 1). Both restored by md5 (drive_program.cpp c0de6773…, term_sink.hpp ba20ecfc…), mtimes bumped: the gates'
+  host build recompiled after them.
+- **Resumed 2026-11-20 16:31 EST** (the run was stopped at the team lead's usage-limit pause, during the final gates:
+  `scratch/rmp1-n/gates-run.log` ends at briefing-post 16:15:31, the src gate's log empty). Checked first: `git diff --
+  src/ Makefile` empty (no gate plant left); the five mutation backups' md5s (`scratch/rmp1-n/bak/`) equal the tree's
+  files (camera_log.mjs 61f3aeb8…, camera_view.mjs 7be9bbff…, drive_program.cpp c0de6773…, style.css a5e29a6b…,
+  term_sink.hpp ba20ecfc…): no mutant in the tree; no browser, node or helper process left running. Nothing finished is
+  redone; the host binary and the site are rebuilt from source before any result is trusted (the gates below).
+- **Re-checked at the resumption, before the gates (16:33):** the code against the C++ again — TermSink frames an Info
+  message `[t=%7.2f] [CAM] …` (no level tag; Warn would butt `[WARN][CAM]`), which `CAM` in camera_log.mjs accepts;
+  `readLine` counts every line unconditionally (run_log.mjs:62), so `cameraCard`'s `watch.lines - read` is the batch since
+  its last paint, and `raw`'s 2000-line cap is handled by the `Math.min`. One README sentence reflowed (a 148-column line).
+- **Prose review (16:55; greps run and their hits read):** `grep -rn -l -E 'run_view|camera_view|camera_log' docs
+  README.md tools/route_maker/README.md` — only the chunk docs and the route builder's README (its RMP1-N paragraph).
+  `grep -rn -E 'Watch the robot|Watch the run' docs README.md` outside chunks/ — route-builder.md:35 (lists Watch the
+  robot: still true, Camera is inside it), guide 22:295 (the Watch section; the Camera paragraph follows at :305), guide
+  09:212 (Watch ticks steps: true), changelog :24 (this run's) and :48 (RMP1-K's: true). `grep -rn -i -E '\[CAM\]|camera
+  trace|what the camera sees|AI Vision' docs README.md` — robot-facts-form :25/:83 (the camera's port: unaffected); guide
+  20 (the library's camera API, the Toggle block — deliberately NOT touched: the Camera tab reads shulib Drive's trace,
+  not the library's camera); guide 14 :168/:431/:434 and guide 10 :901–:991 ("no AI Vision sensor has run this code", the
+  census: about the library, still true); the master plan and HANDOFF (plans: unaffected); README.md:138 ("no camera has
+  ever been pointed at a tag": still true — the tab has read only lines built from Drive's format). `robot_runs` (D3):
+  guide 22:303 only, unchanged and true. Nothing stale found.
+- **Gates on the final tree (16:33–16:54, `scratch/rmp1-n/gates.sh`, the binary removed first, the briefing regenerated
+  before the build and after the suite):** host build 0 warnings; suite green 3911 cases / 3,777,634 assertions (the
+  station 13 log case's count depends on the source path's length: the main tree reads 3,777,632 — 52b79cb); src gate
+  PASS (14 builds, 4 refused as owed; 1006 s); ARM header gate OK; the CI greps (PROS-free, sim-free, LF); api_doc_tool
+  check-fresh (silent, rc 0) / check-examples / self-test / check-coverage / check-removability OK; doc staleness self-test
+  OK and audit clean; readability check-nav + check-tone OK; briefing check current; node 273/273; route_builder self-test
+  142; upload_auton self-test 55; the site built; **Chromium page tests 120 pass / 0 fail / 8 skipped** (each skip another
+  browser's branch or the engine's). **Firefox: the all-files run was OOM-killed by its own 6 GB scope** (journalctl:
+  `run-r9602….scope: Failed with result 'oom-kill'` at 16:53:25 — thirteen Firefoxes at once; the cap did its job, the
+  gate script read the grep's rc 0, so this is recorded, not counted). Re-run with `--test-concurrency=2` under the same
+  cap: **Firefox 124 pass / 0 fail / 4 skipped**; the camera file alone in Firefox 2/2 before that. No browser, node or
+  helper process of this run left running.
+- **Stopped here, built and gated (17:00; nothing committed — the coordinator's).** For the merge: run_view.mjs carries
+  one import (:11) and one line (:155), the CSS one delimited block at style.css's end (RMP1-M may append its own block
+  there too: keep both); RMP1-L's names reach this run's files in two places — `robotWords` (camera_view.mjs:10) and the
+  page test's expected no-sensor sentence (camera_view.page.test.mjs:185), plus camera_log.test.mjs:127's literal
+  argument. For a later chunk (D4, not here): Drive's `[CAM]` line can lose up to 3 of its 8 entries to TermSink's 200-byte cut.
+
+### RMP1-N review findings and their disposition
+
+> Three reviewers (correctness, tests, docs) returned 23 findings; the overlaps (the format pin, found by two lenses;
+> the class names, by two) are taken together below. Started 2026-11-20 17:20 EST, by the same executor; each re-checked
+> before anything changed. Scratch: `scratch/rmp1-n/fix/` (the mutation driver `mutate_fix.py`, its `verdicts.txt` and
+> `mut/` logs, the gates script `gates.sh` and `gates/`, the probes).
+
+**The 11-20 log, read first (17:25).** The coordinator's `robot_logs/robot_one_2026-11-20.log` holds **1325 real `[CAM]`
+lines** from robot one (shulib Drive, sessions from 15:55 to 16:20): 3 boots (:106485, :133245, :176975, each `AI Vision on
+port 7: tags, objects and colours on (1)`, each followed straight by `[LOC]` lines — **no `class N` line, ever**), 687 `n 0`
+(1.00 s apart), 633 one-detection lines and 2 two-detection lines: AprilTags 2, 3, 15, 24, 28 and 31, and the model's object
+0 at 62–80 %. The whole log through the parser (`fix/real_log_probe.mjs`): 1322 pictures read, none refused, 637 items, port
+7, names `{}`. Two lines carry a box past 320 x 240 (tag 3 `c(297,202) 124x21` reaches x 359, :138995; tag 15 `c(213,237)
+36x13` reaches y 243.5, :143204); objects reach x+w = 320 exactly (:184658). The robot-time gap after a line that saw
+something (635 such gaps): 0.1 s in 608, 0.2–0.3 s in 16, 0.4–1.0 s in 11 (7 of them ended in `n 0`, the object gone).
+**For the coordinator:** robot one printed no class names (HA-197; VIS1's piece finder withholds every Object until the
+model matches by name — whether the names are missing or not ready 0.3 s after start-up is unknown); the two tag boxes past
+the frame bear on HA-193 (tag corners may lie outside the picture, or the picture is not 320 x 240 for tags).
+
+
+Each finding, re-checked, then its disposition (mutant ids are `fix/verdicts.txt`'s; the verdicts follow the list):
+
+1. **A close-up object's label clipped off the picture — REAL, fixed.** Re-checked: `obj 0 (40,0) 200x240` put its
+   label at y 255 in a 240-tall viewBox. Measured each browser's SVG text box first (a scratch probe): at font 14 bold,
+   alphabetic −15..+4 (Chromium) / −16..+6 (Firefox), central ±9.5 / ±11, and Firefox's box grows by the text's 3 px
+   outline. So every label is now `dominant-baseline: central`, above its box when there is room (y ≥ 27), else below
+   (y + h ≤ 213), else inside its top, clamped; a tag's number is clamped 0.9 of its size from every edge. Page case: a
+   full-height Pin at y 0 AND robot one's real corner tag (`tag 28 c(13,4) 10x6`, :109002), each label's box inside
+   `.cam-frame` — the first version (baseline 15 inside) failed it in Firefox (−3.6 px), fixed in the card. F1a, F1b.
+2. **The format pin passed when the C++ changed what a number means — REAL (both lenses), fixed.** The first test now
+   pins every CameraTrace statement whole, format AND arguments (whitespace folded): the tag's corners, min/max and centre
+   `(x0 + x1) / 2`, the object's and colour's `xoffset`/`yoffset`/`width`/`height`/`score` and their order, the class line's
+   `id`, the type branches, `n > 8 ? 8` against the parser's exported `MAX_SHOWN`, the `% 10` / `% 100` cadence against
+   `GONE_S` / `STALE_S`, and TermSink's framing (`[t=%7.2f] `, Info's empty level tag, `[TAG] `, the 200-byte cut, '…').
+   The header no longer claims more than it checks. C1–C11 (the reviewers' six and C3, plus Info → `[INFO]`, the busy
+   cadence, the count format, the cut length), R6.
+3. **"(the line was cut)" for a cause a cut cannot produce — REAL, fixed.** `seen.cut` is true only when the message ends
+   in '…' or is short of its count; otherwise "Sees N things (the line could not be read)". The reviewer's probe line
+   now says so (node). F3a, F3b.
+4. **A hidden tab's backlog stamped as just seen; a >2000-line backlog keeps an old boot's names — REAL, fixed in the
+   card** (the one-hook rule kept: run_view.mjs still carries one import and one line). camera_view.mjs notes when the page
+   was hidden (`visibilitychange`); the first read after a hidden spell stamps its lines at the hiding time and the card
+   says "seen while this page was hidden", grey. Lines dropped unread (more than run_view keeps) reset what the camera knew
+   — an old boot's names never name a new boot's objects. Page case with the page's frames held as a hidden page holds
+   them (requestAnimationFrame queued, `document.hidden` true, the event sent), and the backlog through the page's own
+   module. F4a–F4d.
+5. **Boxes stay current for up to 1 s after the object leaves — REAL; fixed, a refinement of D1 for the coordinator.**
+   D1 said "a line older than 1.5 s greys the boxes"; Drive prints every 0.1 s while it sees something and every 1 s
+   while it sees nothing, so a 1.5 s rule never fires between the last box and the next `n 0`. Now `freshS`: a picture
+   that saw something greys 0.35 s after its line (three missed lines), one that saw nothing after 1.5 s (D1's number,
+   kept). The 11-20 log above: no 0.2–0.3 s dropout (16 of them) greys; the 11 gaps of 0.4–1.0 s do, 7 of them the
+   object gone. Transport jitter (serial → pros → the helper → the page) is unmeasured: if the bench shows a flicker, it is
+   the one constant `GONE_S`. The card's timer ticks every 0.1 s (was 0.25 s); the words are "last seen under a second
+   ago", then whole seconds. F5a (the brief's 1.5 s), F5b.
+6. **A detection past 320 x 240: a label at the edge with no box — REAL, fixed.** `inPicture` (all / part / none): a box
+   wholly outside is not drawn (the sentence still names it), and one muted line, "A box runs past the 320 x 240 picture
+   this view assumes.", shows while any box of the picture runs past it — robot one's real tag 3 and tag 15 lines do.
+   F6a, F6c.
+7. **The boot's switch-on result dropped — REAL, fixed.** The boot line's `on (RET)` is kept; not 1 (PROS_SUCCESS):
+   "Camera on port 7 did not switch its detections on (2147483647)." while it sees nothing; what it does see is shown
+   (the evidence wins). F7a–F7c.
+8. **On Camera the helper's pause and "Stopped watching." were hidden — REAL, fixed.** `cameraCard(watch, raw, mode)`
+   (the same one line) marks the card with run_view's mode; the status steps aside only while the watch is live and not
+   red. Pinned: "Stopped watching." visible on Camera; the unplugged brain's error visible on Camera. The paused words
+   ("Sending to the robot…") take the same rule (mode not live) — not driven by a page case (a send in flight). F8a, F8b.
+9. **Class names come only from Drive's start; the guide promised every object a name — REAL, fixed in the docs** (taken
+   with the docs lens's finding: robot one printed none). Guide 22 and the changelog: open Watch the robot before
+   starting Drive (the port, the names and the no-sensor line are printed only then); an object without a name is
+   `class 0`, and on 2026-11-20 the camera printed none. No hint on the card: robot one prints no names even at its start,
+   so "start Drive with Watch open" would mislead there.
+10. **No test fed more than one line per paint (P5 survived) — REAL, fixed.** Page case: the frames held while a boot, two
+    class lines, a picture and a `[CAS]` line arrive; nothing painted until the release (`.cam` absent), then one paint
+    reads them all (the names, the port). P5 (Chromium + Firefox).
+11. **Nothing capped how late the greying comes (P1 survived) — REAL, fixed.** An in-page recorder stamps each change
+    (`performance.now()`, every 20 ms): a picture that saw something greys 0.30–0.75 s after its last line (its last line
+    is told apart: 88 % for 87 %), "Sees nothing" 1.45–1.95 s after its line. P1, N7, F5a, F5b.
+12. **Colour boxes never drawn in a test (P2 survived) — REAL, fixed.** The picture has a colour: kind, label `colour 2`,
+    its attributes, its screen place and its greyed stroke pinned. P2.
+13. **The tab choice and a red status untested (P3, P4, P8 survived) — REAL, fixed.** Page case: a run already on when the
+    card appears → Run first; Camera picked, then run 2 starts → Run; Camera again, run 2 ABORTED while live → the red
+    status visible on Camera; the brain unplugged (the fake's FAKE_UNPLUG) → its words visible on Camera. P3, P4, P8.
+14. **The format test claimed TermSink's framing was checked — REAL, fixed** with 2 (C3, C4 RED).
+15. **The count's edges and a frozen "last seen" (R1–R5, P7 survived) — REAL, fixed.** Node: 24 is not an error, 25 and −1
+    are; a tag at `c(-5,10)` is read (x −15); "Sees 1 thing". Page: the age words counted up — "under a second", "1 s",
+    "2 s". R1–R5, P7.
+16. **The gate script took grep's rc for the page runs — REAL, fixed in the scratch script.** `fix/gates.sh`: every step's
+    rc is its command's (node's for a page run); Firefox runs with `--test-concurrency=2` in the step itself.
+17. **Real `[CAM]` lines existed and were unused — REAL, fixed.** Read (above); a node case over seven real lines with
+    their line numbers (a boot, `n 0`, a tag, an object at the right edge, one at (0,0), the two two-tag lines past the
+    frame); the test's header, the changelog's last sentence ("it reads robot one's real camera lines of 2026-11-20 …; it
+    has not yet run live beside a robot") corrected. My first run read the code before any `[CAM]` line existed (15:42)
+    and did not re-read the log at its resumption (16:31) — the miss.
+18. **The docs promised a class name robot one never printed — REAL, fixed** with 9. The picture keeps its fixture's name
+    (`redBluePin`): the guide's sentence now says when a name shows.
+19. **The prose review judged README.md:138 "still true" — WRONG, corrected here.** The tab having read only built lines
+    said nothing about the claim, and the claim — "no camera has ever been pointed at a tag by this project" — was false
+    from 15:55 that day. Reworded as plain facts: README.md:138, guide 14 (two places), guide 03: the corrector has never
+    seen a real camera's tag; a camera first reported tags on 2026-11-20 as ids and boxes in shulib Drive's trace (never
+    as corners). Left true and untouched: guide 12:142, guide 14:434 and guide 10:905 (about the library's code), the
+    roadmap's "no camera has yet been read by this one" (the adapter). The logged hit list for the third grep was also a
+    subset — re-run this round, before any edit: beyond the logged hits it hits guide 03:90, the glossary :13/:49/:110, guide 21:79, guide
+    20, the roadmap, the master plan, REMAINING-WORK, build-order, HANDOFF, MECH-PANEL, the register, the API pages and
+    the briefing — each about the library's camera, its plans or the robot form; none says what the Camera tab or the
+    11-20 log contradicts. **Owed to the coordinator:** hardware-assumptions.md:1340 ("no AI Vision evidence exists yet",
+    VIS1-A1's additions record) — evidence now exists; left as written (a history record, and the register's evidence is
+    the coordinator's to weigh).
+20. **The watch must be open before Drive starts; nothing said so — REAL, fixed** with 9 (guide 22, the changelog).
+21. **PROJECT-BRIEFING.md's only change was the path artifact — REAL.** Restored from 52b79cb after the gates (below); the
+    main tree regenerates it after the merge.
+22. **README paragraph: "paint", "each detection a box", a 149-column line — REAL, fixed.** "`run_view.mjs`'s
+    `render()`", "each tag, object and colour a box", the paragraph rewritten for this round and wrapped at 120. The
+    earlier entry's "One README sentence reflowed (a 148-column line)" was wrong: the line stayed 149.
+23. **HA-193's Source did not name the Camera tab — REAL, fixed.** Its Source names `camera_log.mjs`, its blast radius the
+    tab's boxes, and **Contained** says the tab's own 320 x 240 is pinned to the two constants by its test. Status
+    untouched (reasoned).
+
+**Mutants (17:37–18:07; driver `fix/mutate_fix.py`: each applied once, the site REBUILT before any page run, node capped
+(ulimit -v 4 GiB + timeout), browsers under systemd-run MemoryMax=6G, restored in a finally and on SIGTERM/SIGHUP, md5
+checked, mtime bumped, the site rebuilt from the restored tree at the end; `git diff -- src include` empty after; verdicts
+in `fix/verdicts.txt`, logs in `fix/mut/`, each failure read to be the targeted assertion) — 56 / 56 RED:**
+- the C++ side, node (test 1 each): C1 an object's x/y swapped in its arguments, C2 a tag's corner for its centre, C3
+  TermSink's `]: `, C4 Info tagged `[INFO]`, C5 the clamp at 12, C6 the quiet cadence 3 s, C7 a colour's w/h swapped, C8
+  class names by `id + 1`, C9 `count %ld`, C10 the cut at 240, C11 the busy cadence every 20th tick;
+- the parser, node: N5, N9, N10 (the cut and garbled guards), R1 −1 not clamped, R2 −1 not an error, R3 the PROS_ERR bound
+  99999, R4 a negative tag centre, R5 "Sees 1 things", R6 MAX_SHOWN 12, F3a every unreadable line "cut", F3b the '…' not
+  read, F7a–F7c the switch-on result; and node + Chromium: N4b any line counted, N6 a tag's centre as a corner, F6a a
+  partial box counted inside (Chromium survived its first run — the page's only edge box was wholly outside, which says
+  the line too; a phase of robot one's real tag 2 + tag 15 line was added, then RED: the line not shown), F5a GONE_S 1.5
+  (the brief's number: grey after 1.58 s), F5b one threshold (1.59 s); node + Chromium + Firefox: N1a x/y swapped, N2b the
+  name not used, P1 STALE_S 3 (re-run on the final test: "Sees nothing" grey after 3.04 s / 3.02 s);
+- the card and its CSS, Chromium and Firefox: N1b x/y swapped (the drawing), N2a the name not drawn, N3a never grey, N3b
+  the grey rule gone (stroke rgb(255, 138, 216)), N4a the card with no `[CAM]` line, P2 colours never drawn, P5 the newest
+  line only (the burst's sentence never came), F1a a label only above or below (Chromium: its box 25.9 px past the bottom;
+  Firefox 29.1), F4a a hidden spell's lines stamped now; Chromium: N7 STALE_S 0.9 (the quiet second greyed), N8 the log not
+  stepping aside, P3 a new run never picks Run, P4 a red status hidden while live, P6 no greying timer, P7 the age words
+  frozen, P8 the first tab always Camera, F1b a tag's number not clamped (6.4 px over the top: robot one's tag 28), F4b the
+  hidden spell said as "last seen", F4c a dropped boot's names kept ('Sees: redBluePin (60 %)'), F4d the hide noted on
+  showing, F6c a box wholly past the picture drawn, F8a the helper's words hidden on Camera, F8b the mode never reaching
+  the card (the status shown while live).
+
+**Gates on the final tree (18:06–18:15, `fix/gates.sh`, every rc the command's own; the binary removed first, the briefing
+regenerated before the build and after the suite):** host build 0 warnings; suite green 3911 cases / 3,777,634 assertions
+(the worktree path's length: the main tree reads 3,777,632); src gate PASS (17:38–17:56, `fix/gates/src-gate.log`, run
+after the C++ mutants were restored and md5-checked: 14 builds, 4 refused as owed; nothing under `src/`, `include/` or the
+Makefile changed in this round); ARM header gate OK; the CI greps (PROS-free, sim-free, LF); api_doc_tool check-fresh
+(rc 0) / check-examples / self-test / check-coverage / check-removability OK; doc staleness self-test OK and audit clean;
+readability check-nav + check-tone OK; briefing check current; node 275/275; route_builder self-test 142; upload_auton
+self-test 55; the site built; **Chromium page tests 123 pass / 0 fail / 8 skipped; Firefox (`--test-concurrency=2`) 127
+pass / 0 fail / 4 skipped** — the camera file 5/5 in each. Then PROJECT-BRIEFING.md restored from 52b79cb (finding 21): in
+this worktree `briefing_status.py check` now reports only that line (3,777,634 against 3,777,632) — regenerate in the main
+tree after the merge.
+
+**Screenshots (18:16; `fix/shots/`, Chromium and Firefox, light/dark at 1440x900 and 1280x800, fresh and grey; read):**
+one idea on the panel — the tabs, the one sentence (and, grey, "last seen 2 s ago" under it), the picture with the tag,
+the Pin and the colour, each label above its box, Stop watching. `docs/assets/route-builder/camera.png` re-made from
+Chromium light 1440 (1200x750, 256 colours, `to_docs.py`): it now shows the colour too, and guide 22's alt text says so.
+
+**Stopped here (18:20; nothing committed — the coordinator's).** For the merge, unchanged from above: run_view.mjs carries
+one import and one line (`cameraCard(watch, raw, mode)`), the CSS one delimited block at style.css's end; RMP1-L's names
+reach this run's files through `robotWords` (camera_view.mjs), the page test's no-sensor sentence and camera_log.test.mjs's
+`'robot one'` argument. Public docs touched this round beyond the chunk's own: README.md (the tag sentence), guides 03 and
+14 (the same claim), docs/hardware-assumptions.md (HA-193's Source, blast radius, Contained). A stray file this round wrote
+by mistake outside the worktree — the mutation driver's pid file, written by a relative path into the integrate
+worktree's `tools/route_maker/src/mut.pid` at 17:38 — was found at 18:04, its content checked (the driver's pid) and
+removed; the integrate worktree's `git status` was clean after.

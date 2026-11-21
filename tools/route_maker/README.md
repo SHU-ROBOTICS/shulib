@@ -99,6 +99,25 @@ helper's self-test (the fake pros's `terminal` and `user-script` commands in `to
 `user-script` prints pros's own `Loading` and `Downloading slot_N.ini` lines, its `v5 read-file` fails as 3.5.6's does), and
 `test/page/run_view.page.test.mjs`.
 
+**RMP1-N — what the camera sees.** When the watched robot prints `[CAM]` lines (shulib Drive's camera trace,
+`src/programs/drive_program.cpp`), Watch the robot gains two tabs, **Run** and **Camera** (`src/ui/camera_view.mjs`, one
+call in `run_view.mjs`'s `render()`; Camera picked while there is no run, Run when a run starts; with Camera picked the
+run's lines step aside, all but the buttons and the status while it is red or the watch is not live). Camera is one
+sentence ("Sees: AprilTag 3, redBluePin (87 %)", the class names from the boot's `class N: 'name'` lines, else `class
+N`) over the camera's 320 x 240 picture, each tag, object and colour a box in the camera's pixels, its label kept inside
+the picture (a box wholly past the picture is not drawn, and one muted line says a box ran past it: the size is HA-193's
+belief). A picture greys when its lines stop: 0.35 s after one that saw something (Drive prints one every 0.1 s), 1.5 s
+after one that saw nothing (one every 1 s); lines read after the page was hidden show as old ("seen while this page was
+hidden"). "no AI Vision sensor on any port" is the sentence alone, a boot whose detections did not switch on says so,
+and no `[CAM]` line means no tabs. `src/model/camera_log.mjs` reads the lines strictly: only a message whose first piece
+is `n <count>` is a picture (the boot line's own `" | "` sample never is), a garbled entry is skipped, a line with more
+entries than its count is refused, a line short of its count drops its last entry (TermSink cuts a message at 200 bytes,
+so a line of 8 keeps 5 to 8 whole, as wide as their numbers are), and a count above 24 or below 0 is "The camera is not
+answering." Tests: `test/camera_log.test.mjs` (lines built from the C++ through TermSink's framing and cut; each
+CameraTrace statement, format AND arguments, and TermSink's framing pinned; robot one's real lines of 2026-11-20) and
+`test/page/camera_view.page.test.mjs` (the fake `pros terminal` replaying boots, a quiet second, pictures and runs; a
+burst and a hidden page with the page's frames held).
+
 ## The preview engine (RMP1-A2e)
 
 The engine behind the page's PREVIEW (which RMP1-A2u wires into the page) runs the REAL library on the host test
